@@ -19,18 +19,30 @@ export default function ChatWidget() {
     { role: "bot", text: "Hi! Ask me about services, prices, hours or booking at Lumen Hair Studio." },
   ]);
   const listRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
 
-  // Auto-scroll the message list to the newest message whenever a
-  // message arrives, the "Thinking…" indicator appears/disappears,
-  // or the widget is opened.
+  // Track whether the visitor is near the bottom. If they scrolled
+  // up to re-read an old message, we should not yank them back down.
+  function handleScroll() {
+    const el = listRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 100;
+  }
+
+  // Auto-scroll only if the visitor is already near the bottom
+  // (stickToBottomRef), whenever a message arrives, the "Thinking…"
+  // indicator appears/disappears, or the widget is opened.
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, busy, open]);
 
   async function send(text: string) {
     const question = text.trim();
     if (!question || busy) return;
+    // The visitor just asked something, so jump to their answer.
+    stickToBottomRef.current = true;
     setMessages((m) => [...m, { role: "user", text: question }]);
     setInput("");
     setBusy(true);
@@ -62,7 +74,7 @@ export default function ChatWidget() {
             <strong>Lumen assistant</strong>
             <button onClick={() => setOpen(false)} aria-label="Close chat">✕</button>
           </div>
-          <div className="chat-messages" ref={listRef}>
+          <div className="chat-messages" ref={listRef} onScroll={handleScroll}>
             {messages.map((m, i) => (
               <div key={i} className={`msg ${m.role}`}>
                 <p>{m.text}</p>
