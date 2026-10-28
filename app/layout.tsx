@@ -1,6 +1,10 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import { Playfair_Display, Inter } from "next/font/google";
 import { business } from "@/lib/business";
+
+const display = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
+const bodyFont = Inter({ subsets: ["latin"], variable: "--font-body" });
 
 export const metadata = {
   title: `${business.name} — Haircuts, Colour & Styling`,
@@ -10,7 +14,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${display.variable} ${bodyFont.variable}`}>{children}</body>
     </html>
   );
 }
