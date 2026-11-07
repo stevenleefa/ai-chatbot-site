@@ -33,6 +33,33 @@ export async function POST(req: Request) {
   }
 
   const supabase = getServerSupabase();
+  // Safety net for a double-click / double-submit that slips past the
+  // disabled button: if the exact same lead (same name, contact,
+  // service and message) was already saved in the last 60 seconds,
+  // don't insert it again — just say thanks as if it saved.
+  const since = new Date(Date.now() - 60_000).toISOString();
+  const { data: recent } = await supabase!
+    .from("leads")
+    .select("created_at, message")
+    .eq("business", BUSINESS_SLUG)
+    .eq("name", name)
+    .eq("contact", contact)
+    .eq("service", service)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const duplicate = (recent ?? []).find(
+    (row) => (row.message ?? "") === (message ?? "")
+  );
+  if (duplicate) {
+    return NextResponse.json({
+      ok: true,
+      saved: true,
+      duplicate: true,
+      message: "Thanks! The studio will confirm your booking request shortly.",
+    });
+  }
+
   const { error } = await supabase!
     .from("leads")
     .insert({

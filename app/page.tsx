@@ -5,19 +5,33 @@ import ChatWidget from "@/components/ChatWidget";
 import { business, services } from "@/lib/business";
 
 export default function Home() {
-  const [lead, setLead] = useState({ name: "", contact: "", service: "Haircut", message: "" });
+  const initialLead = { name: "", contact: "", service: "Haircut", message: "" };
+  const [lead, setLead] = useState(initialLead);
   const [leadResult, setLeadResult] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function submitLead(e: React.FormEvent) {
     e.preventDefault();
+    // Ignore a second click / Enter while a submit is already in flight.
+    if (submitting) return;
+    setSubmitting(true);
     setLeadResult("Sending…");
-    const res = await fetch("/api/lead", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lead),
-    });
-    const data = await res.json();
-    setLeadResult(data.message ?? data.error ?? "Something went wrong.");
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lead),
+      });
+      const data = await res.json();
+      setLeadResult(data.message ?? data.error ?? "Something went wrong.");
+      // Clear the fields only on a successful submit, so a failed
+      // submit keeps what the user typed and they can retry.
+      if (res.ok && data.ok) setLead(initialLead);
+    } catch {
+      setLeadResult("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -71,7 +85,7 @@ export default function Home() {
             </select>
             <textarea placeholder="Anything we should know? (optional)" value={lead.message}
               onChange={(e) => setLead({ ...lead, message: e.target.value })} />
-            <button type="submit">Request booking</button>
+            <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
           </form>
           {leadResult && <p>{leadResult}</p>}
           <p><small>Cancellations need at least 24 hours notice.</small></p>
