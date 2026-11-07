@@ -1,3 +1,8 @@
+// Always fetch fresh leads: do not let Next.js cache the Supabase query
+// in .next, or /leads can show a stale status after an update.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import LeadsTable from "@/components/LeadsTable";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
