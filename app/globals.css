@@ -61,3 +61,35 @@ button:hover { filter: brightness(1.08); }
 .chat-suggested button { background: #f3e8e0; color: var(--plum); font-size: 13px; padding: 6px 10px; }
 .chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; }
 .chat-form input { flex: 1; }
+
+/* --- Owner dashboard (/dashboard) --- */
+.dash-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 48px; }
+.dash-main h1 { color: var(--rose-deep); }
+.dash-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; }
+.dash-nav a { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); text-decoration: none; font-weight: 600; font-size: 14px; }
+.dash-nav a:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.dash-section { margin: 40px 0; scroll-margin-top: 24px; }
+.dash-section h2 { font-size: 30px; color: var(--rose-deep); margin-bottom: 12px; }
+.dash-section h3 { font-size: 20px; margin: 24px 0 10px; }
+.demo-banner { background: #fff3cd; border: 1px solid #e8d28a; border-radius: 14px; padding: 12px 16px; }
+.demo-banner-sample { background: #f6eef0; border-color: #e3c8cd; }
+.dash-note { color: #6b5560; font-size: 14px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.kpi-card { background: white; border: 1px solid #eee2d6; border-top: 5px solid var(--rose); border-radius: 20px; padding: 18px 20px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.08); }
+.kpi-label { font-size: 14px; color: #6b5560; font-weight: 600; }
+.kpi-value { font-family: var(--font-display), Georgia, serif; font-size: 28px; font-weight: 700; color: var(--plum); margin-top: 4px; }
+.table-wrap { overflow-x: auto; }
+.dash-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.06); }
+.dash-table th, .dash-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #f0e6dc; font-size: 15px; }
+.dash-table th { background: var(--plum); color: white; font-weight: 700; }
+.dash-table tr:last-child td { border-bottom: 0; }
+.dash-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.dash-table .total-row td { font-weight: 800; background: #fdf3ee; }
+.dash-table .negative { color: #a83232; }
+.dash-table .sub { color: #6b5560; font-size: 13px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: capitalize; }
+.badge-paid { background: #dcead9; color: #2e6b2e; }
+.badge-unpaid { background: #fdf0d3; color: #8a6d00; }
+.badge-overdue { background: #f8d7da; color: #842029; }
+.badge-low { background: #f8d7da; color: #842029; }
+.badge-ok { background: #dcead9; color: #2e6b2e; }
