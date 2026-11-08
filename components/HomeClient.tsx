@@ -1,0 +1,121 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import ChatWidget from "@/components/ChatWidget";
+import { business } from "@/lib/business";
+import type { SiteSettings } from "@/lib/site-settings";
+
+type Service = { name: string; price: string; time: string; note: string };
+
+// The homepage's interactive part: hero, services, booking form and the
+// AI assistant section. Site contact info comes from the settings prop
+// (database row when configured, lib/business.ts fallback otherwise);
+// services and prices still come from lib/business.ts.
+export default function HomeClient({
+  settings,
+  services,
+  authNav,
+}: {
+  settings: SiteSettings;
+  services: Service[];
+  authNav: ReactNode;
+}) {
+  const initialLead = { name: "", contact: "", service: "Haircut", message: "" };
+  const [lead, setLead] = useState(initialLead);
+  const [leadResult, setLeadResult] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submitLead(e: React.FormEvent) {
+    e.preventDefault();
+    // Ignore a second click / Enter while a submit is already in flight.
+    if (submitting) return;
+    setSubmitting(true);
+    setLeadResult("Sending…");
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lead),
+      });
+      const data = await res.json();
+      setLeadResult(data.message ?? data.error ?? "Something went wrong.");
+      // Clear the fields only on a successful submit, so a failed
+      // submit keeps what the user typed and they can retry.
+      if (res.ok && data.ok) setLead(initialLead);
+    } catch {
+      setLeadResult("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main>
+      <div className="topnav">
+        <strong>{settings.business_name}</strong>
+        <nav>
+          <a href="#services">Services</a>
+          <a href="#booking">Book</a>
+          <a href="#assistant">AI assistant</a>
+          {authNav}
+        </nav>
+      </div>
+
+      <header className="hero">
+        <img className="hero-img" src="/hero.jpg" alt="Inside a bright, elegant hair studio" />
+        <div className="hero-content">
+          <span className="hero-tag">Cuts · Colour · Styling</span>
+          <h1>{settings.business_name}</h1>
+          <p>{business.tagline}</p>
+          <p>{settings.address} · {settings.hours}</p>
+          <p>Call: {settings.phone}</p>
+          <a className="hero-cta" href="#booking">Book an appointment →</a>
+        </div>
+      </header>
+
+      <section id="services" className="reveal">
+        <h2>Services</h2>
+        <div className="grid">
+          {services.map((s) => (
+            <article key={s.name} className="card">
+              <div className="card-icon">✂️</div>
+              <h3>{s.name}</h3>
+              <p className="price">{s.price} · {s.time}</p>
+              <p>{s.note}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="booking" className="reveal">
+        <h2>Book an appointment</h2>
+        <div className="booking-card">
+          <form className="lead-form" onSubmit={submitLead}>
+            <input placeholder="Your name" required value={lead.name}
+              onChange={(e) => setLead({ ...lead, name: e.target.value })} />
+            <input placeholder="Phone or email" required value={lead.contact}
+              onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
+            <select value={lead.service}
+              onChange={(e) => setLead({ ...lead, service: e.target.value })}>
+              {services.map((s) => <option key={s.name}>{s.name}</option>)}
+            </select>
+            <textarea placeholder="Anything we should know? (optional)" value={lead.message}
+              onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+            <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
+          </form>
+          {leadResult && <p>{leadResult}</p>}
+          <p><small>Cancellations need at least 24 hours notice.</small></p>
+        </div>
+      </section>
+
+      <section id="assistant" className="reveal">
+        <h2>Try the AI assistant</h2>
+        <div className="assistant-card">
+          <p>Click “Ask Lumen” at the bottom right. It answers only from the studio’s own details — try asking about a price it does not list, and watch it refuse to guess.</p>
+        </div>
+      </section>
+
+      <ChatWidget />
+    </main>
+  );
+}

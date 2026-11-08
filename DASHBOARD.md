@@ -7,16 +7,12 @@ receivable.
 
 ## How to view it
 
-- Open `/dashboard` in the browser.
-- **Owner token:** it uses the same protection as `/leads`. If
-  `LEADS_OWNER_TOKEN` is set, open it as
-  `/dashboard?token=YOUR_LEADS_OWNER_TOKEN`. With a missing or wrong token it
-  shows an "Owner token required" page. If the token is not set, the
-  dashboard is visible but shows a "Demo mode — this dashboard is
-  unprotected" warning, exactly like `/leads`. This is a v1 demo guard, not
-  full auth — a real client should get proper auth (e.g. Supabase Auth).
-- No Supabase setup and no new env vars are needed. The dashboard works
-  with zero configuration.
+- Sign in at `/login` first. `/dashboard` requires a signed-in account
+  with an active staff or admin profile (see AUTH.md); signed-out users
+  are sent to `/login`. There is no shared token any more — the old
+  `LEADS_OWNER_TOKEN` is gone and unused.
+- No Supabase setup and no new env vars are needed for the dashboard's
+  sample data. The dashboard works with zero configuration.
 
 ## What it shows
 

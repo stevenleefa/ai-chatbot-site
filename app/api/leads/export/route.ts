@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { BUSINESS_SLUG, leadsToCsv, requireOwner, type Lead } from "@/lib/leads";
+import { getSession } from "@/lib/auth/session";
+import { BUSINESS_SLUG, leadsToCsv, type Lead } from "@/lib/leads";
 
 // Owner-only: CSV download of this business's leads, newest first.
 // When Supabase is not configured, returns just the header row.
 export async function GET(req: Request) {
-  if (!requireOwner(req)) {
-    return NextResponse.json({ error: "Owner token required." }, { status: 401 });
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   }
   let leads: Lead[] = [];
   if (isSupabaseConfigured()) {

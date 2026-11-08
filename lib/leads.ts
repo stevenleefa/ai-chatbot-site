@@ -23,37 +23,6 @@ export function isValidStatus(value: unknown): value is LeadStatus {
   return typeof value === "string" && (LEAD_STATUSES as readonly string[]).includes(value);
 }
 
-// --- v1 owner protection (NOT full auth) ---
-// If LEADS_OWNER_TOKEN is set, the owner pages/APIs require it, passed as
-// ?token=... or the x-leads-owner-token header (or Authorization: Bearer ...).
-// If it is NOT set, access is allowed but /leads shows a clear warning
-// that the list is unprotected in demo mode. For a real client, replace
-// this with proper auth (e.g. Supabase Auth) before going live.
-export function ownerTokenIsSet(): boolean {
-  return Boolean(process.env.LEADS_OWNER_TOKEN);
-}
-
-export function ownerTokenMatches(token: string | null | undefined): boolean {
-  const expected = process.env.LEADS_OWNER_TOKEN;
-  if (!expected) return true; // demo mode: unprotected, warned about on /leads
-  return Boolean(token) && token === expected;
-}
-
-export function ownerTokenFromRequest(req: Request): string | null {
-  const url = new URL(req.url);
-  const fromQuery = url.searchParams.get("token");
-  if (fromQuery) return fromQuery;
-  const fromHeader = req.headers.get("x-leads-owner-token");
-  if (fromHeader) return fromHeader;
-  const auth = req.headers.get("authorization");
-  if (auth?.toLowerCase().startsWith("bearer ")) return auth.slice(7);
-  return null;
-}
-
-export function requireOwner(req: Request): boolean {
-  return ownerTokenMatches(ownerTokenFromRequest(req));
-}
-
 // CSV: quote any field containing a comma, quote or newline, doubling quotes.
 export function csvEscape(value: string | null | undefined): string {
   const s = value ?? "";

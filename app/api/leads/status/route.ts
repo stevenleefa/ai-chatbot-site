@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { BUSINESS_SLUG, isValidStatus, requireOwner } from "@/lib/leads";
+import { getSession } from "@/lib/auth/session";
+import { BUSINESS_SLUG, isValidStatus } from "@/lib/leads";
 
 // Owner-only: change one lead's status. Only updates a lead belonging
 // to this business (business filter on the update).
 export async function POST(req: Request) {
-  if (!requireOwner(req)) {
-    return NextResponse.json({ error: "Owner token required." }, { status: 401 });
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   }
   const body = await req.json().catch(() => ({}));
   const { id, status } = body;

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { BUSINESS_SLUG, requireOwner } from "@/lib/leads";
+import { getSession } from "@/lib/auth/session";
+import { BUSINESS_SLUG } from "@/lib/leads";
 
 // Owner-only: list this business's leads, newest first.
-// Requires LEADS_OWNER_TOKEN (?token= / header) when it is set.
+// Requires a signed-in account with an active staff/admin profile.
 export async function GET(req: Request) {
-  if (!requireOwner(req)) {
-    return NextResponse.json({ error: "Owner token required." }, { status: 401 });
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   }
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ ok: true, configured: false, leads: [] });

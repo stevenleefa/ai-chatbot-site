@@ -25,13 +25,12 @@ No payment details are collected or stored anywhere.
   public policies, so the public cannot read/write leads directly; only
   the server, using the service-role key, can.
 
-## Owner protection (v1, not full auth)
+## Owner protection — Supabase Auth login
 
-If `LEADS_OWNER_TOKEN` is set, `/leads` and all leads APIs require it:
-`/leads?token=YOUR_TOKEN` (or the `x-leads-owner-token` header).
-If it is not set, the page is open and shows a clear warning. For a
-real client, replace this with proper auth (e.g. Supabase Auth) before
-relying on it.
+`/leads` and all leads APIs require a signed-in account with an active
+staff or admin profile — see AUTH.md. Sign in at `/login`; the first
+account ever created becomes the owner admin. There is no shared token
+any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
 
 ## Setup (user step — nothing here is wired up yet)
 
@@ -39,22 +38,28 @@ relying on it.
    for both demos).
 2. In Supabase: SQL Editor -> New query -> paste `supabase/schema.sql`
    -> Run. This creates the `leads` table and enables RLS.
-3. In Supabase: Project Settings -> API. Copy the Project URL and the
-   `service_role` key (NOT the anon key).
-4. In this project folder, copy `.env.example` to `.env.local` and fill in:
-   `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and a long
-   random `LEADS_OWNER_TOKEN`. Never commit `.env.local`.
-5. Restart the dev server: `npm run dev`.
-6. Test: submit the booking form on the site, then open
-   `/leads?token=YOUR_TOKEN` — the new lead should appear, and
-   "Download CSV" should give you `leads-salon.csv`.
-7. Vercel (later, separate go-ahead): set the same three env vars in the
+3. In Supabase: SQL Editor -> New query -> paste
+   `supabase/auth-schema.sql` -> Run. This creates the `profiles` and
+   `site_settings` tables, the signup trigger, and the RLS policies.
+4. In Supabase: Project Settings -> API. Copy the Project URL, the
+   `anon` / publishable key, and the `service_role` key (NOT the
+   `sb_secret_` key).
+5. In this project folder, copy `.env.example` to `.env.local` and fill in:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+   `SUPABASE_SERVICE_ROLE_KEY`. Never commit `.env.local`.
+6. Restart the dev server: `npm run dev`.
+7. Test: submit the booking form on the site, then sign up the first
+   account at `/signup` (it becomes admin) and open `/leads` — the new
+   lead should appear, and "Download CSV" should give you
+   `leads-salon.csv`.
+8. Vercel (later, separate go-ahead): set the same three env vars in the
    Vercel project settings before redeploying, or the live site will
-   keep running in demo mode (`saved: false`).
+   keep running in demo mode (`saved: false`). Remove the old
+   `LEADS_OWNER_TOKEN` from Vercel — it is no longer used.
 
 ## Testing without Supabase
 
 With no keys set, `POST /api/lead` returns
-`{ok: true, saved: false, ...}`, `/api/leads` returns
-`{ok: true, configured: false, leads: []}`, and
-`/api/leads/export` returns just the CSV header row.
+`{ok: true, saved: false, ...}`, and `/leads` shows an "Auth is not
+configured" notice. Signed-out requests to `/api/leads` return
+`{error: "Sign in required."}` with status 401.

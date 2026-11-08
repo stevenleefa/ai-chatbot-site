@@ -3,35 +3,37 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import { redirect } from "next/navigation";
 import LeadsTable from "@/components/LeadsTable";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import {
-  BUSINESS_NAME,
-  BUSINESS_SLUG,
-  ownerTokenIsSet,
-  ownerTokenMatches,
-  type Lead,
-} from "@/lib/leads";
+import { isAuthConfigured } from "@/lib/auth/server";
+import { getSession } from "@/lib/auth/session";
+import { BUSINESS_NAME, BUSINESS_SLUG, type Lead } from "@/lib/leads";
 
 // Owner leads list for Lumen Hair Studio. Server component: it reads only this
 // business's leads (business = "salon"), newest first.
-// Access: /leads?token=YOUR_LEADS_OWNER_TOKEN when LEADS_OWNER_TOKEN is set.
-export default async function LeadsPage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
-  const token = searchParams.token ?? null;
-  const tokenSet = ownerTokenIsSet();
-
-  if (tokenSet && !ownerTokenMatches(token)) {
+// Access: sign in at /login. The middleware redirects signed-out users
+// there; this page checks the session itself too (defense in depth).
+export default async function LeadsPage() {
+  if (!isAuthConfigured()) {
     return (
       <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
-        <h1>Leads — Lumen Hair Studio</h1>
-        <p>Owner token required. Open this page as /leads?token=YOUR_LEADS_OWNER_TOKEN</p>
+        <h1>Leads — {BUSINESS_NAME}</h1>
+        <p>
+          <a href="/">← Back to the site</a>
+        </p>
+        <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+          <strong>Auth is not configured.</strong> Add
+          NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
+          .env.local and restart the dev server. Sign-in is unavailable
+          until then, so the leads list is hidden. See AUTH.md.
+        </p>
       </main>
     );
   }
+
+  const session = await getSession();
+  if (!session) redirect("/login?next=/leads");
 
   let leads: Lead[] = [];
   if (isSupabaseConfigured()) {
@@ -51,22 +53,16 @@ export default async function LeadsPage({
     }
   }
 
-  const exportHref = token
-    ? `/api/leads/export?token=${encodeURIComponent(token)}`
-    : "/api/leads/export";
-
   return (
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
-      <h1>Leads — Lumen Hair Studio</h1>
-      <p><a href="/">← Back to the site</a></p>
-      {!tokenSet && (
-        <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
-          <strong>Demo mode — this list is unprotected.</strong> LEADS_OWNER_TOKEN
-          is not set, so anyone who finds /leads can see it. Set
-          LEADS_OWNER_TOKEN in .env.local (and later in Vercel) to require a
-          token. This is a v1 demo guard, not full auth.
-        </p>
-      )}
+      <h1>Leads — {BUSINESS_NAME}</h1>
+      <p>
+        <a href="/">← Back to the site</a> · <a href="/dashboard">Dashboard →</a>
+      </p>
+      <p>
+        Signed in as <strong>{session.user.email}</strong> (
+        {session.profile.role}).
+      </p>
       {!isSupabaseConfigured() && (
         <p>
           Supabase is not configured, so no leads are being saved yet. See
@@ -75,9 +71,9 @@ export default async function LeadsPage({
         </p>
       )}
       <p>
-        <a href={exportHref}>Download CSV (leads-salon.csv)</a>
+        <a href="/api/leads/export">Download CSV (leads-salon.csv)</a>
       </p>
-      <LeadsTable leads={leads} token={token} />
+      <LeadsTable leads={leads} />
     </main>
   );
 }

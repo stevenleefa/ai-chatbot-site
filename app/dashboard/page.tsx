@@ -1,10 +1,13 @@
 // Owner business dashboard for Lumen Hair Studio. Server component.
 // Sample/demo data only — see lib/dashboard.ts and DASHBOARD.md.
-// Access: /dashboard?token=YOUR_LEADS_OWNER_TOKEN when LEADS_OWNER_TOKEN
-// is set, exactly like /leads.
+// Access: sign in at /login. The middleware redirects signed-out users
+// there; this page checks the session itself too (defense in depth).
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import { redirect } from "next/navigation";
+import { isAuthConfigured } from "@/lib/auth/server";
+import { getSession } from "@/lib/auth/session";
 import {
   AS_OF_DATE,
   EMPLOYEES,
@@ -41,7 +44,7 @@ import {
   sum,
   totalStockValue,
 } from "@/lib/dashboard";
-import { BUSINESS_NAME, ownerTokenIsSet, ownerTokenMatches } from "@/lib/leads";
+import { BUSINESS_NAME } from "@/lib/leads";
 
 const NAV = [
   ["Overview", "#overview"],
@@ -60,22 +63,26 @@ function statusBadge(status: string) {
   return <span className={`badge badge-${status}`}>{status}</span>;
 }
 
-export default function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
-  const token = searchParams.token ?? null;
-  const tokenSet = ownerTokenIsSet();
-
-  if (tokenSet && !ownerTokenMatches(token)) {
+export default async function DashboardPage() {
+  if (!isAuthConfigured()) {
     return (
       <main className="dash-main">
         <h1>Dashboard — Lumen Hair Studio</h1>
-        <p>Owner token required. Open this page as /dashboard?token=YOUR_LEADS_OWNER_TOKEN</p>
+        <p>
+          <a href="/">← Back to the site</a>
+        </p>
+        <p role="alert" className="demo-banner">
+          <strong>Auth is not configured.</strong> Add
+          NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
+          .env.local and restart the dev server. Sign-in is unavailable
+          until then, so the dashboard is hidden. See AUTH.md.
+        </p>
       </main>
     );
   }
+
+  const session = await getSession();
+  if (!session) redirect("/login?next=/dashboard");
 
   const kpis = overview();
   const pl = profitAndLoss();
@@ -95,17 +102,13 @@ export default function DashboardPage({
     <main className="dash-main">
       <h1>Dashboard — {BUSINESS_NAME}</h1>
       <p>
-        <a href="/">← Back to the site</a> · <a href="/leads">Leads →</a>
+        <a href="/">← Back to the site</a> · <a href="/leads">Leads →</a> ·{" "}
+        <a href="/admin">Admin →</a>
       </p>
-
-      {!tokenSet && (
-        <p role="alert" className="demo-banner">
-          <strong>Demo mode — this dashboard is unprotected.</strong> LEADS_OWNER_TOKEN
-          is not set, so anyone who finds /dashboard can see it. Set
-          LEADS_OWNER_TOKEN in .env.local (and later in Vercel) to require a
-          token. This is a v1 demo guard, not full auth.
-        </p>
-      )}
+      <p>
+        Signed in as <strong>{session.user.email}</strong> (
+        {session.profile.role}).
+      </p>
 
       <p role="note" className="demo-banner demo-banner-sample">
         <strong>Sample demo data — not a real business&apos;s figures.</strong>{" "}

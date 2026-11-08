@@ -3,21 +3,15 @@
 import { useState } from "react";
 import { LEAD_STATUSES, type Lead } from "@/lib/leads";
 
-export default function LeadsTable({
-  leads,
-  token,
-}: {
-  leads: Lead[];
-  token: string | null;
-}) {
+export default function LeadsTable({ leads }: { leads: Lead[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function changeStatus(lead: Lead, status: string) {
     setBusyId(lead.id);
     setError("");
-    const qs = token ? `?token=${encodeURIComponent(token)}` : "";
-    const res = await fetch(`/api/leads/status${qs}`, {
+    // The session cookie authenticates this request — no token needed.
+    const res = await fetch(`/api/leads/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: lead.id, status }),
