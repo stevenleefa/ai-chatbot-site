@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthServerClient } from "@/lib/auth/server";
 
-// Exchanges the ?code= from Supabase email links (signup confirmation,
-// invite, password recovery) for a session, then redirects to ?next=
+// Exchanges the ?code= from Supabase email links (staff invite,
+// password recovery) for a session, then redirects to ?next=
 // or /dashboard. Used by the email links Supabase sends.
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);

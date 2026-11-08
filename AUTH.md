@@ -6,6 +6,16 @@ There is no `LEADS_OWNER_TOKEN` any more: `/leads`, `/dashboard` and
 profile. The public site (homepage, chatbot, booking form) stays public
 and works with no login at all.
 
+**Invite-only, like a real business website.** There is no public
+signup: nobody can create an account from the site. Staff join only
+when an admin invites them from `/admin`, and the single owner admin
+is seeded once by the site owner (see Setup below). Admin is a role an
+existing admin grants — never something a visitor claims by signing up
+first. (Customer-facing accounts, where customers can create accounts
+of their own, are a separate later step and are NOT part of this
+design: profiles are admin/staff only, and the booking flow is
+unchanged.)
+
 ## Architecture
 
 - **Supabase Auth + `@supabase/ssr`** (`@supabase/ssr` 0.12.x). The
@@ -16,8 +26,9 @@ and works with no login at all.
     by design; the browser client uses it. Row Level Security still
     applies to every query it makes.
   - `SUPABASE_SERVICE_ROLE_KEY` — server only, in `lib/supabase.ts`.
-    Bypasses RLS; used for lead storage and for admin reads/writes
-    after the code has verified the caller is an admin. It is never
+    Bypasses RLS; used for lead storage, for admin reads/writes after
+    the code has verified the caller is an admin, and for sending
+    staff invites (`auth.admin.inviteUserByEmail`). It is never
     imported by client code.
 - **Middleware (`middleware.ts`)** — refreshes the session on every
   request and guards `/leads`, `/dashboard`, `/admin` and
@@ -33,9 +44,20 @@ and works with no login at all.
   past the middleware is still stopped.
 - **Profiles & roles (`supabase/auth-schema.sql`)** — `public.profiles`
   has one row per auth user: `role` (`admin` / `staff`) and `is_active`.
-  A trigger on `auth.users` creates the row on signup: the FIRST
-  profile ever created becomes `admin` (owner bootstrap); every later
-  one starts as `staff`. Admins manage users on `/admin`.
+  A trigger on `auth.users` creates the row for every new user, always
+  as `staff`. Admins manage users on `/admin` (promote/demote,
+  deactivate/reactivate, invite).
+- **Staff invites (`app/admin/actions.ts` `inviteUser`)** — an
+  admin-only server action. It verifies the caller is an admin with
+  `requireRole("admin")`, then calls
+  `supabase.auth.admin.inviteUserByEmail(email, { redirectTo })` with
+  the service-role client. The redirect URL is built from the request
+  host, so it works on `localhost:3000` in dev and on the Vercel URL
+  live, with no hardcoded domain. The invited person clicks the link
+  in the email, `/auth/callback` exchanges the code for a session and
+  sends them to `/auth/update-password`, where they set their first
+  password. Their profile already exists as `staff` (created by the
+  trigger when the invite was accepted).
 - **RLS** — enabled on `profiles`, `site_settings` and `leads`. A user
   can read their own profile; admins can read/update all profiles;
   active staff/admins can read `site_settings` and read/update salon
@@ -61,43 +83,57 @@ and works with no login at all.
 | `lib/auth/server.ts` | Server client (`createServerClient`, anon key + cookies). Null when unconfigured. |
 | `lib/auth/session.ts` | `getSession()` / `getAuthUser()` / `getUserProfile()` / `requireAuth()` / `requireRole()` — authorized = session + active profile. |
 | `middleware.ts` | Session refresh + route guard (see above). |
-| `app/login/page.tsx` | Sign-in form. |
-| `app/signup/page.tsx` | Sign-up form. First account = admin. |
-| `app/auth/callback/route.ts` | Exchanges `?code=` from Supabase email links for a session. |
+| `app/login/page.tsx` | Sign-in form. No signup link — staff join by invite. |
+| `app/auth/callback/route.ts` | Exchanges `?code=` from Supabase email links (invite, password recovery) for a session, then redirects to `?next=` or `/dashboard`. |
 | `app/auth/signout/route.ts` | POST sign-out, redirects to `/`. |
 | `app/auth/reset-password/page.tsx` | Request a password-reset email. |
-| `app/auth/update-password/page.tsx` | Set a new password from a recovery link. |
-| `app/admin/page.tsx` + `app/admin/actions.ts` | Admin-only user list (promote/demote, deactivate/reactivate) and site settings form. |
+| `app/auth/update-password/page.tsx` | Set a new password from a recovery link, or a first password after accepting a staff invite. |
+| `app/admin/page.tsx` + `app/admin/actions.ts` | Admin-only user list (promote/demote, deactivate/reactivate), "Invite staff" form, and site settings form. |
+| `components/InviteStaffForm.tsx` | Client form for the invite action; shows its result inline. |
 | `components/AuthNav.tsx` | Server component in the site nav: "Owner sign in" when logged out, "Dashboard" + "Sign out" when logged in. |
 | `components/HomeClient.tsx` | The homepage's client part (hero, services, booking form). |
 | `lib/site-settings.ts` | `getSiteSettings()` — DB row merged over `lib/business.ts` defaults. |
-| `supabase/auth-schema.sql` | Profiles, site_settings, trigger, helpers, RLS policies. |
+| `supabase/auth-schema.sql` | Profiles, site_settings, trigger (everyone starts as staff), helpers, RLS policies. |
 
 ## Setup (user steps)
 
 The workspace has no Supabase credentials, so these steps run on the
-user's machine / Supabase dashboard:
+user's machine / Supabase dashboard, in order:
 
-1. **Run the SQL.** In Supabase: SQL Editor -> New query -> paste
+1. **Re-run the SQL.** In Supabase: SQL Editor -> New query -> paste
    `supabase/auth-schema.sql` -> Run. (Run `supabase/schema.sql` first
-   if the `leads` table does not exist yet.) It is safe to run twice.
-2. **Add the anon key.** In this project folder, add to `.env.local`:
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY=` with the publishable/anon key from
-   Supabase: Project Settings -> API -> anon / publishable. (The URL
-   and service-role key are already there.) Restart the dev server.
-3. **Sign up the first account.** Open `/signup`, create an account
-   with an email and password. It becomes the owner **admin**
-   automatically — the first profile ever created gets the admin role.
-4. **Email confirmation — pick one:**
-   - **Leave it on (default):** Supabase emails a confirmation link.
-     Click it; the link goes through `/auth/callback` and signs you
-     in. Until then the signup page says "Check your email to confirm
-     your account".
-   - **Turn it off (demo only):** Supabase dashboard -> Authentication
-     -> Providers -> Email -> turn off "Confirm email". Signups then
-     sign in immediately with no email step. Fine for the demo; a real
-     client site should leave confirmation on.
-5. **Vercel (later, separate go-ahead):** set
+   if the `leads` table does not exist yet.) It is safe to run twice —
+   re-running is what replaces the old trigger (first profile = admin)
+   with the new one (everyone starts as staff).
+2. **Anon key.** `NEXT_PUBLIC_SUPABASE_ANON_KEY` should already be in
+   this project's `.env.local` (publishable/anon key from Supabase:
+   Project Settings -> API Keys -> Publishable key). Restart the dev
+   server after any `.env.local` change.
+3. **Allow the callback URL.** Supabase dashboard -> Authentication ->
+   URL Configuration -> Redirect URLs: add
+   `http://localhost:3000/auth/callback` (dev). Add the production
+   URL (`https://ai-chatbot-site-tawny.vercel.app/auth/callback`) when
+   the site goes live — otherwise the invite and reset links are
+   rejected. (The Site URL there should be the live site URL, or
+   `http://localhost:3000` while testing locally.)
+4. **Create the owner account.** Supabase dashboard -> Authentication
+   -> Users -> Add user: enter the owner's email and a password, tick
+   **Auto Confirm User**, and save. This creates the auth user; the
+   trigger creates their profile as `staff`.
+5. **Promote the owner to admin.** In Supabase: SQL Editor -> New
+   query -> run this one line, with the owner's real email address:
+   `update public.profiles set role = 'admin' where email = 'owner@example.com';`
+   That is the only seed step, done once by the person setting the
+   site up — no visitor can do it from the site.
+6. **Sign in.** Open `/login` and sign in with the owner account. The
+   nav now shows "Dashboard" + "Sign out", and `/admin` opens the
+   admin area.
+7. **Invite staff.** On `/admin`, "Invite staff": enter a colleague's
+   email and click "Send invite". They get an email from Supabase,
+   click the link, and set their first password on
+   `/auth/update-password`. They start as staff; promote them on
+   `/admin` if they need admin access.
+8. **Vercel (later, separate go-ahead):** set
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the Vercel project (Type Config,
    like the URL — it is public by design). Remove the old
    `LEADS_OWNER_TOKEN` from Vercel; nothing reads it any more.
@@ -106,11 +142,18 @@ user's machine / Supabase dashboard:
 
 - **Logged-out redirect:** open `/leads`, `/dashboard`, `/admin` while
   signed out — each redirects to `/login?next=<path>`.
+- **No public signup:** open `/signup` — 404. `/login` has no "Create
+  an account" link.
 - **Wrong password:** sign in with a wrong password — "Wrong email or
   password" shows, and you stay on `/login`.
-- **Second user = staff:** sign up a second account — it starts as
-  staff. It can view `/leads` and `/dashboard` but `/admin` shows
-  "Admins only".
+- **Invite a staff member:** as the admin, invite a second email
+  address from `/admin` — "Invite sent to …" shows. Click the link in
+  the email, set a password on `/auth/update-password`, and sign in.
+  The new account starts as staff: it can view `/leads` and
+  `/dashboard` but `/admin` shows "Admins only".
+- **Invite validation:** invite with a blank or malformed email — a
+  clear error shows and no email is sent. Invite an email that already
+  has an account — "already has an account" shows.
 - **Promote:** as the admin, open `/admin`, click "Make admin" on the
   staff user — they can now open `/admin` too.
 - **Deactivate:** as the admin, click "Deactivate" on a user — they can
@@ -129,6 +172,20 @@ user's machine / Supabase dashboard:
 - **Booking form still public:** submit a booking without signing in —
   it still saves (service-role key, unchanged).
 
+## What changed vs the old design
+
+- **Public signup is gone.** `app/signup/page.tsx` is deleted; `/login`
+  has no "Create an account" link; `/signup` is a 404.
+- **The first-admin trigger is gone.** `handle_new_user()` in
+  `supabase/auth-schema.sql` now creates every profile as `staff`.
+  The owner is seeded once with the one-line SQL in Setup step 5.
+- **Staff join by invite.** New: `inviteUser` in `app/admin/actions.ts`
+  and `components/InviteStaffForm.tsx` on `/admin`. The invite email
+  comes from Supabase's default sender unless the project configures
+  its own SMTP.
+- **Customer accounts are NOT built.** Profiles stay admin/staff only.
+  That is a separate later step, decided by the user.
+
 ## What changed vs the token
 
 - `LEADS_OWNER_TOKEN` is deleted everywhere: `lib/leads.ts` helpers,
@@ -141,24 +198,29 @@ user's machine / Supabase dashboard:
 
 ## Known limits (not tested here)
 
-- **The full signup/login flow was NOT tested end to end in this
+- **The full invite flow was NOT tested end to end in this
   workspace** — there are no Supabase credentials here, so no real
-  auth user exists and no live Supabase project was touched. What was
-  verified instead: `npm run build` passes, the chatbot eval passes
-  7/7, and with no env vars the dev server shows the homepage (200),
-  the login/signup/reset pages render, logged-out `/leads`,
-  `/dashboard`, `/admin` redirect to `/login`, and `/api/leads`
-  returns 401 JSON — nothing crashes when Supabase is unconfigured.
+  auth user exists, no invite email was sent, and no live Supabase
+  project was touched. What was verified instead: `npm run build`
+  passes, the chatbot eval passes 7/7, and with no env vars the dev
+  server shows the homepage (200), the login page renders with no
+  signup link, `/signup` is a 404, logged-out `/leads`, `/dashboard`,
+  `/admin` redirect to `/login`, and `/api/leads` returns 401 JSON —
+  nothing crashes when Supabase is unconfigured.
 - **The SQL in `supabase/auth-schema.sql` was reviewed but not
-  executed against a live project.** Run it once and check the Supabase
-  SQL Editor reports success; if a policy name already exists from an
-  earlier run, the `drop policy if exists` lines handle it.
+  executed against a live project.** Re-run it once and check the
+  Supabase SQL Editor reports success; if a policy name already exists
+  from an earlier run, the `drop policy if exists` lines handle it.
+  The owner-promote line in Setup step 5 must use the owner's real
+  email address, and only matches a profile row that already exists
+  (create the user first, step 4).
+- **Invite and reset emails come from Supabase's default sender**
+  unless the project configures its own SMTP — fine for the demo,
+  worth changing for a real client. The `/auth/callback` redirect URL
+  must be allow-listed in Supabase Auth settings (Setup step 3) or the
+  links in those emails are rejected.
 - **Services, prices and chatbot knowledge still live in
   `lib/business.ts`.** The admin settings form edits only business
   name, phone, email, address and hours. Moving services/prices (and
   the chatbot chunks) into the database so an admin can edit them from
   the site is the documented next step.
-- **No email sending is configured here.** Confirmation and
-  password-reset emails come from Supabase's default sender unless the
-  project configures its own SMTP — fine for the demo, worth changing
-  for a real client.

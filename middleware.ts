@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // Refreshes the Supabase session on every request and guards the owner
 // areas (/leads, /dashboard, /admin, /api/leads/*). Public routes — the
 // homepage, /api/chat, the public booking form /api/lead, static assets,
-// /login, /signup and /auth/* — are never blocked here.
+// /login and /auth/* — are never blocked here. There is no public
+// signup page: staff join only by admin invite (see AUTH.md).
 //
 // When Supabase auth is not configured, every request passes through
 // untouched: the public site works, and the protected pages show their

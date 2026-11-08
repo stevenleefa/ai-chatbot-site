@@ -11,6 +11,7 @@ import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession, type Profile } from "@/lib/auth/session";
 import { getSiteSettings } from "@/lib/site-settings";
 import { setUserActive, setUserRole, saveSiteSettings } from "./actions";
+import InviteStaffForm from "@/components/InviteStaffForm";
 
 export default async function AdminPage() {
   if (!isAuthConfigured()) {
@@ -85,8 +86,9 @@ export default async function AdminPage() {
       <section>
         <h2>Users</h2>
         <p>
-          The first account ever created is the owner admin. New signups
-          start as staff; promote them here. Deactivated accounts cannot
+          Staff join by admin invite only — there is no public signup.
+          Invite someone below and they start as staff; promote them
+          here when they need admin access. Deactivated accounts cannot
           sign in. The last remaining active admin cannot be demoted or
           deactivated.
         </p>
@@ -144,6 +146,16 @@ export default async function AdminPage() {
             </table>
           </div>
         )}
+      </section>
+
+      <section>
+        <h2>Invite staff</h2>
+        <p>
+          Send an invite email. The person clicks the link in the email,
+          is signed in through /auth/callback, and sets their first
+          password on /auth/update-password. They start as staff.
+        </p>
+        <InviteStaffForm />
       </section>
 
       <section>

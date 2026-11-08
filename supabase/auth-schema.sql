@@ -7,9 +7,11 @@
 --   public.profiles      — one row per auth user, with a role + active flag.
 --   public.site_settings — a single row (id = 1) of editable site info.
 --   RLS policies so the database itself enforces who can see/change what.
---   A trigger that creates a profiles row on every new auth signup:
---     the FIRST profile ever created becomes 'admin' (owner bootstrap);
---     every later one becomes 'staff'.
+--   A trigger that creates a profiles row on every new auth user.
+--     Every new profile starts as 'staff' — nobody becomes an admin
+--     just by signing up. There is no public signup on the site: staff
+--     join only by admin invite (see AUTH.md), and the single owner
+--     admin is seeded once by the site owner (one SQL line, AUTH.md).
 --   Helper functions is_active_staff() / is_admin() used by the policies.
 --     They are SECURITY DEFINER so they bypass RLS when they read
 --     public.profiles — without that, the policies would recurse on
@@ -33,9 +35,10 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
--- Runs on every new auth.users row. The first profile ever created is
--- the owner, so it becomes admin; everyone after that starts as staff
--- and must be promoted by an admin on /admin.
+-- Runs on every new auth.users row. Every new profile starts as
+-- 'staff'. Admin is a role granted by an existing admin (on /admin, or
+-- the one-time owner-seed SQL in AUTH.md) — never claimed by being the
+-- first to sign up, and there is no public signup on the site.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -44,14 +47,7 @@ set search_path = public
 as $$
 begin
   insert into public.profiles (id, email, role)
-  values (
-    new.id,
-    new.email,
-    case when (select count(*) from public.profiles) = 0
-      then 'admin'
-      else 'staff'
-    end
-  )
+  values (new.id, new.email, 'staff')
   on conflict (id) do nothing;
   return new;
 end;

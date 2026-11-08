@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { getServerSupabase } from "@/lib/supabase";
 import { requireRole } from "@/lib/auth/session";
 
@@ -61,8 +62,7 @@ export async function setUserActive(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function saveSiteSettings(formData: FormData) {
-  const session = await requireRole("admin");
+export async function saveSiteSettings(formData: FormData) {  const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const fields = {
     business_name: String(formData.get("business_name") ?? "").trim(),
@@ -84,4 +84,57 @@ export async function saveSiteSettings(formData: FormData) {
   if (error) throw new Error("Could not save site settings.");
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+// Invite a staff member by email. Admin-only. Uses the service-role
+// client (server only — the key never reaches the browser) to send a
+// Supabase invite email. The link in the email goes through
+// /auth/callback, which creates a session, then to
+// /auth/update-password, where the invited person sets their first
+// password. Their profiles row is created by the trigger as 'staff'.
+// Returns a result object (instead of throwing) so the form can show
+// the outcome inline.
+export async function inviteUser(
+  _prevState: { ok: boolean; message: string },
+  formData: FormData
+): Promise<{ ok: boolean; message: string }> {
+  const session = await requireRole("admin");
+  if (!session) return { ok: false, message: "Admins only." };
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, message: "Enter a valid email address." };
+  }
+  const supabase = getServerSupabase();
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Leads storage is not configured (SUPABASE_SERVICE_ROLE_KEY missing).",
+    };
+  }
+  // Build the site origin from the request so the invite link works in
+  // dev (localhost:3000) and on the live Vercel URL with no hardcoded
+  // domain. Behind a proxy, x-forwarded-proto carries the real scheme.
+  const headerList = headers();
+  const host = headerList.get("host") ?? "";
+  const proto = headerList.get("x-forwarded-proto") ?? "http";
+  if (!host) {
+    return { ok: false, message: "Could not work out the site address." };
+  }
+  const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${proto}://${host}/auth/callback?next=/auth/update-password`,
+  });
+  if (error) {
+    return {
+      ok: false,
+      message:
+        error.message === "User already registered"
+          ? "That email already has an account — find them in the Users list above."
+          : `Could not send the invite: ${error.message}`,
+    };
+  }
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    message: `Invite sent to ${email}. They will start as staff once they accept it and set a password.`,
+  };
 }

@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Browser Supabase client (anon / publishable key only). The anon key is
 // public by design — Row Level Security still applies to every query, and
 // the service-role key is never used here. Returns null when Supabase
-// auth is not configured, so the login/signup pages can show a
+// auth is not configured, so the login page can show a
 // "not configured" notice instead of crashing.
 let browserClient: SupabaseClient | null | undefined;
 

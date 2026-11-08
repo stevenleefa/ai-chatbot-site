@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
 
-// Set a new password after following a recovery link. The link goes
-// through /auth/callback first, which creates a recovery session —
-// without that session this page sends the user back to /login.
+// Set a new password after following a link from an email. The link
+// goes through /auth/callback first, which creates a session — without
+// that session this page sends the user back to /login. Serves two
+// cases: a password reset, and an invited staff member setting their
+// first password after accepting an admin invite.
 export default function UpdatePasswordPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);

@@ -99,13 +99,12 @@ function LoginForm() {
         </p>
       )}
       <p>
-        <a href="/signup">Create an account</a> ·{" "}
         <a href="/auth/reset-password">Forgot your password?</a>
       </p>
       <p>
         <small>
-          The first account ever created becomes the owner admin. Later
-          accounts start as staff and an admin must promote them on /admin.
+          Staff accounts are created by admin invitation only. If you
+          need access, ask an admin to invite you from /admin.
         </small>
       </p>
     </main>

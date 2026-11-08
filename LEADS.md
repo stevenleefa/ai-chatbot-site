@@ -28,9 +28,9 @@ No payment details are collected or stored anywhere.
 ## Owner protection — Supabase Auth login
 
 `/leads` and all leads APIs require a signed-in account with an active
-staff or admin profile — see AUTH.md. Sign in at `/login`; the first
-account ever created becomes the owner admin. There is no shared token
-any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
+staff or admin profile — see AUTH.md. Sign in at `/login`; staff join
+by admin invite from `/admin` (there is no public signup). There is no
+shared token any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
 
 ## Setup (user step — nothing here is wired up yet)
 
@@ -40,7 +40,7 @@ any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
    -> Run. This creates the `leads` table and enables RLS.
 3. In Supabase: SQL Editor -> New query -> paste
    `supabase/auth-schema.sql` -> Run. This creates the `profiles` and
-   `site_settings` tables, the signup trigger, and the RLS policies.
+   `site_settings` tables, the profile-creation trigger, and the RLS policies.
 4. In Supabase: Project Settings -> API. Copy the Project URL, the
    `anon` / publishable key, and the `service_role` key (NOT the
    `sb_secret_` key).
@@ -48,10 +48,10 @@ any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`. Never commit `.env.local`.
 6. Restart the dev server: `npm run dev`.
-7. Test: submit the booking form on the site, then sign up the first
-   account at `/signup` (it becomes admin) and open `/leads` — the new
-   lead should appear, and "Download CSV" should give you
-   `leads-salon.csv`.
+7. Test: submit the booking form on the site, then sign in at `/login`
+   with the owner account (see AUTH.md for the owner setup and staff
+   invites) and open `/leads` — the new lead should appear, and
+   "Download CSV" should give you `leads-salon.csv`.
 8. Vercel (later, separate go-ahead): set the same three env vars in the
    Vercel project settings before redeploying, or the live site will
    keep running in demo mode (`saved: false`). Remove the old

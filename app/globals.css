@@ -43,6 +43,12 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
 
 .booking-card, .assistant-card { background: white; border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
 .lead-form { display: grid; gap: 12px; max-width: 540px; }
+/* Labels wrap their input (Email, Password, …). Stack the label text
+   above the input and make the input fill the form width, so every field
+   lines up with the others and with the submit button. Without this the
+   inputs sat at their narrow default width inside the full-width label. */
+.lead-form label { display: grid; gap: 6px; }
+.lead-form input, .lead-form select, .lead-form textarea { width: 100%; box-sizing: border-box; }
 .lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 16px; border: 1px solid #d8c7b8; border-radius: 12px; background: var(--cream); color: var(--plum); font-family: inherit; }
 button { padding: 12px 20px; font-size: 16px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; }
 button:hover { filter: brightness(1.08); }
