@@ -5,6 +5,7 @@ export const revalidate = 0;
 
 import { redirect } from "next/navigation";
 import LeadsTable from "@/components/LeadsTable";
+import OwnerNav from "@/components/OwnerNav";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -57,8 +58,9 @@ export default async function LeadsPage() {
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
       <h1>Leads — {BUSINESS_NAME}</h1>
       <p>
-        <a href="/">← Back to the site</a> · <a href="/dashboard">Dashboard →</a>
+        <a href="/">← Back to the site</a>
       </p>
+      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).

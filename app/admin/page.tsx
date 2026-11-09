@@ -12,6 +12,7 @@ import { getSession, type Profile } from "@/lib/auth/session";
 import { getSiteSettings } from "@/lib/site-settings";
 import { setUserActive, setUserRole, saveSiteSettings } from "./actions";
 import InviteStaffForm from "@/components/InviteStaffForm";
+import OwnerNav from "@/components/OwnerNav";
 
 export default async function AdminPage() {
   if (!isAuthConfigured()) {
@@ -40,6 +41,7 @@ export default async function AdminPage() {
         <p>
           <a href="/">← Back to the site</a>
         </p>
+        <OwnerNav />
         <p role="alert">
           <strong>Admins only.</strong> You are signed in, but your account
           does not have the admin role. Ask an admin to promote you on this
@@ -76,9 +78,9 @@ export default async function AdminPage() {
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
       <h1>Admin — Lumen Hair Studio</h1>
       <p>
-        <a href="/">← Back to the site</a> · <a href="/leads">Leads →</a> ·{" "}
-        <a href="/dashboard">Dashboard →</a>
+        <a href="/">← Back to the site</a>
       </p>
+      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (admin).
       </p>

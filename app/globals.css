@@ -51,6 +51,12 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
 .lead-form input, .lead-form select, .lead-form textarea { width: 100%; box-sizing: border-box; }
 .lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 16px; border: 1px solid #d8c7b8; border-radius: 12px; background: var(--cream); color: var(--plum); font-family: inherit; }
 button { padding: 12px 20px; font-size: 16px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; }
+/* Owner navigation buttons (site nav + top of /leads, /dashboard, /admin).
+   Real buttons that go to the owner routes, so nobody has to type a URL. */
+.owner-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.owner-nav a, .owner-nav button { display: inline-block; padding: 8px 16px; font-size: 15px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; text-decoration: none; cursor: pointer; font-weight: 700; font-family: inherit; }
+.owner-nav a:hover, .owner-nav button:hover { filter: brightness(1.08); }
+.owner-nav form { display: inline; margin: 0; }
 button:hover { filter: brightness(1.08); }
 
 .chat-widget { position: fixed; right: 20px; bottom: 20px; z-index: 50; }

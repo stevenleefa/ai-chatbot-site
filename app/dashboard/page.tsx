@@ -45,6 +45,7 @@ import {
   totalStockValue,
 } from "@/lib/dashboard";
 import { BUSINESS_NAME } from "@/lib/leads";
+import OwnerNav from "@/components/OwnerNav";
 
 const NAV = [
   ["Overview", "#overview"],
@@ -102,9 +103,9 @@ export default async function DashboardPage() {
     <main className="dash-main">
       <h1>Dashboard — {BUSINESS_NAME}</h1>
       <p>
-        <a href="/">← Back to the site</a> · <a href="/leads">Leads →</a> ·{" "}
-        <a href="/admin">Admin →</a>
+        <a href="/">← Back to the site</a>
       </p>
+      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).
