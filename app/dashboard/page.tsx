@@ -49,6 +49,7 @@ import { BUSINESS_NAME } from "@/lib/leads";
 import OwnerNav from "@/components/OwnerNav";
 import DashboardTabs from "@/components/DashboardTabs";
 import BarChart from "@/components/BarChart";
+import { employeeIdForName } from "@/lib/employees";
 
 function statusBadge(status: string) {
   return <span className={`badge badge-${status}`}>{status}</span>;
@@ -216,7 +217,11 @@ export default async function DashboardPage() {
                 <tr key={`${s.date}-${i}`}>
                   <td>{fmtDate(s.date)}</td>
                   <td>{s.service}</td>
-                  <td>{s.stylist}</td>
+                  <td>
+                    <Link href={`/employees/${employeeIdForName(s.stylist)}`}>
+                      {s.stylist}
+                    </Link>
+                  </td>
                   <td>{s.payment}</td>
                   <td className="num">{money(s.price)}</td>
                 </tr>
@@ -321,7 +326,11 @@ export default async function DashboardPage() {
             <tbody>
               {EMPLOYEES.map((e) => (
                 <tr key={e.name}>
-                  <td>{e.name}</td>
+                  <td>
+                    <Link href={`/employees/${employeeIdForName(e.name)}`}>
+                      {e.name}
+                    </Link>
+                  </td>
                   <td>{e.role}</td>
                   <td className="num">{money(e.hourlyRate)}</td>
                   <td className="num">{e.hoursPerWeek}</td>
@@ -361,7 +370,13 @@ export default async function DashboardPage() {
             <tbody>
               {payroll.rows.map((r) => (
                 <tr key={r.name}>
-                  <td>{r.name}<br /><span className="sub">{r.role}</span></td>
+                  <td>
+                    <Link href={`/employees/${employeeIdForName(r.name)}`}>
+                      {r.name}
+                    </Link>
+                    <br />
+                    <span className="sub">{r.role}</span>
+                  </td>
                   <td className="num">{r.hours.toFixed(2)}</td>
                   <td className="num">{money(r.gross)}</td>
                   <td className="num">{money(r.incomeTax)}</td>

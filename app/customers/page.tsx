@@ -8,6 +8,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
+import ColourLegend from "@/components/ColourLegend";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -57,6 +58,8 @@ export default async function CustomersPage() {
         <code>lib/customers.ts</code> and <code>CUSTOMERS.md</code>).
       </p>
 
+      <ColourLegend />
+
       <p>
         {nudgeCount} {nudgeCount === 1 ? "customer needs" : "customers need"}{" "}
         a nudge — due for a visit with no appointment booked. Sorted by next
@@ -67,13 +70,22 @@ export default async function CustomersPage() {
         <table className="dash-table">
           <thead>
             <tr>
-              <th>Customer</th>
+              <th>
+                Customer{" "}
+                <span className="tag tag-people">People</span>
+              </th>
               <th>Contact</th>
               <th>Last visit</th>
-              <th>Next due</th>
+              <th>
+                Next due{" "}
+                <span className="tag tag-appointments">Appointments</span>
+              </th>
               <th>Status</th>
               <th className="num">Visits</th>
-              <th className="num">Total spent</th>
+              <th className="num">
+                Total spent{" "}
+                <span className="tag tag-money">Money</span>
+              </th>
             </tr>
           </thead>
           <tbody>

@@ -13,6 +13,7 @@ import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
 import { getCustomerSummary } from "@/lib/customers";
+import { employeeIdForName } from "@/lib/employees";
 import { BUSINESS_NAME } from "@/lib/leads";
 
 // The procedures table shows the most recent visits first and caps at
@@ -74,7 +75,11 @@ export default async function CustomerDetailPage({
         {summary.customer.phone} · {summary.customer.email}
         <br />
         Customer since {fmtDate(summary.firstVisit)} · Preferred stylist{" "}
-        {summary.preferredStylist}
+        <Link
+          href={`/employees/${employeeIdForName(summary.preferredStylist)}`}
+        >
+          {summary.preferredStylist}
+        </Link>
       </p>
 
       <div className="kpi-grid">
@@ -97,7 +102,9 @@ export default async function CustomerDetailPage({
       </div>
 
       <section className="dash-section">
-        <h2>Procedures</h2>
+        <h2>
+          Procedures <span className="tag tag-services">Services</span>
+        </h2>
         <p>
           Past services, most recent first ({summary.visits} visits,{" "}
           {money(summary.servicesTotal)} on services).
@@ -117,7 +124,11 @@ export default async function CustomerDetailPage({
                 <tr key={`${p.date}-${p.service}-${i}`}>
                   <td>{fmtDate(p.date)}</td>
                   <td>{p.service}</td>
-                  <td>{p.stylist}</td>
+                  <td>
+                    <Link href={`/employees/${employeeIdForName(p.stylist)}`}>
+                      {p.stylist}
+                    </Link>
+                  </td>
                   <td className="num">{money(p.price)}</td>
                 </tr>
               ))}
@@ -133,7 +144,9 @@ export default async function CustomerDetailPage({
       </section>
 
       <section className="dash-section">
-        <h2>Purchases</h2>
+        <h2>
+          Purchases <span className="tag tag-products">Products</span>
+        </h2>
         <p>
           Retail products bought in the salon (
           {money(summary.purchasesTotal)} on products).
@@ -160,7 +173,11 @@ export default async function CustomerDetailPage({
                 ))}
                 <tr className="total-row">
                   <td colSpan={2}>Total on products</td>
-                  <td className="num">{money(summary.purchasesTotal)}</td>
+                  <td className="num">
+                    <span className="tag tag-money">
+                      {money(summary.purchasesTotal)}
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -169,7 +186,10 @@ export default async function CustomerDetailPage({
       </section>
 
       <section className="dash-section">
-        <h2>Might be interested in</h2>
+        <h2>
+          Might be interested in{" "}
+          <span className="tag tag-products">Products</span>
+        </h2>
         <p>
           Suggestions from their history — products they haven&apos;t
           bought yet, with the reason.
@@ -186,7 +206,10 @@ export default async function CustomerDetailPage({
       </section>
 
       <section className="dash-section">
-        <h2>Due for a visit</h2>
+        <h2>
+          Due for a visit{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </h2>
         <p>
           Next due: <strong>{summary.nextDueService}</strong> on{" "}
           <strong>{fmtDate(summary.nextDueDate)}</strong> —{" "}
@@ -219,8 +242,13 @@ export default async function CustomerDetailPage({
               {fmtDate(summary.appointment.date)} at{" "}
               {summary.appointment.time}
             </strong>{" "}
-            with {summary.appointment.stylist} (
-            {summary.appointment.status}). See{" "}
+            with{" "}
+            <Link
+              href={`/employees/${employeeIdForName(summary.appointment.stylist)}`}
+            >
+              {summary.appointment.stylist}
+            </Link>{" "}
+            ({summary.appointment.status}). See{" "}
             <Link href="/appointments">Appointments</Link>.
           </p>
         ) : (

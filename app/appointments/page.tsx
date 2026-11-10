@@ -8,6 +8,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
+import ColourLegend from "@/components/ColourLegend";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -16,6 +17,7 @@ import {
   getCustomerSummaries,
   getNudgeCustomers,
 } from "@/lib/customers";
+import { employeeIdForName } from "@/lib/employees";
 import { BUSINESS_NAME } from "@/lib/leads";
 
 export default async function AppointmentsPage() {
@@ -65,8 +67,13 @@ export default async function AppointmentsPage() {
         9am to 6pm.
       </p>
 
+      <ColourLegend />
+
       <section className="dash-section">
-        <h2>Upcoming appointments — November 2026</h2>
+        <h2>
+          Upcoming appointments — November 2026{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </h2>
         <p>
           {appointments.length} appointments booked. Customer names link to
           their history.
@@ -75,11 +82,23 @@ export default async function AppointmentsPage() {
           <table className="dash-table">
             <thead>
               <tr>
-                <th>Date</th>
+                <th>
+                  Date{" "}
+                  <span className="tag tag-appointments">Appointments</span>
+                </th>
                 <th>Time</th>
-                <th>Customer</th>
-                <th>Service</th>
-                <th>Stylist</th>
+                <th>
+                  Customer{" "}
+                  <span className="tag tag-people">People</span>
+                </th>
+                <th>
+                  Service{" "}
+                  <span className="tag tag-services">Services</span>
+                </th>
+                <th>
+                  Stylist{" "}
+                  <span className="tag tag-people">People</span>
+                </th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -96,7 +115,13 @@ export default async function AppointmentsPage() {
                       </Link>
                     </td>
                     <td>{a.service}</td>
-                    <td>{a.stylist}</td>
+                    <td>
+                      <Link
+                        href={`/employees/${employeeIdForName(a.stylist)}`}
+                      >
+                        {a.stylist}
+                      </Link>
+                    </td>
                     <td>
                       {a.status === "confirmed" ? (
                         <span className="badge badge-ok">Confirmed</span>
@@ -113,7 +138,10 @@ export default async function AppointmentsPage() {
       </section>
 
       <section className="dash-section">
-        <h2>Due for a booking</h2>
+        <h2>
+          Due for a booking{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </h2>
         <p>
           Regulars who are due for a visit — overdue, or due within 7 days
           — with no appointment booked. They need a nudge.

@@ -7,6 +7,11 @@ the middleware guards them and the pages check the session themselves,
 exactly like `/leads` and `/dashboard` (see AUTH.md). There is no
 shared token any more.
 
+Staff names are links everywhere too — see **EMPLOYEES.md** for the
+employees area (`/employees`, per-employee sales / products /
+customers / appointments / payroll) and the standard colour coding
+used across the owner pages.
+
 ## What it shows
 
 | Page | What it shows |

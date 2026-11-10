@@ -5,6 +5,14 @@
   --plum: #3d2433;
   --gold: #c9a86a;
   --sage: #e8ece3;
+  /* Standard owner-area colours — one colour per category, used
+     everywhere in /employees, /customers and /appointments so the
+     same colour always means the same thing. See EMPLOYEES.md. */
+  --tag-people: #3d2433; /* people: customers + employees (plum) */
+  --tag-money: #2e7d4f; /* money: revenue, totals, pay */
+  --tag-appointments: #2f6fb2; /* appointments: diary, due dates */
+  --tag-products: #e04e00; /* products: retail, purchases */
+  --tag-services: #b76e79; /* services / procedures (rose) */
 }
 
 html { scroll-behavior: smooth; }
@@ -92,6 +100,17 @@ button:hover { filter: brightness(1.08); }
 .demo-banner { background: #fff3cd; border: 1px solid #e8d28a; border-radius: 14px; padding: 12px 16px; }
 .demo-banner-sample { background: #f6eef0; border-color: #e3c8cd; }
 .dash-note { color: #6b5560; font-size: 14px; }
+
+/* Standard colour coding for the owner area. .tag is a small pill
+   (white text on the category colour); the legend row shows the key
+   where the colours are used. */
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: white; vertical-align: middle; white-space: nowrap; }
+.tag-people { background: var(--tag-people); }
+.tag-money { background: var(--tag-money); }
+.tag-appointments { background: var(--tag-appointments); }
+.tag-products { background: var(--tag-products); }
+.tag-services { background: var(--tag-services); }
+.colour-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
 
 /* Bar charts on the dashboard (money over time, under the tables). */
 .dash-chart { margin: 20px 0; background: white; border: 1px solid #eee2d6; border-radius: 14px; padding: 16px; }

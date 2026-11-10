@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Refreshes the Supabase session on every request and guards the owner
 // areas (/leads, /dashboard, /admin, /customers, /appointments,
-// /api/leads/*). Public routes — the homepage, /api/chat, the public
+// /employees, /api/leads/*). Public routes — the homepage, /api/chat, the public
 // booking form /api/lead, static assets, /login and /auth/* — are never
 // blocked here. There is no public signup page: staff join only by
 // admin invite (see AUTH.md).
@@ -11,7 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // When Supabase auth is not configured, every request passes through
 // untouched: the public site works, and the protected pages show their
 // own "Auth not configured" notice instead of crashing.
-const PROTECTED_PREFIXES = ["/leads", "/dashboard", "/admin", "/customers", "/appointments", "/api/leads"];
+const PROTECTED_PREFIXES = ["/leads", "/dashboard", "/admin", "/customers", "/appointments", "/employees", "/api/leads"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
