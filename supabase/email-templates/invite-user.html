@@ -1,0 +1,27 @@
+<!-- Supabase "Invite user" email template — paste into the Supabase
+     dashboard: Authentication -> Emails -> Templates -> Invite user.
+     Subject goes in the Subject field, the HTML below in the Message
+     body field. Do NOT remove {{ .ConfirmationURL }} — it is the link
+     the invited person clicks to accept.
+
+     The {{ .Data.business_name }} and {{ .Data.invited_by }} values
+     come from the invite itself: app/admin/actions.ts inviteUser
+     passes them as user metadata, so the email always names the right
+     business and the admin who sent it. If an invite is ever sent
+     another way (e.g. from the Supabase dashboard), those fields are
+     empty — the template still sends, it just won't name them.
+
+     The email is sent from Supabase's default sender
+     (Supabase Auth <noreply@mail.app.supabase.io>). Changing the
+     sender name/address needs custom SMTP: Authentication -> Emails ->
+     SMTP Settings, with an SMTP provider of your own.
+
+     Subject: You've been invited to join {{ .Data.business_name }} -->
+<h2>You've been invited to join {{ .Data.business_name }}</h2>
+<p>Hi,</p>
+<p>{{ .Data.invited_by }} has invited you to join <strong>{{ .Data.business_name }}</strong> as a staff member. Your account gives you access to the salon's owner area — the leads list and the business dashboard — so you can see customer enquiries and the studio's figures.</p>
+<p>Click the button below to accept the invite and set your first password:</p>
+<p><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 24px;background:#b76e79;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;">Accept invitation</a></p>
+<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></p>
+<p>If you weren't expecting this email, you can safely ignore it — no account will be created, and the link will expire on its own.</p>
+<p>— The {{ .Data.business_name }} team<br>This invite was sent to {{ .Email }}.</p>

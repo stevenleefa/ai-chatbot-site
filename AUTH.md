@@ -62,6 +62,19 @@ unchanged.)
   would find no code and bounce the user to `/login`.) Their profile
   already exists as `staff` (created by the trigger when the invite
   was accepted).
+- **Invite email (`supabase/email-templates/invite-user.html`)** —
+  the Supabase "Invite user" email template. The invite action passes
+  `business_name` and `invited_by` as user metadata, so the template
+  can name the business and the admin who sent it
+  (`{{ .Data.business_name }}`, `{{ .Data.invited_by }}`), say what
+  the account is for, and tell the recipient to ignore it if it was
+  unexpected. To apply it: Supabase dashboard -> Authentication ->
+  Emails -> Templates -> Invite user, paste the subject and the HTML
+  from that file, keeping `{{ .ConfirmationURL }}` (the accept link).
+  The email is sent from Supabase's default sender
+  (`Supabase Auth <noreply@mail.app.supabase.io>`); changing the
+  sender needs custom SMTP (Authentication -> Emails -> SMTP Settings)
+  with an SMTP provider of your own.
 - **RLS** — enabled on `profiles`, `site_settings` and `leads`. A user
   can read their own profile; admins can read/update all profiles;
   active staff/admins can read `site_settings` and read/update salon

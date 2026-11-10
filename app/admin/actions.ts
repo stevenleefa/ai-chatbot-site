@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { getServerSupabase } from "@/lib/supabase";
 import { requireRole } from "@/lib/auth/session";
+import { getSiteSettings } from "@/lib/site-settings";
 
 // Admin-only server actions for /admin. Every action re-checks that the
 // caller is an active admin (defense in depth behind the middleware and
@@ -124,8 +125,20 @@ export async function inviteUser(
   if (!host) {
     return { ok: false, message: "Could not work out the site address." };
   }
+  // Personalise the invite email: pass the business name and the
+  // inviter as user metadata, so the Supabase "Invite user" email
+  // template can name them ({{ .Data.business_name }} and
+  // {{ .Data.invited_by }}). The template itself is edited in the
+  // Supabase dashboard — the text to paste is in
+  // supabase/email-templates/invite-user.html. The data is only used
+  // by the email; the profile is still created by the trigger.
+  const settings = await getSiteSettings();
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${proto}://${host}/auth/update-password`,
+    data: {
+      business_name: settings.business_name,
+      invited_by: session.user.email ?? "the site owner",
+    },
   });
   if (error) {
     return {
