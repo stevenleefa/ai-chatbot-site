@@ -1,10 +1,11 @@
 # Auth — Lumen Hair Studio
 
 Real login for the salon site, replacing the old v1 shared owner token.
-There is no `LEADS_OWNER_TOKEN` any more: `/leads`, `/dashboard` and
-`/admin` require a signed-in Supabase Auth account with an active
-profile. The public site (homepage, chatbot, booking form) stays public
-and works with no login at all.
+There is no `LEADS_OWNER_TOKEN` any more: `/leads`, `/dashboard`,
+`/customers`, `/appointments` and `/admin` require a signed-in
+Supabase Auth account with an active profile. The public site
+(homepage, chatbot, booking form) stays public and works with no login
+at all.
 
 **Invite-only, like a real business website.** There is no public
 signup: nobody can create an account from the site. Staff join only
@@ -31,9 +32,10 @@ unchanged.)
     staff invites (`auth.admin.inviteUserByEmail`). It is never
     imported by client code.
 - **Middleware (`middleware.ts`)** — refreshes the session on every
-  request and guards `/leads`, `/dashboard`, `/admin` and
-  `/api/leads/*`. Signed-out users are redirected to
-  `/login?next=<path>` (pages) or get 401 JSON (API routes). A session
+  request and guards `/leads`, `/dashboard`, `/customers`,
+  `/appointments`, `/admin` and `/api/leads/*`. Signed-out users are
+  redirected to `/login?next=<path>` (pages) or get 401 JSON (API
+  routes). A session
   alone is not enough: the middleware also checks the user has an
   active `profiles` row. When Supabase auth is not configured, the
   middleware passes every request through and the protected pages show
@@ -160,8 +162,9 @@ user's machine / Supabase dashboard, in order:
 
 ## How to test
 
-- **Logged-out redirect:** open `/leads`, `/dashboard`, `/admin` while
-  signed out — each redirects to `/login?next=<path>`.
+- **Logged-out redirect:** open `/leads`, `/dashboard`, `/customers`,
+  `/appointments`, `/admin` while signed out — each redirects to
+  `/login?next=<path>`.
 - **No public signup:** open `/signup` — 404. `/login` has no "Create
   an account" link.
 - **Wrong password:** sign in with a wrong password — "Wrong email or
@@ -169,8 +172,9 @@ user's machine / Supabase dashboard, in order:
 - **Invite a staff member:** as the admin, invite a second email
   address from `/admin` — "Invite sent to …" shows. Click the link in
   the email, set a password on `/auth/update-password`, and sign in.
-  The new account starts as staff: it can view `/leads` and
-  `/dashboard` but `/admin` shows "Admins only".
+  The new account starts as staff: it can view `/leads`,
+  `/dashboard`, `/customers` and `/appointments` but `/admin` shows
+  "Admins only".
 - **Invite validation:** invite with a blank or malformed email — a
   clear error shows and no email is sent. Invite an email that already
   has an account — "already has an account" shows.

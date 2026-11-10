@@ -47,19 +47,8 @@ import {
 } from "@/lib/dashboard";
 import { BUSINESS_NAME } from "@/lib/leads";
 import OwnerNav from "@/components/OwnerNav";
-
-const NAV = [
-  ["Overview", "#overview"],
-  ["Sales", "#sales"],
-  ["Forecast", "#forecast"],
-  ["P&L", "#pl"],
-  ["Employees", "#employees"],
-  ["Payroll", "#payroll"],
-  ["Taxes", "#taxes"],
-  ["Inventory", "#inventory"],
-  ["Payable", "#payable"],
-  ["Receivable", "#receivable"],
-] as const;
+import DashboardTabs from "@/components/DashboardTabs";
+import BarChart from "@/components/BarChart";
 
 function statusBadge(status: string) {
   return <span className={`badge badge-${status}`}>{status}</span>;
@@ -120,12 +109,7 @@ export default async function DashboardPage() {
         see <code>DASHBOARD.md</code> to change them.
       </p>
 
-      <nav className="dash-nav" aria-label="Dashboard sections">
-        {NAV.map(([label, href]) => (
-          <a key={href} href={href}>{label}</a>
-        ))}
-      </nav>
-
+      <DashboardTabs>
       <section id="overview" className="dash-section">
         <h2>Overview — {monthLabel("2026-10")}</h2>
         <div className="kpi-grid">
@@ -214,6 +198,12 @@ export default async function DashboardPage() {
           </table>
         </div>
 
+        <BarChart
+          title="Weekly revenue"
+          labels={byWeek.map((row) => fmtDate(row.weekStart).replace(/, \d{4}$/, ""))}
+          series={[{ label: "Revenue", color: "#b76e79", values: byWeek.map((row) => row.revenue) }]}
+        />
+
         <h3>Recent sales</h3>
         <p>Showing the 50 most recent of {SALES.length} sales.</p>
         <div className="table-wrap">
@@ -280,6 +270,15 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
+
+        <BarChart
+          title="Monthly revenue and profit"
+          labels={pl.map((row) => monthLabel(row.month))}
+          series={[
+            { label: "Revenue", color: "#b76e79", values: pl.map((row) => row.revenue) },
+            { label: "Profit", color: "#c9a86a", values: pl.map((row) => row.profit) },
+          ]}
+        />
 
         <h3>Other expenses by month</h3>
         <div className="table-wrap">
@@ -411,6 +410,11 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
+        <BarChart
+          title="Sales tax collected by month"
+          labels={PL_MONTHS.map((month) => monthLabel(month))}
+          series={[{ label: "Sales tax", color: "#b76e79", values: PL_MONTHS.map((month) => salesTaxCollected(month)) }]}
+        />
         <p>
           Quarterly income-tax set-aside (Q4 to date,{" "}
           {taxSetAside.months.map(monthLabel).join(" + ")}): profit{" "}
@@ -528,6 +532,7 @@ export default async function DashboardPage() {
           data into Supabase tables so the owner can edit it from the site.
         </p>
       </footer>
+      </DashboardTabs>
     </main>
   );
 }

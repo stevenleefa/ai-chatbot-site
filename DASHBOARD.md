@@ -14,6 +14,18 @@ receivable.
 - No Supabase setup and no new env vars are needed for the dashboard's
   sample data. The dashboard works with zero configuration.
 
+## Navigating it
+
+- The section buttons at the top work like tabs: clicking one shows just
+  that section in place (the page doesn't jump down to it), and **Overview**
+  shows everything again. The buttons stick to the top while you scroll, so
+  they're always in reach.
+- Where a list has dates with money, a bar chart sits underneath it as a
+  visual: weekly revenue under Sales by week, monthly revenue vs profit
+  under P&L, and sales tax collected by month under Taxes. The numbers in
+  the tables stay the source of truth; the charts are drawn by
+  `components/BarChart.tsx` (plain SVG, no chart library).
+
 ## What it shows
 
 | Section | What it shows |
@@ -28,6 +40,9 @@ receivable.
 | Inventory | Products with qty on hand, reorder level, unit cost, stock value, low-stock flags |
 | Accounts payable | Supplier bills with due dates and paid / unpaid / overdue status |
 | Accounts receivable | Client invoices with due dates and paid / unpaid / overdue status |
+
+Customer histories are derived from these same sales rows — the
+regulars' visits are a subset of `SALES` (see CUSTOMERS.md).
 
 ## Where the data lives — and how to change it
 

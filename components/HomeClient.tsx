@@ -15,10 +15,12 @@ export default function HomeClient({
   settings,
   services,
   authNav,
+  ownerAppointmentsCard,
 }: {
   settings: SiteSettings;
   services: Service[];
   authNav: ReactNode;
+  ownerAppointmentsCard: ReactNode;
 }) {
   const initialLead = { name: "", contact: "", service: "Haircut", message: "" };
   const [lead, setLead] = useState(initialLead);
@@ -72,6 +74,8 @@ export default function HomeClient({
           <a className="hero-cta" href="#booking">Book an appointment →</a>
         </div>
       </header>
+
+      {ownerAppointmentsCard}
 
       <section id="services" className="reveal">
         <h2>Services</h2>
