@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
@@ -56,7 +57,7 @@ function LoginForm() {
     <main style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
       <h1>Owner sign in — Lumen Hair Studio</h1>
       <p>
-        <a href="/">← Back to the site</a>
+        <Link href="/">← Back to the site</Link>
       </p>
       {!authConfigured && (
         <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
@@ -99,7 +100,7 @@ function LoginForm() {
         </p>
       )}
       <p>
-        <a href="/auth/reset-password">Forgot your password?</a>
+        <Link href="/auth/reset-password">Forgot your password?</Link>
       </p>
       <p>
         <small>

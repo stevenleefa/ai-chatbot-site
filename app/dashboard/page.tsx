@@ -5,6 +5,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
       <main className="dash-main">
         <h1>Dashboard — Lumen Hair Studio</h1>
         <p>
-          <a href="/">← Back to the site</a>
+          <Link href="/">← Back to the site</Link>
         </p>
         <p role="alert" className="demo-banner">
           <strong>Auth is not configured.</strong> Add
@@ -103,7 +104,7 @@ export default async function DashboardPage() {
     <main className="dash-main">
       <h1>Dashboard — {BUSINESS_NAME}</h1>
       <p>
-        <a href="/">← Back to the site</a>
+        <Link href="/">← Back to the site</Link>
       </p>
       <OwnerNav />
       <p>

@@ -5,6 +5,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
@@ -20,7 +21,7 @@ export default async function AdminPage() {
       <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
-          <a href="/">← Back to the site</a>
+          <Link href="/">← Back to the site</Link>
         </p>
         <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
           <strong>Auth is not configured.</strong> Add
@@ -39,7 +40,7 @@ export default async function AdminPage() {
       <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
-          <a href="/">← Back to the site</a>
+          <Link href="/">← Back to the site</Link>
         </p>
         <OwnerNav />
         <p role="alert">
@@ -78,7 +79,7 @@ export default async function AdminPage() {
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
       <h1>Admin — Lumen Hair Studio</h1>
       <p>
-        <a href="/">← Back to the site</a>
+        <Link href="/">← Back to the site</Link>
       </p>
       <OwnerNav />
       <p>
