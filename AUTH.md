@@ -103,7 +103,7 @@ unchanged.)
 | `lib/auth/session.ts` | `getSession()` / `getAuthUser()` / `getUserProfile()` / `requireAuth()` / `requireRole()` — authorized = session + active profile. |
 | `middleware.ts` | Session refresh + route guard (see above). |
 | `app/login/page.tsx` | Sign-in form. No signup link — staff join by invite. |
-| `app/auth/callback/route.ts` | Exchanges `?code=` from Supabase email links (password recovery) for a session, then redirects to `?next=` or `/dashboard`. Invites do not use it (hash tokens). |
+| `app/auth/callback/route.ts` | Exchanges `?code=` from a Supabase email link for a session, then redirects to `?next=` or `/dashboard`. Kept as a fallback route: password resets now land straight on `/auth/update-password`, and invites never used it (hash tokens). |
 | `app/auth/signout/route.ts` | POST sign-out, redirects to `/`. |
 | `app/auth/reset-password/page.tsx` | Request a password-reset email. |
 | `app/auth/update-password/page.tsx` | Set a new password from a recovery link, or a first password after accepting a staff invite. |
@@ -130,9 +130,9 @@ user's machine / Supabase dashboard, in order:
    server after any `.env.local` change.
 3. **Allow the redirect URLs.** Supabase dashboard -> Authentication ->
    URL Configuration -> Redirect URLs: add
-   `http://localhost:3000/auth/callback` (dev, for password resets) and
-   `http://localhost:3000/auth/update-password` (dev — invite links land
-   there directly). Add the production URLs
+   `http://localhost:3000/auth/update-password` (dev — both invite and
+   reset links land there directly) and `http://localhost:3000/auth/callback`
+   (dev, kept as a fallback route). Add the production URLs
    (`https://ai-chatbot-site-tawny.vercel.app/auth/callback` and
    `https://ai-chatbot-site-tawny.vercel.app/auth/update-password`) when
    the site goes live — otherwise the invite and reset links are
@@ -241,7 +241,8 @@ user's machine / Supabase dashboard, in order:
 - **Invite and reset emails come from Supabase's default sender**
   unless the project configures its own SMTP — fine for the demo,
   worth changing for a real client. The redirect URLs
-  (`/auth/callback` for resets, `/auth/update-password` for invites)
+  (both invite and reset links land on `/auth/update-password`;
+  `/auth/callback` is kept only as a fallback)
   must be allow-listed in Supabase Auth settings (Setup step 3) or the
   links in those emails are rejected.
 - **Services, prices and chatbot knowledge still live in

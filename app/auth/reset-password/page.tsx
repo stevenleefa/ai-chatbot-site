@@ -3,9 +3,14 @@
 import { useState } from "react";
 import { getBrowserClient } from "@/lib/auth/browser";
 
-// Ask for a password-reset email. Supabase sends a link back to
-// /auth/callback?next=/auth/update-password, which creates a recovery
-// session and lands on the new-password page.
+// Ask for a password-reset email. Supabase sends a link straight to
+// /auth/update-password, where the browser client exchanges the ?code=
+// in the link for a recovery session and the new-password form shows.
+// The redirect must be the plain page URL, with no ?next= suffix:
+// Supabase matches redirectTo against the Redirect URLs allowlist as
+// a full string, so the old /auth/callback?next=/auth/update-password
+// did not match the allowlisted /auth/callback and Supabase silently
+// fell back to the site homepage instead — the link looked broken.
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,7 +33,7 @@ export default function ResetPasswordPage() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
       {
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+        redirectTo: `${window.location.origin}/auth/update-password`,
       }
     );
     setBusy(false);
