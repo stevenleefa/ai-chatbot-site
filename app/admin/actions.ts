@@ -88,10 +88,14 @@ export async function saveSiteSettings(formData: FormData) {  const session = aw
 
 // Invite a staff member by email. Admin-only. Uses the service-role
 // client (server only — the key never reaches the browser) to send a
-// Supabase invite email. The link in the email goes through
-// /auth/callback, which creates a session, then to
+// Supabase invite email. The link in the email goes straight to
 // /auth/update-password, where the invited person sets their first
-// password. Their profiles row is created by the trigger as 'staff'.
+// password — it does NOT go through /auth/callback, because the
+// server-side invite API sends the session as #access_token in the URL
+// hash (no ?code= for the callback to exchange), and a server route
+// cannot see the hash. The update-password page reads the hash and
+// establishes the session itself. Their profiles row is created by the
+// trigger as 'staff'.
 // Returns a result object (instead of throwing) so the form can show
 // the outcome inline.
 export async function inviteUser(
@@ -121,7 +125,7 @@ export async function inviteUser(
     return { ok: false, message: "Could not work out the site address." };
   }
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${proto}://${host}/auth/callback?next=/auth/update-password`,
+    redirectTo: `${proto}://${host}/auth/update-password`,
   });
   if (error) {
     return {

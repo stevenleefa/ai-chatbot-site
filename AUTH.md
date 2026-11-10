@@ -54,10 +54,14 @@ unchanged.)
   the service-role client. The redirect URL is built from the request
   host, so it works on `localhost:3000` in dev and on the Vercel URL
   live, with no hardcoded domain. The invited person clicks the link
-  in the email, `/auth/callback` exchanges the code for a session and
-  sends them to `/auth/update-password`, where they set their first
-  password. Their profile already exists as `staff` (created by the
-  trigger when the invite was accepted).
+  in the email and lands straight on `/auth/update-password`, which
+  reads the session from the URL hash (`#access_token`) and lets them
+  set their first password. (Invites do NOT go through
+  `/auth/callback`: the server-side invite API sends hash tokens, not
+  `?code=`, and a server route cannot see the hash — the callback
+  would find no code and bounce the user to `/login`.) Their profile
+  already exists as `staff` (created by the trigger when the invite
+  was accepted).
 - **RLS** — enabled on `profiles`, `site_settings` and `leads`. A user
   can read their own profile; admins can read/update all profiles;
   active staff/admins can read `site_settings` and read/update salon
@@ -84,7 +88,7 @@ unchanged.)
 | `lib/auth/session.ts` | `getSession()` / `getAuthUser()` / `getUserProfile()` / `requireAuth()` / `requireRole()` — authorized = session + active profile. |
 | `middleware.ts` | Session refresh + route guard (see above). |
 | `app/login/page.tsx` | Sign-in form. No signup link — staff join by invite. |
-| `app/auth/callback/route.ts` | Exchanges `?code=` from Supabase email links (invite, password recovery) for a session, then redirects to `?next=` or `/dashboard`. |
+| `app/auth/callback/route.ts` | Exchanges `?code=` from Supabase email links (password recovery) for a session, then redirects to `?next=` or `/dashboard`. Invites do not use it (hash tokens). |
 | `app/auth/signout/route.ts` | POST sign-out, redirects to `/`. |
 | `app/auth/reset-password/page.tsx` | Request a password-reset email. |
 | `app/auth/update-password/page.tsx` | Set a new password from a recovery link, or a first password after accepting a staff invite. |
@@ -109,10 +113,13 @@ user's machine / Supabase dashboard, in order:
    this project's `.env.local` (publishable/anon key from Supabase:
    Project Settings -> API Keys -> Publishable key). Restart the dev
    server after any `.env.local` change.
-3. **Allow the callback URL.** Supabase dashboard -> Authentication ->
+3. **Allow the redirect URLs.** Supabase dashboard -> Authentication ->
    URL Configuration -> Redirect URLs: add
-   `http://localhost:3000/auth/callback` (dev). Add the production
-   URL (`https://ai-chatbot-site-tawny.vercel.app/auth/callback`) when
+   `http://localhost:3000/auth/callback` (dev, for password resets) and
+   `http://localhost:3000/auth/update-password` (dev — invite links land
+   there directly). Add the production URLs
+   (`https://ai-chatbot-site-tawny.vercel.app/auth/callback` and
+   `https://ai-chatbot-site-tawny.vercel.app/auth/update-password`) when
    the site goes live — otherwise the invite and reset links are
    rejected. (The Site URL there should be the live site URL, or
    `http://localhost:3000` while testing locally.)
@@ -216,7 +223,8 @@ user's machine / Supabase dashboard, in order:
   (create the user first, step 4).
 - **Invite and reset emails come from Supabase's default sender**
   unless the project configures its own SMTP — fine for the demo,
-  worth changing for a real client. The `/auth/callback` redirect URL
+  worth changing for a real client. The redirect URLs
+  (`/auth/callback` for resets, `/auth/update-password` for invites)
   must be allow-listed in Supabase Auth settings (Setup step 3) or the
   links in those emails are rejected.
 - **Services, prices and chatbot knowledge still live in
