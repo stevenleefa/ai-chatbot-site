@@ -59,7 +59,7 @@ function statusBadge(status: string) {
 export default async function DashboardPage() {
   if (!isAuthConfigured()) {
     return (
-      <main className="dash-main">
+      <main id="main-content" className="dash-main">
         <h1>Dashboard — Lumen Hair Studio</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
   const stockTotal = totalStockValue();
 
   return (
-    <main className="dash-main">
+    <main id="main-content" className="dash-main">
       <h1>Dashboard — {BUSINESS_NAME}</h1>
       <p>
         <Link href="/">← Back to the site</Link>
@@ -199,7 +199,7 @@ export default async function DashboardPage() {
         <BarChart
           title="Weekly revenue"
           labels={byWeek.map((row) => fmtDate(row.weekStart).replace(/, \d{4}$/, ""))}
-          series={[{ label: "Revenue", color: "#b76e79", values: byWeek.map((row) => row.revenue) }]}
+          series={[{ label: "Revenue", color: "#a05a66", values: byWeek.map((row) => row.revenue) }]}
         />
 
         <h3>Recent sales</h3>
@@ -292,8 +292,8 @@ export default async function DashboardPage() {
           title="Monthly revenue and profit"
           labels={pl.map((row) => monthLabel(row.month))}
           series={[
-            { label: "Revenue", color: "#b76e79", values: pl.map((row) => row.revenue) },
-            { label: "Profit", color: "#c9a86a", values: pl.map((row) => row.profit) },
+            { label: "Revenue", color: "#a05a66", values: pl.map((row) => row.revenue) },
+            { label: "Profit", color: "#8a6d1f", values: pl.map((row) => row.profit) },
           ]}
         />
 
@@ -471,7 +471,7 @@ export default async function DashboardPage() {
         <BarChart
           title="Sales tax collected by month"
           labels={PL_MONTHS.map((month) => monthLabel(month))}
-          series={[{ label: "Sales tax", color: "#b76e79", values: PL_MONTHS.map((month) => salesTaxCollected(month)) }]}
+          series={[{ label: "Sales tax", color: "#a05a66", values: PL_MONTHS.map((month) => salesTaxCollected(month)) }]}
         />
         <p>
           Quarterly income-tax set-aside (Q4 to date,{" "}

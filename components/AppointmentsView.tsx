@@ -20,7 +20,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import AppointmentCalendar, {
   type CalendarAppointment,
   type CalendarView,
@@ -67,6 +67,39 @@ export default function AppointmentsView({
   const [view, setView] = useState<CalendarView>("month");
   const [anchorDate, setAnchorDate] = useState(firstDate);
   const [stylist, setStylist] = useState<string | null>(null);
+
+  // Month / Week / Day are tabs (WAI-ARIA tabs, like DashboardTabs):
+  // roving tabindex, arrow keys move and select, aria-selected and
+  // aria-controls point at the calendar panel below.
+  const VIEWS: { id: CalendarView; label: string }[] = [
+    { id: "month", label: "Month" },
+    { id: "week", label: "Week" },
+    { id: "day", label: "Day" },
+  ];
+  const viewTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const viewIndex = VIEWS.findIndex((v) => v.id === view);
+  function focusViewTab(index: number) {
+    const tab = viewTabRefs.current[index];
+    if (!tab) return;
+    tab.focus();
+    setView(VIEWS[index].id);
+  }
+  function onViewTabKeyDown(e: React.KeyboardEvent, index: number) {
+    const last = VIEWS.length - 1;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      focusViewTab(index === last ? 0 : index + 1);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      focusViewTab(index === 0 ? last : index - 1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      focusViewTab(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      focusViewTab(last);
+    }
+  }
 
   const filtered =
     stylist === null
@@ -132,7 +165,7 @@ export default function AppointmentsView({
         <span
           className="stylist-dot"
           style={{ background: a.colour }}
-          aria-label={`${a.stylist}'s colour`}
+          aria-hidden="true"
         />
       </>,
       a.status === "confirmed" ? (
@@ -162,36 +195,45 @@ export default function AppointmentsView({
           applies to the calendar and the diary below — the Due-for-a-
           booking list is not filtered.
         </p>
-        <div
-          className="filter-row"
-          role="group"
-          aria-label="Filter appointments by stylist"
-        >
-          <button
-            type="button"
-            className={`filter-btn${stylist === null ? " active" : ""}`}
-            onClick={() => setStylist(null)}
-            aria-pressed={stylist === null}
-          >
+        {/* Native radio group: one shared name gives the group arrow-key
+            navigation and single-select semantics for free; the labels
+            are styled as the pill buttons. */}
+        <fieldset className="filter-row">
+          <legend className="visually-hidden">
+            Filter appointments by stylist
+          </legend>
+          <input
+            type="radio"
+            className="filter-radio visually-hidden"
+            id="filter-all"
+            name="stylist-filter"
+            checked={stylist === null}
+            onChange={() => setStylist(null)}
+          />
+          <label className="filter-btn" htmlFor="filter-all">
             All
-          </button>
+          </label>
           {stylists.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`filter-btn${stylist === s.name ? " active" : ""}`}
-              onClick={() => setStylist(s.name)}
-              aria-pressed={stylist === s.name}
-            >
-              <span
-                className="stylist-dot"
-                style={{ background: s.colour }}
-                aria-hidden="true"
-              />{" "}
-              {s.name}
-            </button>
+            <Fragment key={s.id}>
+              <input
+                type="radio"
+                className="filter-radio visually-hidden"
+                id={`filter-${s.id}`}
+                name="stylist-filter"
+                checked={stylist === s.name}
+                onChange={() => setStylist(s.name)}
+              />
+              <label className="filter-btn" htmlFor={`filter-${s.id}`}>
+                <span
+                  className="stylist-dot"
+                  style={{ background: s.colour }}
+                  aria-hidden="true"
+                />{" "}
+                {s.name}
+              </label>
+            </Fragment>
           ))}
-        </div>
+        </fieldset>
       </section>
 
       <section className="dash-section">
@@ -209,20 +251,31 @@ export default function AppointmentsView({
 
         <div
           className="view-tabs"
-          role="group"
+          role="tablist"
           aria-label="Calendar view: month, week or day"
         >
-          {(["month", "week", "day"] as CalendarView[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              className={view === v ? "active" : ""}
-              onClick={() => setView(v)}
-              aria-pressed={view === v}
-            >
-              {v === "month" ? "Month" : v === "week" ? "Week" : "Day"}
-            </button>
-          ))}
+          {VIEWS.map((v, i) => {
+            const selected = view === v.id;
+            return (
+              <button
+                key={v.id}
+                ref={(el) => {
+                  viewTabRefs.current[i] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`cal-tab-${v.id}`}
+                aria-selected={selected}
+                aria-controls="calendar-panel"
+                tabIndex={selected ? 0 : -1}
+                className={selected ? "active" : ""}
+                onClick={() => setView(v.id)}
+                onKeyDown={(e) => onViewTabKeyDown(e, i)}
+              >
+                {v.label}
+              </button>
+            );
+          })}
         </div>
 
         {view === "week" && (
@@ -262,18 +315,24 @@ export default function AppointmentsView({
           </div>
         )}
 
-        {filtered.length === 0 ? (
-          <p>
-            No appointments in November for {stylistName}. Try another
-            stylist, or All.
-          </p>
-        ) : (
-          <AppointmentCalendar
-            appointments={filtered}
-            view={view}
-            anchorDate={anchorDate}
-          />
-        )}
+        <div
+          id="calendar-panel"
+          role="tabpanel"
+          aria-labelledby={`cal-tab-${view}`}
+        >
+          {filtered.length === 0 ? (
+            <p>
+              No appointments in November for {stylistName}. Try another
+              stylist, or All.
+            </p>
+          ) : (
+            <AppointmentCalendar
+              appointments={filtered}
+              view={view}
+              anchorDate={anchorDate}
+            />
+          )}
+        </div>
 
         <p className="stylist-legend" aria-label="Stylist colours">
           Stylists:{" "}

@@ -32,7 +32,7 @@ import { BUSINESS_NAME } from "@/lib/leads";
 export default async function AppointmentsPage() {
   if (!isAuthConfigured()) {
     return (
-      <main className="dash-main">
+      <main id="main-content" className="dash-main">
         <h1>Appointments — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -101,7 +101,7 @@ export default async function AppointmentsPage() {
   }));
 
   return (
-    <main className="dash-main">
+    <main id="main-content" className="dash-main">
       <h1>Appointments — {BUSINESS_NAME}</h1>
       <p>
         <Link href="/">← Back to the site</Link>

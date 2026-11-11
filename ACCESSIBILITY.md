@@ -1,0 +1,175 @@
+# Accessibility — WCAG 2.1 AA
+
+Lumen Hair Studio (the salon demo) is built to **WCAG 2.1 AA**, the level
+US Section 508 / ADA practice uses. This page records what was checked,
+what was fixed, and what is still only provable on a signed-in clone.
+
+- Normal text: 4.5:1 minimum. Large text (18pt / 24px, or 14pt / 18.66px
+  bold): 3:1. Non-text UI components and focus indicators: 3:1.
+- Target: WCAG 2.1 AA. Touch-target size (24px, WCAG 2.2 AA) is noted
+  separately where it was improved for free — the site is not claimed
+  2.2 compliant.
+
+## What was changed (2026-11-10)
+
+### Contrast — colours darkened just enough to pass
+
+| Pair | Before | After | Change |
+| --- | --- | --- | --- |
+| White text on `--rose` (buttons, hero CTA, active tabs/filters) | 3.80:1 FAIL | 5.06:1 PASS | `--rose` #b76e79 → #a05a66 |
+| Closed-day text on `#f0ebe4` (calendar) | 3.36:1 FAIL | 5.72:1 PASS | `#8a7d75` → `#6b5560` |
+| `.badge-unpaid` text on `#fdf0d3` | 4.35:1 FAIL | 5.25:1 PASS | `#8a6d00` → `#7a6100` |
+| P&L "Profit" chart bars on white (non-text, needs 3:1) | 2.26:1 FAIL | 4.90:1 PASS | gold `#c9a86a` → `#8a6d1f` |
+| "Revenue"/"Sales tax" chart bars on white | 3.80:1 PASS | 5.06:1 PASS | rose bars now use the new `#a05a66` to match the theme |
+| Input border on cream / white (non-text, needs 3:1) | 1.55:1 FAIL | 3.46:1 / 3.66:1 PASS | `#d8c7b8` → `#97826f` |
+| Focus ring: navy `#1e3a5f` on plum `#3d2433` | 1.22:1 FAIL | — | Replaced by a double ring: a white outline plus a navy box-shadow, so one ring is always visible (navy on cream 10.89:1, white on plum 14.01:1) |
+| Outside-month calendar day numbers (plum at 45% opacity) | 2.64:1 FAIL | 6.42:1 PASS | Opacity removed; outside days use `#6b5560` on cream |
+
+The tag palette (people deep purple `#5b21b6` 8.98:1, money dark grey
+`#374151` 10.31:1, appointments dark navy `#1e3a5f` 11.50:1, products
+medium grey `#6b7280` 4.83:1, services medium purple `#7c3aed` 5.70:1)
+and the stylist colours were already verified AA and were **not changed**.
+The rose/plum/gold theme is unchanged in look — the rose is a touch
+deeper, which is what makes the white button text pass.
+
+### Focus and skip link
+
+- Every focusable element now shows a clear `:focus-visible` double
+  ring (white outline + navy shadow). Before, there was no `:focus`
+  style at all — only the browser's default ring.
+- A "Skip to main content" link is the first thing in `app/layout.tsx`
+  (visible only when focused). Every `<main>` on the site carries
+  `id="main-content"` so the link lands there — homepage, login,
+  reset-password, update-password, leads, dashboard, admin, customers,
+  customer detail, employees, employee detail, appointments.
+- Placeholder text in inputs now meets contrast too
+  (`::placeholder` `#6b5560`).
+
+### Landmarks, labels and live regions
+
+- The homepage nav is `<nav aria-label="Main">`; the owner nav is
+  `<nav aria-label="Owner">` (was a plain `<div>`).
+- The booking form inputs now have real `<label>`s ("Your name",
+  "Phone or email", "Service", "Anything we should know? (optional)")
+  instead of placeholders only. The login, reset-password,
+  update-password, invite, and admin settings forms already used
+  wrapping `<label>`s.
+- The chat input has `aria-label="Ask the assistant"`. The chat
+  message list is `role="log" aria-live="polite"` with a label, and is
+  keyboard-focusable (`tabIndex={0}`) so a keyboard user can scroll
+  back through the conversation. Opening the chat moves focus into
+  the question box; Escape closes it and returns focus to the
+  "Ask Lumen" button. The chat open button now has
+  `aria-expanded` / `aria-controls`.
+- Decorative emoji and arrows (✂️, 💬, →) are `aria-hidden="true"`.
+- Scrollable regions are keyboard-focusable: the sortable-table wrapper
+  (`.table-wrap`), the chat message list, and the admin users-table
+  overflow wrapper (`role="region" aria-label="Users table"`).
+- Heading order is clean everywhere (one `<h1>` per rendered page;
+  the owner pages have mutually exclusive branches, so only one
+  `<h1>` renders at a time). Status badges carry text, not colour
+  alone. The bar charts have `role="img"` + an aria-label summary,
+  and their values are also in the tables above them.
+- The hero image has alt text ("Inside a bright, elegant hair
+  studio"). It is the only content image on the site.
+
+### Tabs, radios, and the calendar
+
+- **Dashboard tabs** (`components/DashboardTabs.tsx`) are now a real
+  tab pattern: `role="tablist"` / `role="tab"` / `role="tabpanel"`,
+  `aria-selected`, `aria-controls`, roving tabindex (only the active
+  tab is in the Tab order), and Left / Right / Home / End arrow-key
+  navigation with automatic activation. Overview is a tab too: it
+  controls all ten panels.
+- **Appointments views** (`components/AppointmentsView.tsx`) use the
+  same tab pattern for Month / Week / Day, with a `tabpanel` around
+  the calendar.
+- **Stylist filter** is now a native radio group
+  (`<fieldset>` + `<legend>` + one `<input type="radio">` per
+  stylist, labels styled as the pill buttons). Arrow keys move
+  between stylists and the selection is announced as a group —
+  free, correct semantics instead of `aria-pressed` buttons.
+- **Calendar** (`components/AppointmentCalendar.tsx`): the bogus
+  `role="grid"` was removed — a grid role needs row / gridcell
+  children and arrow-key interaction, which this calendar does not
+  have, and a grid with plain `<div>` children is worse for
+  assistive tech than no role at all. The appointment links inside
+  the cells are the keyboard path through the calendar. The stylist
+  colour dots are `aria-hidden` (the stylist name is the link text
+  right next to them).
+
+### Reduced motion
+
+- A `prefers-reduced-motion` media query in `app/globals.css` turns
+  off the hero zoom, the fade-up section animations, smooth
+  scrolling, card transitions, and the spinner animation for users
+  who ask their system to reduce motion.
+
+### Touch targets (WCAG 2.2 AA, noted separately)
+
+- The chat close button grew from 4px 8px padding to 8px 10px.
+  Everything else interactive was already 24px+.
+
+## What was verified
+
+- Production build passes; chatbot eval 7/7.
+- All pages return 200 in dev: `/`, `/login`, `/admin`, `/leads`,
+  `/dashboard`, `/customers`, `/appointments`, `/employees`,
+  `/employees/maya`, `/customers/emma-thompson`,
+  `/auth/reset-password`, `/auth/update-password`.
+- No `useActionState` (or any React 19-only hook) in any built chunk
+  (React 18.3.1 — only React 18 hooks are used anywhere).
+- Contrast table above was computed with a script (relative
+  luminance, WCAG ratios) over every text/background pair on the
+  site; every pair now passes its threshold.
+- axe-core was attempted via `npx @axe-core/cli` against the dev
+  server: it did not run in this workspace (see "Known limits").
+
+## Keyboard walkthrough (checked in code — see limits)
+
+Tab from the top of the homepage: skip link → main nav (Services,
+Book, AI assistant, owner sign-in) → hero "Book an appointment" →
+services → booking form (name → phone/email → service → message →
+Request booking) → chat open button → (open) question box, send,
+close, Escape returns focus. On owner pages: owner nav buttons
+(Dashboard, Leads, Customers, Appointments, Employees, Admin for
+admins, Sign out) → dashboard tabs (one Tab stop, arrows move
+between sections) → sortable headers (Enter/Space sorts, ▲/▼
+announced) → appointments view tabs (arrows) → stylist radios
+(arrows) → calendar appointment links (Tab, Enter opens the
+customer page) → diary links. No keyboard traps: every stop is a
+native button, link, input, or radio; nothing captures Tab.
+
+## Known limits — what could NOT be verified here
+
+- **No screen reader is available in this workspace**, so the
+  announcements (live region, tab selections, radio group) were
+  verified from the markup, not heard.
+- **Signed-in owner pages only show their unconfigured branch in
+  this workspace** (no Supabase session here). The tab, radio,
+  sortable-header, and calendar interactions on the configured
+  branches need checking on a signed-in clone after
+  `git pull origin main` + dev restart: dashboard tabs with arrow
+  keys, appointments Month/Week/Day + stylist filter, a sortable
+  header on /customers, the chat open/close with Escape, and the
+  skip link on each owner page.
+- **axe-core did not run**: `npx @axe-core/cli` against the dev
+  server did not complete in this workspace (the service restarted
+  while it was downloading). The contrast table + walkthrough above
+  are the verification for this pass; re-running axe in a browser
+  with the site open is still worth doing.
+- The hero text contrast is image-dependent (white text over a photo
+  with a gradient overlay) and cannot be reduced to a number; the
+  bottom of the overlay is 0.88 plum, and white on plum is 14:1.
+
+## Deliberately left out
+
+- **Table gridlines** (`#f0e6dc` borders on `.dash-table`, `#ccc` on
+  the admin table) were not darkened: they are decorative structure,
+  not the boundary of a UI component, and rows are distinguished by
+  their text and headers.
+- **No redesign**: colours were darkened minimally and nothing was
+  restyled. The public site, dashboard, and owner pages look the
+  same as before, a touch deeper in the rose.
+- **No changes** to business data, prices, hours, figures, routes,
+  or any dashboard / customer / employee numbers.

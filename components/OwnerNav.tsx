@@ -19,7 +19,7 @@ export default async function OwnerNav() {
     return <Link href="/login">Owner sign in</Link>;
   }
   return (
-    <div className="owner-nav">
+    <nav className="owner-nav" aria-label="Owner">
       <Link href="/dashboard">Dashboard</Link>
       <Link href="/leads">Leads</Link>
       <Link href="/customers">Customers</Link>
@@ -29,6 +29,6 @@ export default async function OwnerNav() {
       <form action="/auth/signout" method="post">
         <button type="submit">Sign out</button>
       </form>
-    </div>
+    </nav>
   );
 }

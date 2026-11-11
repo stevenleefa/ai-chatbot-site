@@ -176,5 +176,13 @@ export default function SortableTable({
   );
 
   if (wrapClassName === false) return table;
-  return <div className={wrapClassName}>{table}</div>;
+  // The wrapper scrolls horizontally on narrow screens, so it must be
+  // keyboard-focusable: otherwise a keyboard user cannot scroll a wide
+  // table at all (2.1.1). tabIndex 0 makes it a tab stop that scrolls
+  // with the arrow keys.
+  return (
+    <div className={wrapClassName} tabIndex={0}>
+      {table}
+    </div>
+  );
 }

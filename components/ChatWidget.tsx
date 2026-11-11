@@ -20,6 +20,27 @@ export default function ChatWidget() {
   ]);
   const listRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+
+  // When the widget opens, put focus in the question box so keyboard
+  // users can type straight away. Escape closes it and returns focus
+  // to the button that opened it.
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open ]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        openButtonRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open ]);
 
   // Track whether the visitor is near the bottom. If they scrolled
   // up to re-read an old message, we should not yank them back down.
@@ -64,17 +85,31 @@ export default function ChatWidget() {
   return (
     <div className="chat-widget">
       {!open && (
-        <button className="chat-open" onClick={() => setOpen(true)}>
-          Ask Lumen 💬
+        <button
+          ref={openButtonRef}
+          className="chat-open"
+          onClick={() => setOpen(true)}
+          aria-expanded="false"
+          aria-controls="chat-box"
+        >
+          Ask Lumen <span aria-hidden="true">💬</span>
         </button>
       )}
       {open && (
-        <div className="chat-box">
+        <div className="chat-box" id="chat-box">
           <div className="chat-head">
             <strong>Lumen assistant</strong>
             <button onClick={() => setOpen(false)} aria-label="Close chat">✕</button>
           </div>
-          <div className="chat-messages" ref={listRef} onScroll={handleScroll}>
+          <div
+            className="chat-messages"
+            ref={listRef}
+            onScroll={handleScroll}
+            role="log"
+            aria-live="polite"
+            aria-label="Chat messages"
+            tabIndex={0}
+          >
             {messages.map((m, i) => (
               <div key={i} className={`msg ${m.role}`}>
                 <p>{m.text}</p>
@@ -98,9 +133,11 @@ export default function ChatWidget() {
             }}
           >
             <input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about prices, hours, booking…"
+              aria-label="Ask the assistant"
             />
             <button type="submit" disabled={busy}>Send</button>
           </form>

@@ -18,7 +18,7 @@ import OwnerNav from "@/components/OwnerNav";
 export default async function AdminPage() {
   if (!isAuthConfigured()) {
     return (
-      <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -37,7 +37,7 @@ export default async function AdminPage() {
 
   if (session.profile.role !== "admin") {
     return (
-      <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -76,7 +76,7 @@ export default async function AdminPage() {
   const settings = await getSiteSettings();
 
   return (
-    <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
       <h1>Admin — Lumen Hair Studio</h1>
       <p>
         <Link href="/">← Back to the site</Link>
@@ -103,7 +103,12 @@ export default async function AdminPage() {
         {profiles.length === 0 && !storageError ? (
           <p>No users yet.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div
+            style={{ overflowX: "auto" }}
+            tabIndex={0}
+            role="region"
+            aria-label="Users table"
+          >
             <table style={{ borderCollapse: "collapse", width: "100%" }}>
               <thead>
                 <tr>

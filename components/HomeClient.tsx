@@ -52,10 +52,10 @@ export default function HomeClient({
   }
 
   return (
-    <main>
+    <main id="main-content">
       <div className="topnav">
         <strong>{settings.business_name}</strong>
-        <nav>
+        <nav aria-label="Main">
           <a href="#services">Services</a>
           <a href="#booking">Book</a>
           <a href="#assistant">AI assistant</a>
@@ -71,7 +71,7 @@ export default function HomeClient({
           <p>{business.tagline}</p>
           <p>{settings.address} · {settings.hours}</p>
           <p>Call: {settings.phone}</p>
-          <a className="hero-cta" href="#booking">Book an appointment →</a>
+          <a className="hero-cta" href="#booking">Book an appointment <span aria-hidden="true">→</span></a>
         </div>
       </header>
 
@@ -82,7 +82,7 @@ export default function HomeClient({
         <div className="grid">
           {services.map((s) => (
             <article key={s.name} className="card">
-              <div className="card-icon">✂️</div>
+              <div className="card-icon" aria-hidden="true">✂️</div>
               <h3>{s.name}</h3>
               <p className="price">{s.price} · {s.time}</p>
               <p>{s.note}</p>
@@ -95,16 +95,28 @@ export default function HomeClient({
         <h2>Book an appointment</h2>
         <div className="booking-card">
           <form className="lead-form" onSubmit={submitLead}>
-            <input placeholder="Your name" required value={lead.name}
-              onChange={(e) => setLead({ ...lead, name: e.target.value })} />
-            <input placeholder="Phone or email" required value={lead.contact}
-              onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
-            <select value={lead.service}
-              onChange={(e) => setLead({ ...lead, service: e.target.value })}>
-              {services.map((s) => <option key={s.name}>{s.name}</option>)}
-            </select>
-            <textarea placeholder="Anything we should know? (optional)" value={lead.message}
-              onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+            <label>
+              Your name
+              <input placeholder="Your name" required value={lead.name}
+                onChange={(e) => setLead({ ...lead, name: e.target.value })} />
+            </label>
+            <label>
+              Phone or email
+              <input placeholder="Phone or email" required value={lead.contact}
+                onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
+            </label>
+            <label>
+              Service
+              <select value={lead.service}
+                onChange={(e) => setLead({ ...lead, service: e.target.value })}>
+                {services.map((s) => <option key={s.name}>{s.name}</option>)}
+              </select>
+            </label>
+            <label>
+              Anything we should know? (optional)
+              <textarea placeholder="Anything we should know? (optional)" value={lead.message}
+                onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+            </label>
             <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
           </form>
           {leadResult && <p>{leadResult}</p>}

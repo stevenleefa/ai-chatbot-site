@@ -22,7 +22,7 @@ import { BUSINESS_NAME } from "@/lib/leads";
 export default async function EmployeesPage() {
   if (!isAuthConfigured()) {
     return (
-      <main className="dash-main">
+      <main id="main-content" className="dash-main">
         <h1>Employees — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -131,7 +131,7 @@ export default async function EmployeesPage() {
   }));
 
   return (
-    <main className="dash-main">
+    <main id="main-content" className="dash-main">
       <h1>Employees — {BUSINESS_NAME}</h1>
       <p>
         <Link href="/">← Back to the site</Link>

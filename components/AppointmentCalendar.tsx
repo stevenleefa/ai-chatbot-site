@@ -110,7 +110,7 @@ export default function AppointmentCalendar({
                 <span
                   className="stylist-dot"
                   style={{ background: a.colour }}
-                  aria-label={`${a.stylist}'s colour`}
+                  aria-hidden="true"
                 />{" "}
                 <span
                   className={
@@ -184,15 +184,13 @@ export default function AppointmentCalendar({
   return (
     <div>
       {rangeLabel && <h3>{rangeLabel}</h3>}
-      <div
-        className="calendar"
-        role="grid"
-        aria-label={
-          view === "week"
-            ? `Week of ${fmtDay(gridStart)} appointments calendar`
-            : "November 2026 appointments calendar"
-        }
-      >
+      {/* Plain layout grid, not role="grid": a grid role needs row /
+          gridcell children and arrow-key interaction, which this
+          calendar does not have — and a grid with plain div children
+          is worse for assistive tech than no role at all. The
+          appointment links inside the cells are the keyboard path
+          through the calendar (Tab reaches each one). */}
+      <div className="calendar">
         {WEEKDAY_NAMES.map((d) => (
           <div key={d} className="cal-head">
             {d}

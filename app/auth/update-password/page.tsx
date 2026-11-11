@@ -116,14 +116,14 @@ export default function UpdatePasswordPage() {
 
   if (!ready) {
     return (
-      <main style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
         <p>Checking your reset link…</p>
       </main>
     );
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
       <h1>Choose a new password — Lumen Hair Studio</h1>
       {fatal ? (
         <p role="alert" style={{ color: "#8e4a56" }}>

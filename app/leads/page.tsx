@@ -19,7 +19,7 @@ import { BUSINESS_NAME, BUSINESS_SLUG, type Lead } from "@/lib/leads";
 export default async function LeadsPage() {
   if (!isAuthConfigured()) {
     return (
-      <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
         <h1>Leads — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -56,7 +56,7 @@ export default async function LeadsPage() {
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
       <h1>Leads — {BUSINESS_NAME}</h1>
       <p>
         <Link href="/">← Back to the site</Link>

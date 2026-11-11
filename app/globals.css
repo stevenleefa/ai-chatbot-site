@@ -1,6 +1,12 @@
 :root {
   --cream: #fdf8f1;
-  --rose: #b76e79;
+  /* Rose darkened from #b76e79 (white text on it was 3.80:1, below
+     the WCAG 2.1 AA bar of 4.5:1 for normal text) to #a05a66
+     (5.06:1). It is the button gradient, the hero CTA and the
+     hover/active colour of the tab-like buttons, so this one change
+     fixes all of them; the warm rose look is unchanged in character.
+     See ACCESSIBILITY.md for the full contrast table. */
+  --rose: #a05a66;
   --rose-deep: #8e4a56;
   --plum: #3d2433;
   --gold: #c9a86a;
@@ -18,6 +24,29 @@
 }
 
 html { scroll-behavior: smooth; }
+/* Keyboard focus, WCAG 2.1 AA (2.4.7, 1.4.11): one clear indicator
+   everywhere. Two concentric rings — white inside, dark navy
+   outside — so one ring is always visible: the navy ring reads
+   against light backgrounds (10.89:1 on cream) and the white ring
+   against dark ones (14.01:1 on plum). A single colour cannot do
+   both, because navy on plum is only 1.22:1. */
+:focus-visible { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+/* Skip link: first tab stop on every page; hidden until focused. */
+.skip-link { position: absolute; left: 16px; top: -60px; z-index: 100; background: var(--plum); color: white; padding: 10px 16px; border-radius: 999px; font-weight: 700; text-decoration: none; }
+.skip-link:focus { top: 12px; }
+/* Visually hidden but still in the tab order / announced (used for
+   the filter fieldset legend and the radio inputs). */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Reduced motion (WCAG 2.3.3): switch off the hero zoom, the fade-up
+   entrances and smooth scrolling for people who ask for it. The
+   spinner also stops (the "Sending…" text still says what is
+   happening). */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero-img, .reveal { animation: none; }
+  .card { transition: none; }
+  .spinner { animation: none; }
+}
 body { font-family: var(--font-body), system-ui, sans-serif; margin: 0; color: var(--plum); background: var(--cream); line-height: 1.6; }
 h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
 main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
@@ -59,7 +88,11 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
    inputs sat at their narrow default width inside the full-width label. */
 .lead-form label { display: grid; gap: 6px; }
 .lead-form input, .lead-form select, .lead-form textarea { width: 100%; box-sizing: border-box; }
-.lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 16px; border: 1px solid #d8c7b8; border-radius: 12px; background: var(--cream); color: var(--plum); font-family: inherit; }
+.lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 16px; border: 1px solid #97826f; border-radius: 12px; background: var(--cream); color: var(--plum); font-family: inherit; }
+/* Placeholder text must meet the same 4.5:1 bar as other text:
+   #6b5560 on the cream input background is 6.42:1. (Browsers
+   otherwise render placeholders in a light grey that can fail.) */
+input::placeholder, textarea::placeholder { color: #6b5560; opacity: 1; }
 button { padding: 12px 20px; font-size: 16px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; }
 /* Owner navigation buttons (site nav + top of /leads, /dashboard, /admin).
    Real buttons that go to the owner routes, so nobody has to type a URL. */
@@ -78,7 +111,7 @@ button:hover { filter: brightness(1.08); }
 .chat-open { box-shadow: 0 10px 26px rgba(61, 36, 51, 0.35); }
 .chat-box { width: 360px; max-width: 90vw; background: white; border: 1px solid #eee2d6; border-radius: 18px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); overflow: hidden; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; background: var(--plum); color: white; padding: 12px 14px; }
-.chat-head button { background: transparent; padding: 4px 8px; }
+.chat-head button { background: transparent; padding: 8px 10px; }
 .chat-messages { height: 300px; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
 .msg { padding: 10px 12px; border-radius: 14px; max-width: 90%; }
 .msg.user { background: #f6dfe2; justify-self: end; }
@@ -137,10 +170,16 @@ button:hover { filter: brightness(1.08); }
 .cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 14px; }
 .cal-cell { background: white; border: 1px solid #eee2d6; border-radius: 10px; min-height: 132px; padding: 6px 8px; }
 .cal-cell.cal-closed { background: #f0ebe4; }
-.cal-cell.cal-outside { background: transparent; border-color: transparent; opacity: 0.45; }
+/* Outside-month cells are muted by a lighter day number, not by
+   opacity: plum at 45% opacity measured only 2.64:1 against the
+   cell. #6b5560 on the cream page is 6.42:1. */
+.cal-cell.cal-outside { background: transparent; border-color: transparent; }
+.cal-cell.cal-outside .cal-day { color: #6b5560; }
 .cal-day { font-weight: 700; color: var(--plum); font-size: 14px; }
-.cal-closed .cal-day { color: #8a7d75; }
-.cal-closed-label { font-size: 12px; color: #8a7d75; margin-top: 4px; }
+/* Closed-day text darkened from #8a7d75 (3.36:1 on #f0ebe4, below
+   AA) to #6b5560 (5.72:1 on #f0ebe4). */
+.cal-closed .cal-day { color: #6b5560; }
+.cal-closed-label { font-size: 12px; color: #6b5560; margin-top: 4px; }
 .cal-appt { color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 12px; line-height: 1.35; }
 .cal-appt a { color: white; }
 .cal-appt-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -157,12 +196,19 @@ button:hover { filter: brightness(1.08); }
 .view-nav button:disabled { opacity: 0.45; cursor: default; }
 
 /* Stylist filter buttons across the top of /appointments, and the
-   stylist colour dots + legend. The dot is the stylist's colour;
-   the active filter button is rose, like the other tab buttons. */
-.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+   stylist colour dots + legend. The dot is the stylist's colour.
+   The filter is a native radio group (fieldset + legend) whose
+   labels look like the other pill buttons: radios give the group
+   arrow-key navigation and single-select semantics for free, which
+   plain buttons with aria-pressed do not. The input itself is
+   visually hidden but stays in the tab order; the checked label
+   gets the rose active style, and focusing the radio rings its
+   label. */
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; border: 0; padding: 0; }
 .filter-btn { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
 .filter-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
-.filter-btn.active { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-radio:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-radio:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 .stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
 .stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
 
@@ -204,7 +250,9 @@ button:hover { filter: brightness(1.08); }
 .dash-table .sub { color: #6b5560; font-size: 13px; }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: capitalize; }
 .badge-paid { background: #dcead9; color: #2e6b2e; }
-.badge-unpaid { background: #fdf0d3; color: #8a6d00; }
+/* Unpaid text darkened from #8a6d00 (4.35:1 on #fdf0d3, just under
+   AA) to #7a6100 (5.25:1). */
+.badge-unpaid { background: #fdf0d3; color: #7a6100; }
 .badge-overdue { background: #f8d7da; color: #842029; }
 .badge-low { background: #f8d7da; color: #842029; }
 .badge-ok { background: #dcead9; color: #2e6b2e; }

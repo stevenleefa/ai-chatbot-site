@@ -28,7 +28,7 @@ export default async function CustomerDetailPage({
 }) {
   if (!isAuthConfigured()) {
     return (
-      <main className="dash-main">
+      <main id="main-content" className="dash-main">
         <h1>Customer — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/customers">← Back to customers</Link>
@@ -54,7 +54,7 @@ export default async function CustomerDetailPage({
   const hiddenProcedures = procedures.length - shownProcedures.length;
 
   return (
-    <main className="dash-main">
+    <main id="main-content" className="dash-main">
       <h1>{summary.customer.name}</h1>
       <p>
         <Link href="/customers">← Back to customers</Link>

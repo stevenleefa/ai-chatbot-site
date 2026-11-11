@@ -28,7 +28,7 @@ export default async function EmployeeDetailPage({
 }) {
   if (!isAuthConfigured()) {
     return (
-      <main className="dash-main">
+      <main id="main-content" className="dash-main">
         <h1>Employee — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/employees">← Back to employees</Link>
@@ -55,7 +55,7 @@ export default async function EmployeeDetailPage({
   const hiddenSales = recentSales.length - shownSales.length;
 
   return (
-    <main className="dash-main">
+    <main id="main-content" className="dash-main">
       <h1>{e.name}</h1>
       <p>
         <Link href="/employees">← Back to employees</Link>

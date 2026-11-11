@@ -54,7 +54,7 @@ function LoginForm() {
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
       <h1>Owner sign in — Lumen Hair Studio</h1>
       <p>
         <Link href="/">← Back to the site</Link>
