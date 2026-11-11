@@ -61,8 +61,15 @@ function dayDiff(a: string, b: string): number {
 
 function isOpenDay(iso: string): boolean {
   const d = new Date(iso + "T12:00:00Z").getUTCDay(); // 0 Sun ... 6 Sat
-  return d >= 2 && d <= 6; // Tue-Sat, matching the salon's hours
+  return d >= 1 && d <= 6; // Mon-Sat — the salon opened Mondays in
+  // November 2026. The historical Aug–Oct SALES in lib/dashboard.ts
+  // stay Tue–Sat: history is not rewritten (see CUSTOMERS.md).
 }
+
+// 12-hour clock for display only — lives in lib/format.ts (no data
+// imports) so client components can use it too; re-exported here for
+// the server pages that already import from this file.
+export { formatTime } from "./format";
 
 // --- Usual service intervals ------------------------------------------------
 
@@ -233,8 +240,9 @@ export type Recommendation = {
 export type Appointment = {
   id: string;
   customerId: string;
-  date: string; // YYYY-MM-DD, November 2026, an open day (Tue-Sat)
-  time: string; // 09:00–16:30, inside salon hours
+  date: string; // YYYY-MM-DD, November 2026, an open day (Mon-Sat)
+  time: string; // 09:00–16:30, inside salon hours (stored 24-hour;
+  // displayed 12-hour via formatTime)
   service: string;
   stylist: string;
   status: "confirmed" | "requested";
@@ -260,7 +268,9 @@ export type CustomerSummary = {
   nextDueLastDate: string;
   isOverdue: boolean;
   isDueSoon: boolean;
-  appointment: Appointment | null;
+  appointment: Appointment | null; // first booking (compat; see below)
+  appointments: Appointment[]; // every booking, date order (usually 1;
+  // 2 when a second service is also due in November)
   needsNudge: boolean;
   recommendations: Recommendation[];
   nudgeMessage: string;
@@ -446,6 +456,7 @@ function buildSummaries(): CustomerSummary[] {
       isOverdue,
       isDueSoon,
       appointment: null, // filled in by getAppointments() below
+      appointments: [], // filled in by getAppointments() below
       needsNudge: false, // filled in below, once appointments exist
       recommendations: recommendationsFor(procedures, purchases),
       nudgeMessage: nudgeMessage(firstName, next.service, next.lastDate),
@@ -463,25 +474,90 @@ const SUMMARIES: CustomerSummary[] = buildSummaries();
 // cases on the appointments page. Times come from a fixed slot list so
 // the diary is deterministic; "requested" is every fourth regular
 // (index % 4 === 2), the rest are "confirmed".
+//
+// SECOND APPOINTMENTS: a regular can also have a second November
+// booking, for a DIFFERENT service whose own due date falls in
+// November (their second due in dues[]). The nudge cases never get
+// one — their next due is the nudge, not a booking — so the nudge
+// count stays 4. A second booking must not clash: its slot is picked
+// from the slot list, skipping any slot already used by the same
+// stylist or the same customer on that date.
+function pickSlot(
+  stylist: string,
+  customerId: string,
+  date: string,
+  startAt: number,
+  existing: Appointment[]
+): string {
+  for (let k = 0; k < APPOINTMENT_SLOTS.length; k++) {
+    const time = APPOINTMENT_SLOTS[(startAt + k) % APPOINTMENT_SLOTS.length];
+    const clash = existing.some(
+      (a) =>
+        a.date === date &&
+        a.time === time &&
+        (a.stylist === stylist || a.customerId === customerId)
+    );
+    if (!clash) return time;
+  }
+  return APPOINTMENT_SLOTS[startAt % APPOINTMENT_SLOTS.length];
+}
+
 function buildAppointments(): Appointment[] {
   const appointments: Appointment[] = [];
   for (let i = 0; i < SUMMARIES.length; i++) {
     const s = SUMMARIES[i];
     // Due soon (or overdue) with no booking yet = a nudge case, not a diary entry.
     if (s.isOverdue || s.isDueSoon) continue;
+    const mine: Appointment[] = [];
+    // First booking: soonest due date, shifted to the next open day.
     let date = s.nextDueDate;
     while (!isOpenDay(date)) date = addDays(date, 1);
     const day = Number(date.slice(8, 10));
-    appointments.push({
+    mine.push({
       id: `appt-${s.customer.id}`,
       customerId: s.customer.id,
       date,
-      time: APPOINTMENT_SLOTS[(i * 2 + day) % APPOINTMENT_SLOTS.length],
+      time: pickSlot(
+        s.preferredStylist,
+        s.customer.id,
+        date,
+        (i * 2 + day) % APPOINTMENT_SLOTS.length,
+        appointments
+      ),
       service: s.nextDueService,
       stylist: s.preferredStylist,
       status: i % 4 === 2 ? "requested" : "confirmed",
     });
-    s.appointment = appointments[appointments.length - 1];
+    // Second booking: a different service whose own due date falls in
+    // November. Same stylist, same status rule, different slot.
+    const second = s.dues[1];
+    if (
+      second &&
+      second.dueDate >= "2026-11-01" &&
+      second.dueDate <= "2026-11-30"
+    ) {
+      let date2 = second.dueDate;
+      while (!isOpenDay(date2)) date2 = addDays(date2, 1);
+      const day2 = Number(date2.slice(8, 10));
+      mine.push({
+        id: `appt-${s.customer.id}-2`,
+        customerId: s.customer.id,
+        date: date2,
+        time: pickSlot(
+          s.preferredStylist,
+          s.customer.id,
+          date2,
+          (i * 2 + day2 + 3) % APPOINTMENT_SLOTS.length,
+          [...appointments, ...mine]
+        ),
+        service: second.service,
+        stylist: s.preferredStylist,
+        status: i % 4 === 2 ? "requested" : "confirmed",
+      });
+    }
+    appointments.push(...mine);
+    s.appointments = mine;
+    s.appointment = mine[0];
   }
   appointments.sort((a, b) =>
     a.date === b.date

@@ -13,6 +13,7 @@ import SortableTable from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
+import { formatTime } from "@/lib/customers";
 import { getEmployeeSummary } from "@/lib/employees";
 import { BUSINESS_NAME } from "@/lib/leads";
 
@@ -277,7 +278,7 @@ export default async function EmployeeDetailPage({
               key: a.id,
               cells: [
                 fmtDate(a.date),
-                a.time,
+                formatTime(a.time),
                 <Link href={`/customers/${a.customerId}`}>
                   {a.customerName}
                 </Link>,

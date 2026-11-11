@@ -4,7 +4,7 @@ export const business = {
   phone: "(555) 014-8890",
   email: "hello@lumenhairstudio.example",
   address: "12 Maple Street",
-  hours: "Tuesday to Saturday, 9am to 6pm. Closed Sunday and Monday.",
+  hours: "Monday to Saturday, 9am to 6pm. Closed Sunday.",
 };
 
 export type KnowledgeChunk = {
@@ -21,7 +21,7 @@ export const knowledge: KnowledgeChunk[] = [
   {
     id: "hours",
     title: "Opening hours",
-    text: "Lumen Hair Studio is open Tuesday to Saturday, 9am to 6pm. It is closed on Sunday and Monday.",
+    text: "Lumen Hair Studio is open Monday to Saturday, 9am to 6pm. It is closed on Sunday.",
     keywords: ["open", "hours", "close", "closed", "when", "sunday", "monday", "tuesday"],
   },
   {

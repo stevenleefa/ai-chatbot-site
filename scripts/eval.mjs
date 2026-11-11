@@ -4,7 +4,7 @@
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 
 const cases = [
-  { q: "What are your opening hours?", expect: "Tuesday to Saturday" },
+  { q: "What are your opening hours?", expect: "Monday to Saturday" },
   { q: "How much is a haircut?", expect: "$35" },
   { q: "How do I book an appointment?", expect: "(555) 014-8890" },
   { q: "What is your cancellation policy?", expect: "24 hours" },

@@ -110,6 +110,32 @@ Rules of the scheme:
   the scheme is scoped to the owner-area lists and detail pages
   named above.
 
+## Stylist colours (separate coding)
+
+On top of the category colours, each stylist has their OWN colour,
+used only for appointments: the calendar blocks on `/appointments`
+are coloured by stylist, and a small dot in the stylist's colour
+sits next to their name in the diary table. A legend row under the
+calendar (swatch + name per stylist) is the key. This is a separate
+coding from the tag chips above — a stylist colour identifies a
+person, a tag colour identifies a category — so the two never
+conflict. The mapping lives in `STYLIST_COLOURS` in
+`lib/employees.ts` (one source of truth; the calendar, the diary
+dots, the filter buttons and the legend all read it):
+
+| Stylist | Colour | Hex | White-text contrast |
+|---|---|---|---|
+| Amelia Brooks | Dark navy | `#1e3a5f` | 11.50:1 |
+| Sofia Reyes | Deep purple | `#5b21b6` | 8.98:1 |
+| Maya Chen | Medium purple | `#7c3aed` | 5.70:1 |
+| Jordan Lee | Dark grey | `#374151` | 10.31:1 |
+| Priya Nair | Medium grey | `#6b7280` | 4.83:1 |
+
+All five pass WCAG 2.1 AA with white text (4.5:1 or better). Priya
+is the receptionist and has no appointments, so her colour appears
+only in the legend and her filter button — filtering to her shows
+the empty state.
+
 ## How to change it
 
 - To change who works at the salon, edit the `EMPLOYEES` list in
@@ -120,7 +146,10 @@ Rules of the scheme:
   check in `lib/employees.ts` (`buildSummaries`).
 - To change a colour, edit the `--tag-*` variables in
   `app/globals.css` — every chip follows the variable, so the whole
-  owner area changes at once.
+  owner area changes at once. To change a stylist's colour, edit
+  `STYLIST_COLOURS` in `lib/employees.ts` — the calendar blocks,
+  diary dots, filter buttons and legend all follow it (keep the new
+  colour dark enough for white text: contrast 4.5:1 or better).
 
 ## Files
 
@@ -136,6 +165,9 @@ Rules of the scheme:
 | `middleware.ts` | `/employees` added to the guarded routes |
 | `app/globals.css` | `--tag-*` variables, `.tag` / `.tag-*` / `.colour-legend` |
 | `app/dashboard/page.tsx` | Employee names now link to their pages |
-| `app/appointments/page.tsx` | Stylist links, header chips, legend |
+| `app/appointments/page.tsx` | Stylist links, header chips, legend, filter + views (via AppointmentsView) |
+| `components/AppointmentsView.tsx` | Stylist filter buttons, Month/Week/Day switcher, calendar + diary |
+| `components/AppointmentCalendar.tsx` | Month / Week / Day calendar, blocks coloured by stylist |
+| `lib/format.ts` | `formatTime` (12-hour clock) — no data imports |
 | `app/customers/page.tsx`, `app/customers/[id]/page.tsx` | Legend, header/section chips, stylist links |
 | `EMPLOYEES.md` | This file |

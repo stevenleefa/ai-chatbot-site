@@ -129,17 +129,46 @@ button:hover { filter: brightness(1.08); }
 .leads-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
 
 /* Month calendar on /appointments (components/AppointmentCalendar.tsx).
-   Sunday-start grid; appointment blocks are the appointments navy. */
+   Sunday-start grid; appointment blocks are coloured by stylist
+   (STYLIST_COLOURS in lib/employees.ts). Cells are tall enough for
+   several appointments; each block is small, with ellipsis so a long
+   name never breaks the cell. */
 .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
 .cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 14px; }
-.cal-cell { background: white; border: 1px solid #eee2d6; border-radius: 10px; min-height: 96px; padding: 6px 8px; }
+.cal-cell { background: white; border: 1px solid #eee2d6; border-radius: 10px; min-height: 132px; padding: 6px 8px; }
 .cal-cell.cal-closed { background: #f0ebe4; }
 .cal-cell.cal-outside { background: transparent; border-color: transparent; opacity: 0.45; }
 .cal-day { font-weight: 700; color: var(--plum); font-size: 14px; }
 .cal-closed .cal-day { color: #8a7d75; }
 .cal-closed-label { font-size: 12px; color: #8a7d75; margin-top: 4px; }
-.cal-appt { background: var(--tag-appointments); color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 13px; line-height: 1.35; }
+.cal-appt { color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 12px; line-height: 1.35; }
 .cal-appt a { color: white; }
+.cal-appt-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* View tabs (Month / Week / Day) and prev/next navigation on
+   /appointments — same pill shape as the dashboard tabs. */
+.view-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+.view-tabs button { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
+.view-tabs button:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.view-tabs button.active { background: var(--rose); color: white; border-color: var(--rose); }
+.view-nav { display: flex; gap: 8px; margin: 8px 0 12px; }
+.view-nav button { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
+.view-nav button:hover:not(:disabled) { background: var(--rose); color: white; border-color: var(--rose); }
+.view-nav button:disabled { opacity: 0.45; cursor: default; }
+
+/* Stylist filter buttons across the top of /appointments, and the
+   stylist colour dots + legend. The dot is the stylist's colour;
+   the active filter button is rose, like the other tab buttons. */
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.filter-btn { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
+.filter-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-btn.active { background: var(--rose); color: white; border-color: var(--rose); }
+.stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
+.stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
+
+/* Day view on /appointments: one day as a timed list. */
+.day-list { list-style: none; padding: 0; margin: 12px 0; }
+.day-list li { background: white; border: 1px solid #eee2d6; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
 
 .dash-chart { margin: 20px 0; background: white; border: 1px solid #eee2d6; border-radius: 14px; padding: 16px; }
 .dash-chart figcaption { font-weight: 700; color: var(--plum); margin-bottom: 8px; }

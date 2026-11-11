@@ -53,6 +53,34 @@ import {
 
 export const PAYROLL_MONTH = "2026-10";
 
+// One colour per stylist, for the appointments calendar blocks and
+// the diary's stylist dots. These are SEPARATE from the category tag
+// colours (people/money/appointments/products/services in
+// app/globals.css) — a stylist colour identifies a person, a tag
+// colour identifies a category. Every colour is white text on a
+// solid block, and all five pass WCAG 2.1 AA (>= 4.5:1):
+//   Amelia Brooks — dark navy #1e3a5f (11.50:1)
+//   Sofia Reyes — deep purple #5b21b6 (8.98:1)
+//   Maya Chen — medium purple #7c3aed (5.70:1)
+//   Jordan Lee — dark grey #374151 (10.31:1)
+//   Priya Nair — medium grey #6b7280 (4.83:1)
+// (Three are reused from the tag palette, two are new greys/purples
+// from the same WCAG palette family.) See EMPLOYEES.md.
+export const STYLIST_COLOURS: Record<string, string> = {
+  "Amelia Brooks": "#1e3a5f",
+  "Sofia Reyes": "#5b21b6",
+  "Maya Chen": "#7c3aed",
+  "Jordan Lee": "#374151",
+  "Priya Nair": "#6b7280",
+};
+
+// Colour for a stylist by full name; falls back to the appointments
+// navy for any name not in the map (should not happen — every stylist
+// in EMPLOYEES is listed above).
+export function stylistColour(name: string): string {
+  return STYLIST_COLOURS[name] ?? "#1e3a5f";
+}
+
 // "Maya Chen" -> "maya". All five first names are distinct.
 export function employeeIdForName(name: string): string {
   return name.split(" ")[0].toLowerCase();

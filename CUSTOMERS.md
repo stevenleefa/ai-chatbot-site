@@ -43,17 +43,64 @@ so there is nothing to sort.
 
 ## The November calendar
 
-`/appointments` has a month calendar above the diary table
-(`components/AppointmentCalendar.tsx`, server-rendered, no client
-JS). November 2026, Sunday-start weeks: Nov 1 is a Sunday and the
-month has 30 days, so the grid is 5 rows — Nov 1–30 plus Dec 1–5
-filling the last row, muted. Each day cell shows that day's
-appointments as small navy blocks: time + customer name (a link to
+`/appointments` has a calendar above the diary table
+(`components/AppointmentCalendar.tsx`), driven by the Month / Week /
+Day switcher in `components/AppointmentsView.tsx` (a client
+component — the view and the stylist filter are state). November
+2026, Sunday-start weeks: Nov 1 is a Sunday and the month has 30
+days, so the month grid is 5 rows — Nov 1–30 plus Dec 1–5 filling
+the last row, muted. Week is a 7-day strip for the chosen week
+(prev/next-week buttons, clamped to the weeks overlapping
+November); Day is the chosen day as a timed list (prev/next-day
+buttons, clamped to Nov 1–30). Week and day default to the week/day
+of the first appointment. The diary covers November 2026 only: all
+booked appointments are in November and there is no data for other
+months, so there is no month navigation.
+
+Each day cell shows that day's appointments as small blocks coloured
+BY STYLIST (one colour per stylist — see "Stylist colours" in
+EMPLOYEES.md): time in 12-hour clock + customer name (a link to
 `/customers/<id>`) and the stylist name (a link to
-`/employees/<id>`). Sundays and Mondays are closed — those cells are
-greyed out and labelled Closed. The diary covers November 2026
-only: all 8 booked appointments are in November and there is no
-data for other months, so there is no month navigation.
+`/employees/<id>`). Cells are tall enough for several appointments
+and the blocks are small, with ellipsis so a long name never breaks
+the cell. Sundays are closed — those cells are greyed out and
+labelled Closed. The salon is open Monday to Saturday from November
+(see "Opening hours" below).
+
+Above the calendar, a row of filter buttons — All plus one per
+stylist — shows only that stylist's appointments, in the calendar
+(all three views) and in the diary table below. The Due-for-a-
+booking list is NOT filtered (those customers have no appointment).
+Priya has no appointments, so her filter shows the empty state.
+
+Times display in 12-hour clock everywhere appointments appear
+(diary Time column, calendar blocks, employee detail appointments,
+customer detail booked appointment): "3:00 PM", never "15:00".
+One helper does it — `formatTime` in `lib/format.ts` — and the
+stored time stays "HH:MM" so sorting still uses the stored value.
+
+## Opening hours — Mondays now, history stays Tue–Sat
+
+The salon opened Mondays in November 2026: open Monday to Saturday,
+9am to 6pm, closed Sunday only. `lib/business.ts` (hours + the
+Opening hours knowledge chunk) and the eval's hours case say so,
+and appointment due dates now shift forward to the next Mon–Sat day
+(a Sunday due date moves to the following Monday).
+
+The historical Aug–Oct SALES in `lib/dashboard.ts` stay Tue–Sat —
+the salon was closed Mondays then, and history is not rewritten.
+That is deliberate, not a bug: the dashboard's open days are the
+past, the appointments' open days are the present. Do not touch
+the SALES generator to "fix" it; every dashboard figure
+(1,377 sales, $72,070) depends on those rows.
+
+Follow-up for the owner (not done in code): the public homepage's
+hours come from the Supabase `site_settings` row, which the code
+reads first (`getSiteSettings`, DB over `lib/business.ts` defaults)
+— so the live site still says Tue–Sat until the owner changes the
+hours in `/admin` (site settings form) and the change lands in the
+database. The chatbot's hours come from `lib/business.ts` and are
+already Monday–Saturday.
 
 ## Where the data lives — and how to change it
 
@@ -86,11 +133,17 @@ from those rows plus the dashboard's sales rows — never hardcoded.
   `NUDGE_WITHIN_DAYS` (7) days after Oct 31.
 - **Appointments** — a booked next visit for most regulars, at their
   next due date (shifted forward to the next open day if it falls on a
-  Sunday or Monday), in November 2026, with a time from a fixed slot
-  list (09:00–16:30) and their preferred stylist. Status is
-  "requested" for every fourth regular (roster index % 4 === 2), the
-  rest are "confirmed". Regulars who are overdue or due soon are NOT
-  booked — they are the nudge cases.
+  Sunday), in November 2026, with a time from a fixed slot list
+  (09:00–16:30, displayed 12-hour) and their preferred stylist.
+  Status is "requested" for every fourth regular (roster index % 4
+  === 2), the rest are "confirmed". A regular can have a SECOND
+  November booking, for a different service whose own due date falls
+  in November (their second due in `dues[]`) — the slot is picked so
+  it never clashes with the same stylist or the same customer on that
+  date. That gives 11 bookings across 8 regulars (3 with two
+  bookings; Nov 28 has three). Regulars who are overdue or due soon
+  are NOT booked — they are the nudge cases — so a second booking
+  never turns a nudge case into a booking.
 - **Needs a nudge** — next due date is past or within 7 days AND no
   appointment is booked. (By construction every other regular has a
   booking, so the nudge set is exactly the overdue / due-soon set.)
@@ -145,7 +198,7 @@ before changing them:
   November booking and 4 due a nudge, with due dates spread across
   November — the mix the appointments page is built around. If you
   change the stride or offset, re-check the booked/nudge split and the
-  appointment dates (all November, all Tue–Sat, no two appointments
+  appointment dates (all November, all Mon–Sat, no two appointments
   for the same stylist at the same time).
 
 ## How to change it
@@ -176,9 +229,11 @@ before changing them:
 | `app/customers/page.tsx` | Customers list (owner-gated) |
 | `app/customers/[id]/page.tsx` | Customer detail (owner-gated, unknown id → 404) |
 | `app/customers/loading.tsx`, `app/customers/[id]/loading.tsx` | Loading states |
-| `app/appointments/page.tsx` | November diary + due-for-a-booking (owner-gated), plus the November calendar |
+| `app/appointments/page.tsx` | November diary + due-for-a-booking (owner-gated), plus the calendar, views and stylist filter |
 | `app/appointments/loading.tsx` | Loading state |
-| `components/AppointmentCalendar.tsx` | November 2026 month grid (server-rendered, no client JS) |
+| `components/AppointmentCalendar.tsx` | Month / Week / Day calendar (client component — view is state) |
+| `components/AppointmentsView.tsx` | Stylist filter buttons, Month/Week/Day switcher, calendar + diary (client component) |
+| `lib/format.ts` | `formatTime` (12-hour clock) and `fmtDate` — no data imports, safe for client components |
 | `components/SortableTable.tsx` | Shared sortable table used by every owner-area table |
 | `components/OwnerAppointmentsCard.tsx` | Homepage Appointments card (signed-in only) |
 | `components/OwnerNav.tsx` | Now also has Customers + Appointments buttons |

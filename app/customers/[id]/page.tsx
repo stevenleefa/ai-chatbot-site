@@ -13,7 +13,7 @@ import SortableTable from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
-import { getCustomerSummary } from "@/lib/customers";
+import { formatTime, getCustomerSummary } from "@/lib/customers";
 import { employeeIdForName } from "@/lib/employees";
 import { BUSINESS_NAME } from "@/lib/leads";
 
@@ -229,18 +229,22 @@ export default async function CustomerDetailPage({
         ) : summary.appointment ? (
           <p>
             Booked for{" "}
-            <strong>
-              {fmtDate(summary.appointment.date)} at{" "}
-              {summary.appointment.time}
-            </strong>{" "}
-            with{" "}
-            <Link
-              href={`/employees/${employeeIdForName(summary.appointment.stylist)}`}
-            >
-              {summary.appointment.stylist}
-            </Link>{" "}
-            ({summary.appointment.status}). See{" "}
-            <Link href="/appointments">Appointments</Link>.
+            {summary.appointments.map((a, i) => (
+              <span key={a.id}>
+                {i > 0 ? " and " : ""}
+                <strong>
+                  {fmtDate(a.date)} at {formatTime(a.time)}
+                </strong>{" "}
+                ({a.service} with{" "}
+                <Link
+                  href={`/employees/${employeeIdForName(a.stylist)}`}
+                >
+                  {a.stylist}
+                </Link>
+                , {a.status})
+              </span>
+            ))}
+            . See <Link href="/appointments">Appointments</Link>.
           </p>
         ) : (
           <p>Not due yet — no nudge needed.</p>

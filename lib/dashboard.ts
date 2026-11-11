@@ -115,7 +115,11 @@ function dayOfWeek(iso: string): number {
 
 function isOpenDay(iso: string): boolean {
   const d = dayOfWeek(iso);
-  return d >= 2 && d <= 6; // Tue-Sat, matching the salon's hours
+  return d >= 2 && d <= 6; // Tue-Sat — the salon's hours in Aug–Oct
+  // 2026, when these sales happened. The salon opened Mondays in
+  // November (see lib/customers.ts), but history is not rewritten:
+  // do not "fix" this to Mon–Sat; every dashboard figure depends on
+  // these rows. See CUSTOMERS.md.
 }
 
 function addDays(iso: string, n: number): string {
