@@ -8,7 +8,6 @@ export const revalidate = 0;
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import OwnerNav from "@/components/OwnerNav";
 import SortableTable from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -60,7 +59,6 @@ export default async function EmployeeDetailPage({
       <p>
         <Link href="/employees">← Back to employees</Link>
       </p>
-      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).

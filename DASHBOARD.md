@@ -20,11 +20,17 @@ receivable.
   that section in place (the page doesn't jump down to it), and **Overview**
   shows everything again. The buttons stick to the top while you scroll, so
   they're always in reach.
-- Where a list has dates with money, a bar chart sits underneath it as a
-  visual: weekly revenue under Sales by week, monthly revenue vs profit
-  under P&L, and sales tax collected by month under Taxes. The numbers in
-  the tables stay the source of truth; the charts are drawn by
-  `components/BarChart.tsx` (plain SVG, no chart library).
+- Where a list has dates with money, a line chart sits underneath it
+  as a visual: weekly revenue under Sales by week, monthly revenue vs
+  profit under P&L, and sales tax collected by month under Taxes. Each
+  chart is a line (or two lines) with a dot at every data point, a real
+  x-axis (dates/months) and y-axis (money values with a label and light
+  gridlines); hovering a dot shows its exact value, and the numbers in
+  the tables stay the source of truth. The charts are drawn by
+  `components/LineChart.tsx` (plain SVG, no chart library). They were
+  bar charts until 2026-11-10: the bar chart put a money label above
+  every bar, and with 13 weekly bars the labels overlapped, so the
+  charts became lines with no per-point text labels.
 
 ## What it shows
 

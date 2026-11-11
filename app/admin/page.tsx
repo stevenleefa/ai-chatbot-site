@@ -11,14 +11,14 @@ import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession, type Profile } from "@/lib/auth/session";
 import { getSiteSettings } from "@/lib/site-settings";
-import { setUserActive, setUserRole, saveSiteSettings } from "./actions";
+import { getPendingReviews } from "@/lib/reviews-server";
+import { setUserActive, setUserRole, saveSiteSettings, approveReview, deleteReview } from "./actions";
 import InviteStaffForm from "@/components/InviteStaffForm";
-import OwnerNav from "@/components/OwnerNav";
 
 export default async function AdminPage() {
   if (!isAuthConfigured()) {
     return (
-      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -37,12 +37,11 @@ export default async function AdminPage() {
 
   if (session.profile.role !== "admin") {
     return (
-      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
         <p>
           <Link href="/">← Back to the site</Link>
         </p>
-        <OwnerNav />
         <p role="alert">
           <strong>Admins only.</strong> You are signed in, but your account
           does not have the admin role. Ask an admin to promote you on this
@@ -74,14 +73,14 @@ export default async function AdminPage() {
   }
 
   const settings = await getSiteSettings();
+  const pendingReviews = await getPendingReviews();
 
   return (
-    <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
       <h1>Admin — Lumen Hair Studio</h1>
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (admin).
       </p>
@@ -164,6 +163,72 @@ export default async function AdminPage() {
           password on /auth/update-password. They start as staff.
         </p>
         <InviteStaffForm />
+      </section>
+
+      <section>
+        <h2>
+          Review approvals
+          {pendingReviews.length > 0 ? ` (${pendingReviews.length} pending)` : ""}
+        </h2>
+        <p>
+          Visitor reviews arrive as pending and only appear on the
+          homepage once approved here. Approve the genuine ones;
+          delete spam or anything the studio would not want shown.
+          The seed reviews on the homepage are demo data in code, not
+          rows here — they are not listed.
+        </p>
+        {!isSupabaseConfigured() ? (
+          <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+            Review storage is not configured
+            (SUPABASE_SERVICE_ROLE_KEY missing), so reviews cannot be
+            listed or approved yet. See REVIEWS.md.
+          </p>
+        ) : pendingReviews.length === 0 ? (
+          <p>No reviews waiting for approval.</p>
+        ) : (
+          <div
+            style={{ overflowX: "auto" }}
+            tabIndex={0}
+            role="region"
+            aria-label="Pending reviews table"
+          >
+            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Name</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Rating</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Service</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Review</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingReviews.map((r) => (
+                  <tr key={r.id}>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.name}</td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                      <span role="img" aria-label={`${r.rating} out of 5 stars`}>
+                        {"★".repeat(r.rating) + "☆".repeat(5 - r.rating)}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.service ?? "—"}</td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.text}</td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                      <form action={approveReview} style={{ display: "inline", marginRight: 8 }}>
+                        <input type="hidden" name="reviewId" value={r.id} />
+                        <button type="submit">Approve</button>
+                      </form>
+                      <form action={deleteReview} style={{ display: "inline" }}>
+                        <input type="hidden" name="reviewId" value={r.id} />
+                        <button type="submit">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section>

@@ -77,8 +77,11 @@ deeper, which is what makes the white button text pass.
 - Heading order is clean everywhere (one `<h1>` per rendered page;
   the owner pages have mutually exclusive branches, so only one
   `<h1>` renders at a time). Status badges carry text, not colour
-  alone. The bar charts have `role="img"` + an aria-label summary,
-  and their values are also in the tables above them.
+  alone. The line charts have `role="img"` + an aria-label summary,
+  a labelled x- and y-axis with gridlines, and a `<title>` on every
+  dot carrying its exact value (a native hover tooltip); their values
+  are also in the tables above them. No per-point text label is drawn
+  on the charts, so labels cannot overlap.
 - The hero image has alt text ("Inside a bright, elegant hair
   studio"). It is the only content image on the site.
 
@@ -186,3 +189,42 @@ native button, link, input, or checkbox; nothing captures Tab.
   same as before, a touch deeper in the rose.
 - **No changes** to business data, prices, hours, figures, routes,
   or any dashboard / customer / employee numbers.
+
+## Fixed nav, shop, pop-ups and reviews (2026-11-11)
+
+- **Fixed top nav** (`components/SiteNav.tsx`, `app/layout.tsx`):
+  `position: fixed` with `body { padding-top: var(--nav-height) }`,
+  so the bar never covers content; the variable grows on a narrow
+  screen where the links wrap. It is a `<nav aria-label="Main">`
+  with real links; anchor links use the `/#section` form so they
+  work from any page. The skip link (z-index 100) sits above the
+  nav (z-index 60) when focused, and `section { scroll-margin-top:
+  80px }` keeps anchor targets clear of the bar. The dashboard's
+  sticky section nav uses `top: var(--nav-height)` so it sits under
+  the fixed bar, not underneath it.
+- **Shop** (`/products`, `components/ShopClient.tsx`): product cards
+  are plain articles with headings; the quantity picker is a labelled
+  number input; the cart +/- buttons have aria-labels naming the
+  product; the checkout state is announced with `role="status"`.
+  The product tile is a styled initials tile, `aria-hidden`.
+- **Review pop-ups** (`components/ReviewPopups.tsx`): the rotating
+  text is `aria-hidden` — the same reviews are in full in the
+  Reviews section, so the pop-up is a visual duplicate and must not
+  interrupt screen readers. The dismiss button is outside the
+  `aria-hidden` region, so it stays keyboard-reachable and
+  focusable; dismissing persists in localStorage. Rotation pauses
+  on hover and stops entirely under `prefers-reduced-motion` (one
+  static review; the fade transition is also switched off in CSS).
+- **Reviews section** (`#reviews`): the average rating is text plus
+  a `role="img"` star display with an aria-label ("N out of 5
+  stars"). The star rating picker is a real radio group (fieldset
+  + legend, radios in DOM order 5 to 1 with row-reverse CSS so
+  `input:checked ~ label` fills the chosen star and those to its
+  left) — keyboard-operable with arrow keys, and the checked star
+  shows the `:focus-visible` ring. Avatars are initials circles,
+  `aria-hidden`, because the reviewer's name is adjacent text; the
+  colours are the five WCAG-verified dark hues (white initials pass
+  AA — see the avatar colours in `lib/reviews.ts`).
+- **Orders** (`/orders`): the status badge reuses the lead list's
+  badge styles (Paid / Pending / Cancelled), and the table sits in a
+  focusable scrollable region like the other owner tables.

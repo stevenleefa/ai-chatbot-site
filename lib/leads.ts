@@ -24,8 +24,14 @@ export function isValidStatus(value: unknown): value is LeadStatus {
 }
 
 // CSV: quote any field containing a comma, quote or newline, doubling quotes.
+// CSV-injection defence: a field starting with =, +, -, @, tab or
+// carriage return can be read as a formula by Excel/Sheets when the
+// owner opens the export (e.g. a lead named "=cmd|..."). Prefixing a
+// single quote makes the cell plain text — the quote is how the
+// spreadsheet itself shows "this is text, not a formula".
 export function csvEscape(value: string | null | undefined): string {
-  const s = value ?? "";
+  let s = value ?? "";
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }

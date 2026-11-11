@@ -2,9 +2,9 @@
 
 Real login for the salon site, replacing the old v1 shared owner token.
 There is no `LEADS_OWNER_TOKEN` any more: `/leads`, `/dashboard`,
-`/customers`, `/appointments`, `/employees` and `/admin` require a signed-in
+`/customers`, `/appointments`, `/employees`, `/orders` and `/admin` require a signed-in
 Supabase Auth account with an active profile. The public site
-(homepage, chatbot, booking form) stays public and works with no login
+(homepage, chatbot, booking form, shop, reviews) stays public and works with no login
 at all.
 
 **Invite-only, like a real business website.** There is no public
@@ -33,7 +33,7 @@ unchanged.)
     imported by client code.
 - **Middleware (`middleware.ts`)** — refreshes the session on every
   request and guards `/leads`, `/dashboard`, `/customers`,
-  `/appointments`, `/employees`, `/admin` and `/api/leads/*`. Signed-out users are
+  `/appointments`, `/employees`, `/orders`, `/admin` and `/api/leads/*`. Signed-out users are
   redirected to `/login?next=<path>` (pages) or get 401 JSON (API
   routes). A session
   alone is not enough: the middleware also checks the user has an

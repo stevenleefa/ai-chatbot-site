@@ -46,9 +46,8 @@ import {
   totalStockValue,
 } from "@/lib/dashboard";
 import { BUSINESS_NAME } from "@/lib/leads";
-import OwnerNav from "@/components/OwnerNav";
 import DashboardTabs from "@/components/DashboardTabs";
-import BarChart from "@/components/BarChart";
+import LineChart from "@/components/LineChart";
 import SortableTable from "@/components/SortableTable";
 import { employeeIdForName } from "@/lib/employees";
 
@@ -97,7 +96,6 @@ export default async function DashboardPage() {
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).
@@ -196,8 +194,9 @@ export default async function DashboardPage() {
           }))}
         />
 
-        <BarChart
+        <LineChart
           title="Weekly revenue"
+          yLabel="Revenue ($)"
           labels={byWeek.map((row) => fmtDate(row.weekStart).replace(/, \d{4}$/, ""))}
           series={[{ label: "Revenue", color: "#a05a66", values: byWeek.map((row) => row.revenue) }]}
         />
@@ -288,8 +287,9 @@ export default async function DashboardPage() {
           }))}
         />
 
-        <BarChart
+        <LineChart
           title="Monthly revenue and profit"
+          yLabel="Amount ($)"
           labels={pl.map((row) => monthLabel(row.month))}
           series={[
             { label: "Revenue", color: "#a05a66", values: pl.map((row) => row.revenue) },
@@ -468,8 +468,9 @@ export default async function DashboardPage() {
             ],
           }))}
         />
-        <BarChart
+        <LineChart
           title="Sales tax collected by month"
+          yLabel="Sales tax ($)"
           labels={PL_MONTHS.map((month) => monthLabel(month))}
           series={[{ label: "Sales tax", color: "#a05a66", values: PL_MONTHS.map((month) => salesTaxCollected(month)) }]}
         />

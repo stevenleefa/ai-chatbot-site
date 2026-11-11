@@ -6,7 +6,6 @@ export const revalidate = 0;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import LeadsTable from "@/components/LeadsTable";
-import OwnerNav from "@/components/OwnerNav";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -19,7 +18,7 @@ import { BUSINESS_NAME, BUSINESS_SLUG, type Lead } from "@/lib/leads";
 export default async function LeadsPage() {
   if (!isAuthConfigured()) {
     return (
-      <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+      <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
         <h1>Leads — {BUSINESS_NAME}</h1>
         <p>
           <Link href="/">← Back to the site</Link>
@@ -56,12 +55,11 @@ export default async function LeadsPage() {
   }
 
   return (
-    <main id="main-content" style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+    <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
       <h1>Leads — {BUSINESS_NAME}</h1>
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).

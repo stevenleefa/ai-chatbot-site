@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { business } from "@/lib/business";
 import { retrieve } from "@/lib/retrieve";
+import { clientIp, rateLimit, readCappedJson } from "@/lib/security";
 
 const FALLBACK =
   `I don't have that information in ${business.name}'s details, so I won't guess. ` +
@@ -35,9 +36,46 @@ async function answerWithLLM(question: string, context: string): Promise<string 
 }
 
 export async function POST(req: Request) {
-  const { message } = await req.json().catch(() => ({ message: "" }));
+  // Hardening (see SECURITY.md): size cap + per-IP rate limit
+  // (30/min) + a 1,000-character cap on the question. The widget
+  // reads `answer` whatever the status, so rate/validation failures
+  // answer in that field and the widget shows them instead of
+  // breaking. The grounding itself is unchanged: the answer still
+  // comes only from retrieved business chunks (or, when the LLM key
+  // is set, from the LLM with those chunks as its only context).
+  // The cap covers chunked bodies too (readCappedJson reads the raw
+  // body and measures its bytes — a chunked request carries no
+  // content-length header, so a header-only check would miss it).
+  const { body, tooLarge } = await readCappedJson(req);
+  if (tooLarge) {
+    return NextResponse.json(
+      { answer: "That message is too long — please keep it shorter." },
+      { status: 413 }
+    );
+  }
+  const ip = clientIp(req);
+  const limit = rateLimit(`chat:${ip}`, 30, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { answer: "Too many messages — please wait a moment and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      }
+    );
+  }
+
+  const { message } =
+    typeof body === "object" && body !== null
+      ? (body as { message?: unknown })
+      : { message: "" };
   if (!message || typeof message !== "string") {
     return NextResponse.json({ answer: "Please ask a question about the studio." });
+  }
+  if (message.length > 1000) {
+    return NextResponse.json({
+      answer: "Please keep your question under 1,000 characters.",
+    });
   }
 
   const chunks = retrieve(message);

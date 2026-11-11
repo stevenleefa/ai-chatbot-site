@@ -7,7 +7,6 @@ export const revalidate = 0;
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import OwnerNav from "@/components/OwnerNav";
 import ColourLegend from "@/components/ColourLegend";
 import SortableTable, {
   type SortableColumn,
@@ -121,7 +120,6 @@ export default async function CustomersPage() {
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <OwnerNav />
       <p>
         Signed in as <strong>{session.user.email}</strong> (
         {session.profile.role}).

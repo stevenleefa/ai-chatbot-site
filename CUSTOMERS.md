@@ -122,9 +122,10 @@ from those rows plus the dashboard's sales rows — never hardcoded.
   dashboard `SALES` rows (see "The sales tie-in" below). Date, service,
   stylist and price all come from the sale row.
 - **Purchases** — literal `{ date, product }` rows in the roster; the
-  price comes from `RETAIL_PRODUCTS` in the same file, so a product can
-  never disagree with its price. Purchase dates are always one of that
-  customer's visit dates.
+  price comes from `RETAIL_PRODUCTS`, which is derived from
+  `PRODUCTS` in `lib/products.ts` (the shop catalogue — one copy of
+  each price), so a product can never disagree with its price.
+  Purchase dates are always one of that customer's visit dates.
 - **Visits / total spent / last visit** — counted and summed from the
   procedures + purchases. Total spent = services + products.
 - **Preferred stylist** — the stylist of the most visits; ties go to
@@ -222,8 +223,10 @@ before changing them:
 - **Change an interval** — edit `SERVICE_INTERVAL_DAYS`. Due dates,
   nudges and appointments all follow.
 - **Change the nudge window** — edit `NUDGE_WITHIN_DAYS` (7 days).
-- **Change a product price** — edit `RETAIL_PRODUCTS`. Purchase totals
-  and recommendation prices follow.
+- **Change a product price** — edit `PRODUCTS` in `lib/products.ts`
+  (the shop catalogue). `RETAIL_PRODUCTS` is derived from it, so
+  purchase totals and recommendation prices follow, and the shop
+  price follows too — one copy of each price. See SHOP.md.
 - **Move it to Supabase later** — the same shape as the dashboard v2
   sketch in DASHBOARD.md: one table for customers, one for purchases,
   appointments as a table; the derivation functions in

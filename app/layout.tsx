@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
+import SiteNav from "@/components/SiteNav";
 import { business } from "@/lib/business";
 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main-content">
           Skip to main content
         </a>
+        <SiteNav />
         {children}
       </body>
     </html>

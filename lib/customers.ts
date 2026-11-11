@@ -44,6 +44,7 @@ import {
   sum,
   type Sale,
 } from "./dashboard";
+import { PRODUCTS } from "./products";
 
 // --- Dates (local helpers; lib/dashboard.ts keeps its own private copies) --
 
@@ -85,18 +86,13 @@ export const SERVICE_INTERVAL_DAYS: Record<string, number> = {
 export const NUDGE_WITHIN_DAYS = 7;
 
 // --- Retail products (the shop shelf; prices are the sell prices) ----------
-
-export const RETAIL_PRODUCTS: Record<string, number> = {
-  "Shampoo (1L)": 24,
-  "Conditioner (1L)": 22,
-  "Colour-care shampoo": 28,
-  "Colour-care mask": 32,
-  "Hairspray": 18,
-  "Styling gel": 16,
-  "Leave-in treatment": 26,
-  "Heat protect spray": 20,
-  "Beard oil": 14,
-};
+// The single source of truth is the shop catalogue in lib/products.ts;
+// this record is derived from it, so the customers code and the shop
+// can never disagree on a price. It is keyed by product name, in
+// dollars, because the purchase rows below are written that way.
+export const RETAIL_PRODUCTS: Record<string, number> = Object.fromEntries(
+  PRODUCTS.map((p) => [p.name, p.priceCents / 100])
+);
 
 const COLOUR_SERVICES = ["Full colour", "Balayage"];
 const COLOUR_CARE_PRODUCTS = ["Colour-care shampoo", "Colour-care mask"];

@@ -116,13 +116,21 @@ export async function inviteUser(
       message: "Leads storage is not configured (SUPABASE_SERVICE_ROLE_KEY missing).",
     };
   }
-  // Build the site origin from the request so the invite link works in
-  // dev (localhost:3000) and on the live Vercel URL with no hardcoded
-  // domain. Behind a proxy, x-forwarded-proto carries the real scheme.
+  // Build the site origin for the invite link. Prefer an explicit
+  // NEXT_PUBLIC_SITE_URL when it is set (the production domain, set in
+  // Vercel env vars) — the Host header is only a fallback for dev, so
+  // a forged Host header can never point an invite at an attacker
+  // domain in production. Behind a proxy, x-forwarded-proto carries
+  // the real scheme. Note this is defence in depth: sending an invite
+  // already requires an admin session, and browsers set Host honestly,
+  // so the header alone was never exploitable without one — see
+  // SECURITY.md.
   const headerList = headers();
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   const host = headerList.get("host") ?? "";
   const proto = headerList.get("x-forwarded-proto") ?? "http";
-  if (!host) {
+  const origin = siteUrl || (host ? `${proto}://${host}` : "");
+  if (!origin) {
     return { ok: false, message: "Could not work out the site address." };
   }
   // Personalise the invite email: pass the business name and the
@@ -134,7 +142,7 @@ export async function inviteUser(
   // by the email; the profile is still created by the trigger.
   const settings = await getSiteSettings();
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${proto}://${host}/auth/update-password`,
+    redirectTo: `${origin}/auth/update-password`,
     data: {
       business_name: settings.business_name,
       invited_by: session.user.email ?? "the site owner",
@@ -154,4 +162,41 @@ export async function inviteUser(
     ok: true,
     message: `Invite sent to ${email}. They will start as staff once they accept it and set a password.`,
   };
+}
+
+// Review moderation (admin only). Visitor reviews arrive as
+// "pending" and only appear on the site once approved here; deleting
+// removes them entirely. Same pattern as the user actions above:
+// every action re-checks the caller is an active admin and writes
+// with the service-role client.
+export async function approveReview(formData: FormData) {
+  const session = await requireRole("admin");
+  if (!session) throw new Error("Admins only.");
+  const reviewId = String(formData.get("reviewId") ?? "");
+  if (!reviewId) throw new Error("A review is required.");
+  const supabase = getServerSupabase();
+  if (!supabase) throw new Error("Review storage is not configured.");
+  const { error } = await supabase
+    .from("reviews")
+    .update({ status: "approved" })
+    .eq("id", reviewId);
+  if (error) throw new Error("Could not approve the review.");
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
+export async function deleteReview(formData: FormData) {
+  const session = await requireRole("admin");
+  if (!session) throw new Error("Admins only.");
+  const reviewId = String(formData.get("reviewId") ?? "");
+  if (!reviewId) throw new Error("A review is required.");
+  const supabase = getServerSupabase();
+  if (!supabase) throw new Error("Review storage is not configured.");
+  const { error } = await supabase
+    .from("reviews")
+    .delete()
+    .eq("id", reviewId);
+  if (error) throw new Error("Could not delete the review.");
+  revalidatePath("/admin");
+  revalidatePath("/");
 }

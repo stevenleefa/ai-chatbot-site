@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthServerClient } from "@/lib/auth/server";
+import { safeRedirect } from "@/lib/security";
 
 // Exchanges the ?code= from Supabase email links (password recovery)
 // for a session, then redirects to ?next= or /dashboard. Used by the
@@ -10,7 +11,10 @@ import { getAuthServerClient } from "@/lib/auth/server";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/dashboard";
+  // ?next= must be a same-origin path (safeRedirect). Before this fix
+  // an absolute URL (?next=https://evil.example) was passed straight
+  // to new URL() and redirected the user off-site after sign-in.
+  const next = safeRedirect(requestUrl.searchParams.get("next"));
 
   if (!code) {
     return NextResponse.redirect(new URL("/login", request.url));

@@ -2,30 +2,41 @@
 
 import { useState, type ReactNode } from "react";
 import ChatWidget from "@/components/ChatWidget";
+import ReviewForm from "@/components/ReviewForm";
+import ReviewPopups from "@/components/ReviewPopups";
+import ReviewAvatar from "@/components/ReviewAvatar";
+import Stars from "@/components/Stars";
 import { business } from "@/lib/business";
+import { averageRating, type PublicReview } from "@/lib/reviews";
+import { fmtDate } from "@/lib/format";
 import type { SiteSettings } from "@/lib/site-settings";
 
 type Service = { name: string; price: string; time: string; note: string };
 
-// The homepage's interactive part: hero, services, booking form and the
-// AI assistant section. Site contact info comes from the settings prop
-// (database row when configured, lib/business.ts fallback otherwise);
-// services and prices still come from lib/business.ts.
+// The homepage's interactive part: hero, services, reviews, booking
+// form and the AI assistant section. Site contact info comes from
+// the settings prop (database row when configured, lib/business.ts
+// fallback otherwise); services and prices still come from
+// lib/business.ts; the reviews list comes from the server (approved
+// visitor reviews + seed reviews — see lib/reviews-server.ts).
+// The fixed top nav lives in app/layout.tsx now — this component no
+// longer renders its own nav.
 export default function HomeClient({
   settings,
   services,
-  authNav,
+  reviews,
   ownerAppointmentsCard,
 }: {
   settings: SiteSettings;
   services: Service[];
-  authNav: ReactNode;
+  reviews: PublicReview[];
   ownerAppointmentsCard: ReactNode;
 }) {
   const initialLead = { name: "", contact: "", service: "Haircut", message: "" };
   const [lead, setLead] = useState(initialLead);
   const [leadResult, setLeadResult] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { average, count } = averageRating(reviews);
 
   async function submitLead(e: React.FormEvent) {
     e.preventDefault();
@@ -53,16 +64,6 @@ export default function HomeClient({
 
   return (
     <main id="main-content">
-      <div className="topnav">
-        <strong>{settings.business_name}</strong>
-        <nav aria-label="Main">
-          <a href="#services">Services</a>
-          <a href="#booking">Book</a>
-          <a href="#assistant">AI assistant</a>
-          {authNav}
-        </nav>
-      </div>
-
       <header className="hero">
         <img className="hero-img" src="/hero.jpg" alt="Inside a bright, elegant hair studio" />
         <div className="hero-content">
@@ -89,6 +90,43 @@ export default function HomeClient({
             </article>
           ))}
         </div>
+      </section>
+
+      <section id="reviews" className="reveal">
+        <h2>What our customers say</h2>
+        <p>
+          {count === 0 ? (
+            "No reviews yet — be the first to leave one below."
+          ) : (
+            <>
+              <Stars rating={Math.round(average)} />{" "}
+              <strong>
+                {average} out of 5 stars
+              </strong>{" "}
+              · {count} {count === 1 ? "review" : "reviews"}
+            </>
+          )}
+        </p>
+        <ul className="review-list">
+          {reviews.map((r) => (
+            <li key={r.id} className="review-item">
+              <div className="review-head">
+                <ReviewAvatar name={r.name} />
+                <div>
+                  <strong>{r.name}</strong>
+                  <br />
+                  <Stars rating={r.rating} />
+                  {r.service ? (
+                    <span className="review-service"> · {r.service}</span>
+                  ) : null}
+                  <span className="review-date"> · {fmtDate(r.createdAt)}</span>
+                </div>
+              </div>
+              <p>{r.text}</p>
+            </li>
+          ))}
+        </ul>
+        <ReviewForm />
       </section>
 
       <section id="booking" className="reveal">
@@ -132,6 +170,7 @@ export default function HomeClient({
       </section>
 
       <ChatWidget />
+      <ReviewPopups />
     </main>
   );
 }

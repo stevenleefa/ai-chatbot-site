@@ -12,7 +12,12 @@ export async function POST(req: Request) {
   }
   const body = await req.json().catch(() => ({}));
   const { id, status } = body;
-  if (!id || !isValidStatus(status)) {
+  if (
+    typeof id !== "string" ||
+    id.length === 0 ||
+    id.length > 100 ||
+    !isValidStatus(status)
+  ) {
     return NextResponse.json(
       { error: "A lead id and a valid status (new, contacted, booked, cancelled) are required." },
       { status: 400 }

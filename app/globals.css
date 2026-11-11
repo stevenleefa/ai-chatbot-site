@@ -21,6 +21,15 @@
   --tag-appointments: #1e3a5f; /* appointments: diary, due dates (dark navy, 11.50:1) */
   --tag-products: #6b7280; /* products: retail, purchases (medium grey, 4.83:1) */
   --tag-services: #7c3aed; /* services / procedures (medium purple, 5.70:1) */
+  /* Height of the fixed top nav (components/SiteNav.tsx). It grows
+     on a narrow screen, where the links wrap to two rows. */
+  --nav-height: 64px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 108px;
+  }
 }
 
 html { scroll-behavior: smooth; }
@@ -46,16 +55,26 @@ html { scroll-behavior: smooth; }
   .hero-img, .reveal { animation: none; }
   .card { transition: none; }
   .spinner { animation: none; }
+  /* The review pop-up never fades or rotates for people who ask
+     for reduced motion (the component also stops its timer and
+     shows one static review). */
+  .review-popup { transition: none; }
 }
-body { font-family: var(--font-body), system-ui, sans-serif; margin: 0; color: var(--plum); background: var(--cream); line-height: 1.6; }
+body { font-family: var(--font-body), system-ui, sans-serif; margin: 0; color: var(--plum); background: var(--cream); line-height: 1.6; padding-top: var(--nav-height); /* Room for the fixed top nav, so it never covers the hero or a page heading. */ }
 h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
 main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 
-.topnav { position: sticky; top: 0; z-index: 40; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 4px; background: rgba(253, 248, 241, 0.92); backdrop-filter: blur(8px); }
-.topnav strong { font-family: var(--font-display), Georgia, serif; font-size: 22px; color: var(--rose-deep); }
-.topnav nav { display: flex; gap: 16px; flex-wrap: wrap; }
-.topnav a { color: var(--plum); text-decoration: none; font-weight: 600; }
-.topnav a:hover { color: var(--rose-deep); text-decoration: underline; }
+/* Fixed top nav (components/SiteNav.tsx). Fixed to the top of the
+   viewport on every page; the links wrap on a narrow screen
+   instead of overflowing. The skip link (z-index 100) still sits
+   above it when focused. */
+.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--cream); border-bottom: 1px solid #eee2d6; }
+.site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; min-height: var(--nav-height); display: flex; align-items: center; flex-wrap: wrap; gap: 4px 24px; }
+.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; color: var(--rose-deep); text-decoration: none; margin-right: 8px; }
+.site-nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+.site-nav-links a { color: var(--plum); text-decoration: none; font-weight: 600; }
+.site-nav-links a:hover { color: var(--rose-deep); text-decoration: underline; }
+.site-nav-owner { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 .hero { position: relative; overflow: hidden; border-radius: 28px; margin: 20px 0 8px; min-height: 420px; display: flex; align-items: flex-end; color: white; box-shadow: 0 20px 50px rgba(61, 36, 51, 0.25); }
 .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: heroZoom 14s ease-out forwards; }
@@ -65,8 +84,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 .hero-content h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; margin: 0 0 12px; }
 .hero-content p { margin: 6px 0; font-size: 18px; }
 .hero-tag { display: inline-block; background: var(--gold); color: var(--plum); font-weight: 700; padding: 6px 12px; border-radius: 999px; font-size: 14px; margin-bottom: 14px; }
-.hero-cta { display: inline-block; margin-top: 16px; background: var(--rose); color: white; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 999px; }
-.hero-cta:hover { background: var(--rose-deep); }
+.hero-cta { display: inline-block; margin-top: 16px; background: var(--rose); color: white; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 999px; border: 2px solid transparent; text-align: center; }
+.hero-cta:hover { background: #7a3f4a; border-color: #111827; }
 
 @keyframes heroZoom { from { transform: scale(1.12); } to { transform: scale(1); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -93,14 +112,25 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
    #6b5560 on the cream input background is 6.42:1. (Browsers
    otherwise render placeholders in a light grey that can fail.) */
 input::placeholder, textarea::placeholder { color: #6b5560; opacity: 1; }
-button { padding: 12px 20px; font-size: 16px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; }
+/* Buttons — industry-standard hover (see the note in the report):
+   the resting state carries a transparent 2px border so the black
+   hover border never shifts the layout; on hover the button darkens
+   to a deeper shade of its own colour (rose -> deeper rose) and the
+   border turns black. White on the hover rose #7a3f4a is 7.96:1
+   (better than the resting 5.06:1). Text is centred on every button.
+   Disabled buttons never change on hover. The :focus-visible double
+   ring above is untouched and stays distinct from hover: hover is a
+   black border at the button edge, focus is a navy ring outside it
+   with a white gap. */
+button { padding: 12px 20px; font-size: 16px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
+button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: #111827; }
+button:disabled { opacity: 0.6; cursor: default; }
 /* Owner navigation buttons (site nav + top of /leads, /dashboard, /admin).
    Real buttons that go to the owner routes, so nobody has to type a URL. */
 .owner-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
-.owner-nav a, .owner-nav button { display: inline-block; padding: 8px 16px; font-size: 15px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; text-decoration: none; cursor: pointer; font-weight: 700; font-family: inherit; }
-.owner-nav a:hover, .owner-nav button:hover { filter: brightness(1.08); }
+.owner-nav a, .owner-nav button { display: inline-block; padding: 8px 16px; font-size: 15px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; text-decoration: none; cursor: pointer; font-weight: 700; font-family: inherit; text-align: center; }
+.owner-nav a:hover, .owner-nav button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: #111827; }
 .owner-nav form { display: inline; margin: 0; }
-button:hover { filter: brightness(1.08); }
 
 /* Small loading spinner for buttons (invite form while sending). White
    ring on the rose button background. */
@@ -111,7 +141,13 @@ button:hover { filter: brightness(1.08); }
 .chat-open { box-shadow: 0 10px 26px rgba(61, 36, 51, 0.35); }
 .chat-box { width: 360px; max-width: 90vw; background: white; border: 1px solid #eee2d6; border-radius: 18px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); overflow: hidden; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; background: var(--plum); color: white; padding: 12px 14px; }
-.chat-head button { background: transparent; padding: 8px 10px; }
+.chat-head button { background: transparent; padding: 8px 10px; border: 2px solid transparent; }
+/* The chat head is dark plum: a darker hover cannot read against it
+   (a near-black chip on plum measures 1.27:1), so the close button
+   gets a translucent white wash instead — the same pattern used for
+   hover states on dark surfaces. The focus ring stays the navy
+   outer ring, distinct from this wash. */
+.chat-head button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: #111827; }
 .chat-messages { height: 300px; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
 .msg { padding: 10px 12px; border-radius: 14px; max-width: 90%; }
 .msg.user { background: #f6dfe2; justify-self: end; }
@@ -119,16 +155,21 @@ button:hover { filter: brightness(1.08); }
 .msg p { margin: 0; }
 .chat-suggested { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
 .chat-suggested button { background: #f3e8e0; color: var(--plum); font-size: 13px; padding: 6px 10px; }
+.chat-suggested button:hover:not(:disabled) { background: #e8d5c8; color: var(--plum); border-color: #111827; }
 .chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; }
 .chat-form input { flex: 1; }
 
 /* --- Owner dashboard (/dashboard) --- */
 .dash-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 48px; }
 .dash-main h1 { color: var(--rose-deep); }
-.dash-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; position: sticky; top: 0; z-index: 30; background: var(--cream); padding: 8px 0; }
-.dash-nav a, .dash-nav button { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); text-decoration: none; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
-.dash-nav a:hover, .dash-nav button:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.dash-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; position: sticky; top: var(--nav-height); z-index: 30; background: var(--cream); padding: 8px 0; }
+.dash-nav a, .dash-nav button { background: white; border: 2px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); text-decoration: none; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+/* White pills darken to a light warm grey on hover (plum text on
+   #f3e8e0 is 11.63:1) with the black border; the active (rose) tab
+   darkens to the deeper rose like every other rose button. */
+.dash-nav a:hover, .dash-nav button:hover:not(:disabled) { background: #f3e8e0; color: var(--plum); border-color: #111827; }
 .dash-nav button.active { background: var(--rose); color: white; border-color: var(--rose); }
+.dash-nav button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: #111827; }
 .dash-section { margin: 40px 0; scroll-margin-top: 24px; }
 .dash-section h2 { font-size: 30px; color: var(--rose-deep); margin-bottom: 12px; }
 .dash-section h3 { font-size: 20px; margin: 24px 0 10px; }
@@ -151,8 +192,12 @@ button:hover { filter: brightness(1.08); }
    is the whole header cell: transparent, inherits the header's font
    and colour, so it looks like a plain heading until clicked. The
    arrow (▲ / ▼) sits next to the label on the sorted column. */
-.sort-btn { display: block; width: 100%; background: transparent; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: inherit; cursor: pointer; border-radius: 0; }
-.sort-btn:hover { filter: none; text-decoration: underline; }
+.sort-btn { display: block; width: 100%; background: transparent; border: 2px solid transparent; padding: 4px 8px; margin: 0; font: inherit; color: inherit; text-align: center; cursor: pointer; border-radius: 999px; }
+/* The header cell is dark plum, so — as with the chat-head button —
+   the hover is a translucent white wash rather than a darker shade
+   (a near-black chip on plum is 1.27:1, invisible); the underline
+   from the old hover is kept as well. */
+.sort-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: #111827; text-decoration: underline; }
 .sort-arrow { font-size: 12px; }
 
 /* The leads table keeps its plainer pre-dashboard look (no dark
@@ -187,12 +232,13 @@ button:hover { filter: brightness(1.08); }
 /* View tabs (Month / Week / Day) and prev/next navigation on
    /appointments — same pill shape as the dashboard tabs. */
 .view-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
-.view-tabs button { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
-.view-tabs button:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.view-tabs button { background: white; border: 2px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.view-tabs button:hover:not(:disabled) { background: #f3e8e0; color: var(--plum); border-color: #111827; }
 .view-tabs button.active { background: var(--rose); color: white; border-color: var(--rose); }
+.view-tabs button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: #111827; }
 .view-nav { display: flex; gap: 8px; margin: 8px 0 12px; }
-.view-nav button { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
-.view-nav button:hover:not(:disabled) { background: var(--rose); color: white; border-color: var(--rose); }
+.view-nav button { background: white; border: 2px solid #eee2d6; border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.view-nav button:hover:not(:disabled) { background: #f3e8e0; color: var(--plum); border-color: #111827; }
 .view-nav button:disabled { opacity: 0.45; cursor: default; }
 
 /* One calendar container for Month, Week and Day: the same box
@@ -210,9 +256,10 @@ button:hover { filter: brightness(1.08); }
    hidden but stays in the tab order; the checked label gets the
    rose active style, and focusing the checkbox rings its label. */
 .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; border: 0; padding: 0; }
-.filter-btn { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
-.filter-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-btn { background: white; border: 2px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.filter-btn:hover { background: #f3e8e0; color: var(--plum); border-color: #111827; }
 .filter-checkbox:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-checkbox:checked + .filter-btn:hover { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: #111827; }
 .filter-checkbox:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 .stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
 .stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
@@ -261,3 +308,54 @@ button:hover { filter: brightness(1.08); }
 .badge-overdue { background: #f8d7da; color: #842029; }
 .badge-low { background: #f8d7da; color: #842029; }
 .badge-ok { background: #dcead9; color: #2e6b2e; }
+
+/* --- Shop (/products) -------------------------------------------------- */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin: 24px 0; }
+.product-card { background: white; border: 1px solid #eee2d6; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.product-card h3 { margin: 4px 0 0; }
+.product-card p { margin: 0; }
+.product-category { color: var(--tag-products); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.product-card .price { font-weight: 700; font-size: 18px; }
+/* No product photos — a styled tile with the product's initials. */
+.product-tile { height: 96px; border-radius: 12px; background: var(--sage); color: var(--plum); display: flex; align-items: center; justify-content: center; font-family: var(--font-display), Georgia, serif; font-size: 36px; font-weight: 700; }
+.qty-row { display: flex; gap: 12px; align-items: flex-end; margin-top: auto; padding-top: 8px; }
+.qty-row label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.qty-row input[type="number"] { width: 72px; }
+.cart-section { background: white; border: 1px solid #eee2d6; border-radius: 16px; padding: 20px; margin: 24px 0; }
+.cart-lines { list-style: none; padding: 0; margin: 0; }
+.cart-lines li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 0; border-bottom: 1px solid #eee2d6; }
+.cart-qty { display: inline-flex; align-items: center; gap: 8px; }
+.cart-qty button { min-width: 32px; }
+.cart-remove { margin-left: auto; }
+.cart-total { font-size: 18px; }
+
+/* --- Rave-review pop-ups (public pages only) --------------------------- */
+/* Bottom-left, so it never covers the chat widget (bottom-right) or
+   the fixed nav. The card fades via the .fading class; when reduced
+   motion is preferred the component shows one static review and
+   this transition is switched off (see the reduced-motion block). */
+.review-popup { position: fixed; left: 16px; bottom: 16px; z-index: 50; max-width: 320px; background: white; border: 1px solid #eee2d6; border-radius: 12px; box-shadow: 0 10px 30px rgba(61, 36, 51, 0.18); padding: 14px 16px; opacity: 1; transition: opacity 0.5s ease; }
+.review-popup.fading { opacity: 0; }
+.review-popup-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.review-popup-close { margin-left: auto; background: none; border: none; font-size: 18px; line-height: 1; padding: 4px 8px; cursor: pointer; color: var(--plum); }
+.review-popup p { margin: 4px 0; }
+
+/* --- Reviews section (homepage #reviews) -------------------------------- */
+.review-list { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 16px; }
+.review-item { background: white; border: 1px solid #eee2d6; border-radius: 16px; padding: 16px; }
+.review-item p { margin: 8px 0 0; }
+.review-head { display: flex; align-items: center; gap: 12px; }
+.review-service, .review-date { color: var(--tag-products); font-size: 14px; }
+/* Initials avatar: a coloured circle with the reviewer's initials.
+   Colours are the WCAG-verified dark hues from lib/reviews.ts, so
+   white initials on them pass AA. No photos of real people. */
+.avatar { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+.stars { color: #8a6d1f; letter-spacing: 2px; }
+/* Star rating picker: real radio buttons in DOM order 5 to 1 with
+   row-reverse, so `input:checked ~ label` fills this star and every
+   star to its left. Keyboard: the radios are focusable (the
+   :focus-visible ring shows) and arrow keys move between them. */
+.star-row { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
+.star-row label { font-size: 28px; line-height: 1; cursor: pointer; color: #6b7280; padding: 2px; }
+.star-row input:checked ~ label, .star-row label:hover, .star-row label:hover ~ label { color: #8a6d1f; }
+.star-row input:focus-visible + label { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }

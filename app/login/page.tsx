@@ -4,13 +4,14 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
+import { safeRedirect } from "@/lib/security";
 
 // Owner sign-in. After a successful sign-in the user goes to ?next=
 // (when they were redirected here from a protected page) or /dashboard.
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
+  const next = safeRedirect(searchParams.get("next"));
   const urlError = searchParams.get("error");
   // Env vars are inlined at build time, so this is known at render.
   const authConfigured = getBrowserClient() !== null;
