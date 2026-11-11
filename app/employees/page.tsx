@@ -9,6 +9,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
 import ColourLegend from "@/components/ColourLegend";
+import SortableTable, {
+  type SortableColumn,
+  type SortableRow,
+} from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { money } from "@/lib/dashboard";
@@ -38,6 +42,94 @@ export default async function EmployeesPage() {
 
   const employees = getEmployeeSummaries();
 
+  // Default order is sales revenue, highest first, until a header
+  // is clicked. "Products sold" sorts by the count (the cell shows
+  // count · value); money and counts sort numerically.
+  const columns: SortableColumn[] = [
+    {
+      label: (
+        <>
+          Employee <span className="tag tag-people">People</span>
+        </>
+      ),
+      sortLabel: "Employee",
+    },
+    { label: "Role", sortLabel: "Role" },
+    { label: "Sales", sortLabel: "Sales", numeric: true },
+    {
+      label: (
+        <>
+          Sales revenue <span className="tag tag-money">Money</span>
+        </>
+      ),
+      sortLabel: "Sales revenue",
+      numeric: true,
+    },
+    {
+      label: (
+        <>
+          Products sold{" "}
+          <span className="tag tag-products">Products</span>
+        </>
+      ),
+      sortLabel: "Products sold",
+      numeric: true,
+    },
+    {
+      label: (
+        <>
+          Customers <span className="tag tag-people">People</span>
+        </>
+      ),
+      sortLabel: "Customers",
+      numeric: true,
+    },
+    {
+      label: (
+        <>
+          Appointments{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </>
+      ),
+      sortLabel: "Appointments",
+      numeric: true,
+    },
+    {
+      label: (
+        <>
+          October net pay <span className="tag tag-money">Money</span>
+        </>
+      ),
+      sortLabel: "October net pay",
+      numeric: true,
+    },
+  ];
+  const rows: SortableRow[] = employees.map((e) => ({
+    key: e.id,
+    cells: [
+      <Link href={`/employees/${e.id}`}>{e.employee.name}</Link>,
+      e.employee.role,
+      e.salesCount,
+      money(e.salesRevenue),
+      <>
+        {e.productsCount} · {money(e.productsValue)}
+      </>,
+      e.customers.length,
+      e.appointments.length,
+      e.payroll ? money(e.payroll.net) : "—",
+    ],
+    sort: [
+      e.employee.name,
+      e.employee.role,
+      e.salesCount,
+      e.salesRevenue,
+      e.productsCount,
+      e.customers.length,
+      e.appointments.length,
+      e.payroll ? e.payroll.net : 0,
+    ],
+  }));
+
   return (
     <main className="dash-main">
       <h1>Employees — {BUSINESS_NAME}</h1>
@@ -60,64 +152,12 @@ export default async function EmployeesPage() {
 
       <ColourLegend />
 
-      <p>Sorted by sales revenue, highest first.</p>
+      <p>
+        Sorted by sales revenue, highest first. Click any column
+        heading to sort by that column; click it again to reverse.
+      </p>
 
-      <div className="table-wrap">
-        <table className="dash-table">
-          <thead>
-            <tr>
-              <th>
-                Employee{" "}
-                <span className="tag tag-people">People</span>
-              </th>
-              <th>Role</th>
-              <th className="num">Sales</th>
-              <th className="num">
-                Sales revenue{" "}
-                <span className="tag tag-money">Money</span>
-              </th>
-              <th className="num">
-                Products sold{" "}
-                <span className="tag tag-products">Products</span>
-              </th>
-              <th className="num">
-                Customers{" "}
-                <span className="tag tag-people">People</span>
-              </th>
-              <th className="num">
-                Appointments{" "}
-                <span className="tag tag-appointments">Appointments</span>
-              </th>
-              <th className="num">
-                October net pay{" "}
-                <span className="tag tag-money">Money</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees.map((e) => (
-              <tr key={e.id}>
-                <td>
-                  <Link href={`/employees/${e.id}`}>
-                    {e.employee.name}
-                  </Link>
-                </td>
-                <td>{e.employee.role}</td>
-                <td className="num">{e.salesCount}</td>
-                <td className="num">{money(e.salesRevenue)}</td>
-                <td className="num">
-                  {e.productsCount} · {money(e.productsValue)}
-                </td>
-                <td className="num">{e.customers.length}</td>
-                <td className="num">{e.appointments.length}</td>
-                <td className="num">
-                  {e.payroll ? money(e.payroll.net) : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SortableTable columns={columns} rows={rows} />
       <p className="dash-note">
         Products sold are credited to the customer&apos;s preferred
         stylist; appointments are the November diary. Priya Nair is

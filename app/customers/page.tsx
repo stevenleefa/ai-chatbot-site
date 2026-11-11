@@ -9,6 +9,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
 import ColourLegend from "@/components/ColourLegend";
+import SortableTable, {
+  type SortableColumn,
+  type SortableRow,
+} from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -39,6 +43,78 @@ export default async function CustomersPage() {
   const customers = getCustomersSortedByDue();
   const nudgeCount = customers.filter((c) => c.needsNudge).length;
 
+  // Column headers: the label (with its colour chip) is what you
+  // see; the sort value is what clicking sorts by — ISO dates for
+  // date columns, numbers for money and counts. Default order is
+  // next due soonest, until a header is clicked.
+  const columns: SortableColumn[] = [
+    {
+      label: (
+        <>
+          Customer <span className="tag tag-people">People</span>
+        </>
+      ),
+      sortLabel: "Customer",
+    },
+    { label: "Contact", sortLabel: "Contact" },
+    { label: "Last visit", sortLabel: "Last visit" },
+    {
+      label: (
+        <>
+          Next due{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </>
+      ),
+      sortLabel: "Next due",
+    },
+    { label: "Status", sortLabel: "Status" },
+    { label: "Visits", sortLabel: "Visits", numeric: true },
+    {
+      label: (
+        <>
+          Total spent <span className="tag tag-money">Money</span>
+        </>
+      ),
+      sortLabel: "Total spent",
+      numeric: true,
+    },
+  ];
+  const rows: SortableRow[] = customers.map((c) => ({
+    key: c.customer.id,
+    cells: [
+      <Link href={`/customers/${c.customer.id}`}>
+        {c.customer.name}
+      </Link>,
+      <>
+        {c.customer.phone}
+        <br />
+        <span className="sub">{c.customer.email}</span>
+      </>,
+      fmtDate(c.lastVisit),
+      <>
+        {fmtDate(c.nextDueDate)}
+        <br />
+        <span className="sub">{c.nextDueService}</span>
+      </>,
+      c.needsNudge ? (
+        <span className="badge badge-low">Needs a nudge</span>
+      ) : (
+        <span className="badge badge-ok">Booked</span>
+      ),
+      c.visits,
+      money(c.totalSpent),
+    ],
+    sort: [
+      c.customer.name,
+      c.customer.phone,
+      c.lastVisit,
+      c.nextDueDate,
+      c.needsNudge ? "Needs a nudge" : "Booked",
+      c.visits,
+      c.totalSpent,
+    ],
+  }));
+
   return (
     <main className="dash-main">
       <h1>Customers — {BUSINESS_NAME}</h1>
@@ -63,64 +139,11 @@ export default async function CustomersPage() {
       <p>
         {nudgeCount} {nudgeCount === 1 ? "customer needs" : "customers need"}{" "}
         a nudge — due for a visit with no appointment booked. Sorted by next
-        due date, soonest first.
+        due date, soonest first. Click any column heading to sort by that
+        column; click it again to reverse.
       </p>
 
-      <div className="table-wrap">
-        <table className="dash-table">
-          <thead>
-            <tr>
-              <th>
-                Customer{" "}
-                <span className="tag tag-people">People</span>
-              </th>
-              <th>Contact</th>
-              <th>Last visit</th>
-              <th>
-                Next due{" "}
-                <span className="tag tag-appointments">Appointments</span>
-              </th>
-              <th>Status</th>
-              <th className="num">Visits</th>
-              <th className="num">
-                Total spent{" "}
-                <span className="tag tag-money">Money</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((c) => (
-              <tr key={c.customer.id}>
-                <td>
-                  <Link href={`/customers/${c.customer.id}`}>
-                    {c.customer.name}
-                  </Link>
-                </td>
-                <td>
-                  {c.customer.phone}
-                  <br />
-                  <span className="sub">{c.customer.email}</span>
-                </td>
-                <td>{fmtDate(c.lastVisit)}</td>
-                <td>
-                  {fmtDate(c.nextDueDate)}
-                  <br />
-                  <span className="sub">{c.nextDueService}</span>
-                </td>
-                <td>
-                  {c.needsNudge ? (
-                    <span className="badge badge-low">Needs a nudge</span>
-                  ) : (
-                    <span className="badge badge-ok">Booked</span>
-                  )}
-                </td>
-                <td className="num">{c.visits}</td>
-                <td className="num">{money(c.totalSpent)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SortableTable columns={columns} rows={rows} />
     </main>
   );
 }

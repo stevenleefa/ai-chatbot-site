@@ -49,6 +49,7 @@ import { BUSINESS_NAME } from "@/lib/leads";
 import OwnerNav from "@/components/OwnerNav";
 import DashboardTabs from "@/components/DashboardTabs";
 import BarChart from "@/components/BarChart";
+import SortableTable from "@/components/SortableTable";
 import { employeeIdForName } from "@/lib/employees";
 
 function statusBadge(status: string) {
@@ -107,7 +108,9 @@ export default async function DashboardPage() {
         Figures as of {fmtDate(AS_OF_DATE)}. Sales cover{" "}
         {fmtDate(SALES_START)} – {fmtDate(AS_OF_DATE)}. Every total on this
         page is computed from the sample rows in <code>lib/dashboard.ts</code>;
-        see <code>DASHBOARD.md</code> to change them.
+        see <code>DASHBOARD.md</code> to change them. Every table sorts —
+        click any column heading to sort by that column, click it again to
+        reverse.
       </p>
 
       <DashboardTabs>
@@ -151,27 +154,25 @@ export default async function DashboardPage() {
         </p>
 
         <h3>Totals by service</h3>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Service</th><th className="num">Sales</th><th className="num">Revenue</th></tr>
-            </thead>
-            <tbody>
-              {byService.map((row) => (
-                <tr key={row.service}>
-                  <td>{row.service}</td>
-                  <td className="num">{row.count}</td>
-                  <td className="num">{money(row.revenue)}</td>
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td>Total</td>
-                <td className="num">{SALES.length}</td>
-                <td className="num">{money(totalRevenue)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Service", sortLabel: "Service" },
+            { label: "Sales", sortLabel: "Sales", numeric: true },
+            { label: "Revenue", sortLabel: "Revenue", numeric: true },
+          ]}
+          rows={byService.map((row) => ({
+            key: row.service,
+            cells: [row.service, row.count, money(row.revenue)],
+            sort: [row.service, row.count, row.revenue],
+          }))}
+          totalRow={
+            <tr className="total-row">
+              <td>Total</td>
+              <td className="num">{SALES.length}</td>
+              <td className="num">{money(totalRevenue)}</td>
+            </tr>
+          }
+        />
         <p>
           Best seller by revenue: <strong>{byService[0].service}</strong> (
           {money(byService[0].revenue)}). Best seller by count:{" "}
@@ -182,22 +183,18 @@ export default async function DashboardPage() {
         </p>
 
         <h3>Totals by week</h3>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Week of</th><th className="num">Sales</th><th className="num">Revenue</th></tr>
-            </thead>
-            <tbody>
-              {byWeek.map((row) => (
-                <tr key={row.weekStart}>
-                  <td>{fmtDate(row.weekStart)}</td>
-                  <td className="num">{row.count}</td>
-                  <td className="num">{money(row.revenue)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Week of", sortLabel: "Week of" },
+            { label: "Sales", sortLabel: "Sales", numeric: true },
+            { label: "Revenue", sortLabel: "Revenue", numeric: true },
+          ]}
+          rows={byWeek.map((row) => ({
+            key: row.weekStart,
+            cells: [fmtDate(row.weekStart), row.count, money(row.revenue)],
+            sort: [row.weekStart, row.count, row.revenue],
+          }))}
+        />
 
         <BarChart
           title="Weekly revenue"
@@ -207,28 +204,28 @@ export default async function DashboardPage() {
 
         <h3>Recent sales</h3>
         <p>Showing the 50 most recent of {SALES.length} sales.</p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Date</th><th>Service</th><th>Stylist</th><th>Payment</th><th className="num">Price</th></tr>
-            </thead>
-            <tbody>
-              {recentSales.map((s, i) => (
-                <tr key={`${s.date}-${i}`}>
-                  <td>{fmtDate(s.date)}</td>
-                  <td>{s.service}</td>
-                  <td>
-                    <Link href={`/employees/${employeeIdForName(s.stylist)}`}>
-                      {s.stylist}
-                    </Link>
-                  </td>
-                  <td>{s.payment}</td>
-                  <td className="num">{money(s.price)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Date", sortLabel: "Date" },
+            { label: "Service", sortLabel: "Service" },
+            { label: "Stylist", sortLabel: "Stylist" },
+            { label: "Payment", sortLabel: "Payment" },
+            { label: "Price", sortLabel: "Price", numeric: true },
+          ]}
+          rows={recentSales.map((s, i) => ({
+            key: `${s.date}-${i}`,
+            cells: [
+              fmtDate(s.date),
+              s.service,
+              <Link href={`/employees/${employeeIdForName(s.stylist)}`}>
+                {s.stylist}
+              </Link>,
+              s.payment,
+              money(s.price),
+            ],
+            sort: [s.date, s.service, s.stylist, s.payment, s.price],
+          }))}
+        />
       </section>
 
       <section id="forecast" className="dash-section">
@@ -249,32 +246,47 @@ export default async function DashboardPage() {
           Revenue is the sum of that month&apos;s sales. Wages come from the
           payroll figures below.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th className="num">Revenue</th>
-                <th className="num">Wages</th>
-                <th className="num">Other expenses</th>
-                <th className="num">Total expenses</th>
-                <th className="num">Profit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pl.map((row) => (
-                <tr key={row.month}>
-                  <td>{monthLabel(row.month)}</td>
-                  <td className="num">{money(row.revenue)}</td>
-                  <td className="num">{money(row.wages)}</td>
-                  <td className="num">{money(row.otherExpenses)}</td>
-                  <td className="num">{money(row.totalExpenses)}</td>
-                  <td className={`num ${row.profit < 0 ? "negative" : ""}`}>{money(row.profit)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Month", sortLabel: "Month" },
+            { label: "Revenue", sortLabel: "Revenue", numeric: true },
+            { label: "Wages", sortLabel: "Wages", numeric: true },
+            {
+              label: "Other expenses",
+              sortLabel: "Other expenses",
+              numeric: true,
+            },
+            {
+              label: "Total expenses",
+              sortLabel: "Total expenses",
+              numeric: true,
+            },
+            { label: "Profit", sortLabel: "Profit", numeric: true },
+          ]}
+          rows={pl.map((row) => ({
+            key: row.month,
+            cells: [
+              monthLabel(row.month),
+              money(row.revenue),
+              money(row.wages),
+              money(row.otherExpenses),
+              money(row.totalExpenses),
+              // The "negative" class lives on a span, not the cell:
+              // SortableTable only sets the column class on cells.
+              <span className={row.profit < 0 ? "negative" : undefined}>
+                {money(row.profit)}
+              </span>,
+            ],
+            sort: [
+              row.month,
+              row.revenue,
+              row.wages,
+              row.otherExpenses,
+              row.totalExpenses,
+              row.profit,
+            ],
+          }))}
+        />
 
         <BarChart
           title="Monthly revenue and profit"
@@ -286,24 +298,20 @@ export default async function DashboardPage() {
         />
 
         <h3>Other expenses by month</h3>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Month</th><th>Category</th><th className="num">Amount</th></tr>
-            </thead>
-            <tbody>
-              {PL_MONTHS.flatMap((month) =>
-                EXPENSES.filter((e) => e.month === month).map((e) => (
-                  <tr key={`${month}-${e.category}`}>
-                    <td>{monthLabel(month)}</td>
-                    <td>{e.category}</td>
-                    <td className="num">{money(e.amount)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Month", sortLabel: "Month" },
+            { label: "Category", sortLabel: "Category" },
+            { label: "Amount", sortLabel: "Amount", numeric: true },
+          ]}
+          rows={PL_MONTHS.flatMap((month) =>
+            EXPENSES.filter((e) => e.month === month).map((e) => ({
+              key: `${month}-${e.category}`,
+              cells: [monthLabel(month), e.category, money(e.amount)],
+              sort: [month, e.category, e.amount],
+            }))
+          )}
+        />
         <p className="dash-note">
           October revenue {money(october.revenue)} minus October expenses{" "}
           {money(october.totalExpenses)} = profit {money(october.profit)}.
@@ -312,35 +320,49 @@ export default async function DashboardPage() {
 
       <section id="employees" className="dash-section">
         <h2>Employees</h2>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Name</th><th>Role</th>
-                <th className="num">Hourly rate</th>
-                <th className="num">Hours / week</th>
-                <th className="num">Hours / month</th>
-                <th className="num">Monthly gross</th>
-              </tr>
-            </thead>
-            <tbody>
-              {EMPLOYEES.map((e) => (
-                <tr key={e.name}>
-                  <td>
-                    <Link href={`/employees/${employeeIdForName(e.name)}`}>
-                      {e.name}
-                    </Link>
-                  </td>
-                  <td>{e.role}</td>
-                  <td className="num">{money(e.hourlyRate)}</td>
-                  <td className="num">{e.hoursPerWeek}</td>
-                  <td className="num">{monthlyHours(e).toFixed(2)}</td>
-                  <td className="num">{money(monthlyGross(e))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Name", sortLabel: "Name" },
+            { label: "Role", sortLabel: "Role" },
+            { label: "Hourly rate", sortLabel: "Hourly rate", numeric: true },
+            {
+              label: "Hours / week",
+              sortLabel: "Hours / week",
+              numeric: true,
+            },
+            {
+              label: "Hours / month",
+              sortLabel: "Hours / month",
+              numeric: true,
+            },
+            {
+              label: "Monthly gross",
+              sortLabel: "Monthly gross",
+              numeric: true,
+            },
+          ]}
+          rows={EMPLOYEES.map((e) => ({
+            key: e.name,
+            cells: [
+              <Link href={`/employees/${employeeIdForName(e.name)}`}>
+                {e.name}
+              </Link>,
+              e.role,
+              money(e.hourlyRate),
+              e.hoursPerWeek,
+              monthlyHours(e).toFixed(2),
+              money(monthlyGross(e)),
+            ],
+            sort: [
+              e.name,
+              e.role,
+              e.hourlyRate,
+              e.hoursPerWeek,
+              monthlyHours(e),
+              monthlyGross(e),
+            ],
+          }))}
+        />
         <p className="dash-note">
           Monthly hours = contracted weekly hours × 52 ÷ 12. Monthly gross =
           hourly rate × monthly hours.
@@ -355,46 +377,59 @@ export default async function DashboardPage() {
           (pension + other, estimate). Net pay = gross − deductions. Next
           payroll date: {fmtDate(NEXT_PAYROLL_DATE)}.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Employee</th>
-                <th className="num">Hours</th>
-                <th className="num">Gross</th>
-                <th className="num">Income tax ({Math.round(INCOME_TAX_RATE * 100)}%)</th>
-                <th className="num">Other ({Math.round(OTHER_DEDUCTION_RATE * 100)}%)</th>
-                <th className="num">Net pay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payroll.rows.map((r) => (
-                <tr key={r.name}>
-                  <td>
-                    <Link href={`/employees/${employeeIdForName(r.name)}`}>
-                      {r.name}
-                    </Link>
-                    <br />
-                    <span className="sub">{r.role}</span>
-                  </td>
-                  <td className="num">{r.hours.toFixed(2)}</td>
-                  <td className="num">{money(r.gross)}</td>
-                  <td className="num">{money(r.incomeTax)}</td>
-                  <td className="num">{money(r.otherDeductions)}</td>
-                  <td className="num">{money(r.net)}</td>
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td>Totals</td>
-                <td className="num">{round2(sum(payroll.rows.map((r) => r.hours))).toFixed(2)}</td>
-                <td className="num">{money(payroll.grossTotal)}</td>
-                <td className="num">{money(payroll.taxTotal)}</td>
-                <td className="num">{money(payroll.otherTotal)}</td>
-                <td className="num">{money(payroll.netTotal)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Employee", sortLabel: "Employee" },
+            { label: "Hours", sortLabel: "Hours", numeric: true },
+            { label: "Gross", sortLabel: "Gross", numeric: true },
+            {
+              label: `Income tax (${Math.round(INCOME_TAX_RATE * 100)}%)`,
+              sortLabel: "Income tax",
+              numeric: true,
+            },
+            {
+              label: `Other (${Math.round(OTHER_DEDUCTION_RATE * 100)}%)`,
+              sortLabel: "Other deductions",
+              numeric: true,
+            },
+            { label: "Net pay", sortLabel: "Net pay", numeric: true },
+          ]}
+          rows={payroll.rows.map((r) => ({
+            key: r.name,
+            cells: [
+              <>
+                <Link href={`/employees/${employeeIdForName(r.name)}`}>
+                  {r.name}
+                </Link>
+                <br />
+                <span className="sub">{r.role}</span>
+              </>,
+              r.hours.toFixed(2),
+              money(r.gross),
+              money(r.incomeTax),
+              money(r.otherDeductions),
+              money(r.net),
+            ],
+            sort: [
+              r.name,
+              r.hours,
+              r.gross,
+              r.incomeTax,
+              r.otherDeductions,
+              r.net,
+            ],
+          }))}
+          totalRow={
+            <tr className="total-row">
+              <td>Totals</td>
+              <td className="num">{round2(sum(payroll.rows.map((r) => r.hours))).toFixed(2)}</td>
+              <td className="num">{money(payroll.grossTotal)}</td>
+              <td className="num">{money(payroll.taxTotal)}</td>
+              <td className="num">{money(payroll.otherTotal)}</td>
+              <td className="num">{money(payroll.netTotal)}</td>
+            </tr>
+          }
+        />
         <p className="dash-note">
           Demo estimates — not payroll or tax advice. A real business files
           through a licensed payroll provider.
@@ -409,22 +444,30 @@ export default async function DashboardPage() {
           {Math.round(QUARTERLY_TAX_RATE * 100)}% of profit, held back for
           income tax. Both are estimates, not filings.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Month</th><th className="num">Sales</th><th className="num">Sales tax collected (est.)</th></tr>
-            </thead>
-            <tbody>
-              {PL_MONTHS.map((month) => (
-                <tr key={month}>
-                  <td>{monthLabel(month)}</td>
-                  <td className="num">{money(pl.find((r) => r.month === month)!.revenue)}</td>
-                  <td className="num">{money(salesTaxCollected(month))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Month", sortLabel: "Month" },
+            { label: "Sales", sortLabel: "Sales", numeric: true },
+            {
+              label: "Sales tax collected (est.)",
+              sortLabel: "Sales tax collected",
+              numeric: true,
+            },
+          ]}
+          rows={PL_MONTHS.map((month) => ({
+            key: month,
+            cells: [
+              monthLabel(month),
+              money(pl.find((r) => r.month === month)!.revenue),
+              money(salesTaxCollected(month)),
+            ],
+            sort: [
+              month,
+              pl.find((r) => r.month === month)!.revenue,
+              salesTaxCollected(month),
+            ],
+          }))}
+        />
         <BarChart
           title="Sales tax collected by month"
           labels={PL_MONTHS.map((month) => monthLabel(month))}
@@ -444,38 +487,47 @@ export default async function DashboardPage() {
           Stock value = quantity on hand × unit cost. An item is flagged
           low-stock when its quantity is at or below its reorder level.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th className="num">On hand</th>
-                <th className="num">Reorder at</th>
-                <th className="num">Unit cost</th>
-                <th className="num">Stock value</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {INVENTORY.map((item) => (
-                <tr key={item.name}>
-                  <td>{item.name}</td>
-                  <td className="num">{item.qty}</td>
-                  <td className="num">{item.reorderLevel}</td>
-                  <td className="num">{money(item.unitCost)}</td>
-                  <td className="num">{money(stockValue(item))}</td>
-                  <td>{isLowStock(item) ? <span className="badge badge-low">Low stock</span> : <span className="badge badge-ok">OK</span>}</td>
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td>Total stock value</td>
-                <td colSpan={3}></td>
-                <td className="num">{money(stockTotal)}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Product", sortLabel: "Product" },
+            { label: "On hand", sortLabel: "On hand", numeric: true },
+            { label: "Reorder at", sortLabel: "Reorder at", numeric: true },
+            { label: "Unit cost", sortLabel: "Unit cost", numeric: true },
+            { label: "Stock value", sortLabel: "Stock value", numeric: true },
+            { label: "Status", sortLabel: "Status" },
+          ]}
+          rows={INVENTORY.map((item) => ({
+            key: item.name,
+            cells: [
+              item.name,
+              item.qty,
+              item.reorderLevel,
+              money(item.unitCost),
+              money(stockValue(item)),
+              isLowStock(item) ? (
+                <span className="badge badge-low">Low stock</span>
+              ) : (
+                <span className="badge badge-ok">OK</span>
+              ),
+            ],
+            sort: [
+              item.name,
+              item.qty,
+              item.reorderLevel,
+              item.unitCost,
+              stockValue(item),
+              isLowStock(item) ? "Low stock" : "OK",
+            ],
+          }))}
+          totalRow={
+            <tr className="total-row">
+              <td>Total stock value</td>
+              <td colSpan={3}></td>
+              <td className="num">{money(stockTotal)}</td>
+              <td></td>
+            </tr>
+          }
+        />
       </section>
 
       <section id="payable" className="dash-section">
@@ -484,24 +536,26 @@ export default async function DashboardPage() {
           Money the studio owes suppliers. Outstanding total:{" "}
           <strong>{money(apOutstanding)}</strong>.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Supplier</th><th>Description</th><th>Due</th><th className="num">Amount</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {PAYABLES.map((b) => (
-                <tr key={`${b.supplier}-${b.due}`}>
-                  <td>{b.supplier}</td>
-                  <td>{b.description}</td>
-                  <td>{fmtDate(b.due)}</td>
-                  <td className="num">{money(b.amount)}</td>
-                  <td>{statusBadge(billStatus(b))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Supplier", sortLabel: "Supplier" },
+            { label: "Description", sortLabel: "Description" },
+            { label: "Due", sortLabel: "Due" },
+            { label: "Amount", sortLabel: "Amount", numeric: true },
+            { label: "Status", sortLabel: "Status" },
+          ]}
+          rows={PAYABLES.map((b) => ({
+            key: `${b.supplier}-${b.due}`,
+            cells: [
+              b.supplier,
+              b.description,
+              fmtDate(b.due),
+              money(b.amount),
+              statusBadge(billStatus(b)),
+            ],
+            sort: [b.supplier, b.description, b.due, b.amount, billStatus(b)],
+          }))}
+        />
         <p className="dash-note">
           &ldquo;Overdue&rdquo; means unpaid with a due date before{" "}
           {fmtDate(AS_OF_DATE)}.
@@ -514,24 +568,32 @@ export default async function DashboardPage() {
           Money clients owe the studio. Outstanding total:{" "}
           <strong>{money(arOutstanding)}</strong>.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr><th>Client</th><th>Description</th><th>Due</th><th className="num">Amount</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {RECEIVABLES.map((inv) => (
-                <tr key={`${inv.client}-${inv.due}`}>
-                  <td>{inv.client}</td>
-                  <td>{inv.description}</td>
-                  <td>{fmtDate(inv.due)}</td>
-                  <td className="num">{money(inv.amount)}</td>
-                  <td>{statusBadge(billStatus(inv))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Client", sortLabel: "Client" },
+            { label: "Description", sortLabel: "Description" },
+            { label: "Due", sortLabel: "Due" },
+            { label: "Amount", sortLabel: "Amount", numeric: true },
+            { label: "Status", sortLabel: "Status" },
+          ]}
+          rows={RECEIVABLES.map((inv) => ({
+            key: `${inv.client}-${inv.due}`,
+            cells: [
+              inv.client,
+              inv.description,
+              fmtDate(inv.due),
+              money(inv.amount),
+              statusBadge(billStatus(inv)),
+            ],
+            sort: [
+              inv.client,
+              inv.description,
+              inv.due,
+              inv.amount,
+              billStatus(inv),
+            ],
+          }))}
+        />
         <p className="dash-note">
           &ldquo;Overdue&rdquo; means unpaid with a due date before{" "}
           {fmtDate(AS_OF_DATE)}.

@@ -9,6 +9,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
+import SortableTable from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -107,34 +108,29 @@ export default async function CustomerDetailPage({
         </h2>
         <p>
           Past services, most recent first ({summary.visits} visits,{" "}
-          {money(summary.servicesTotal)} on services).
+          {money(summary.servicesTotal)} on services). Click any column
+          heading to sort by that column; click it again to reverse.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Service</th>
-                <th>Stylist</th>
-                <th className="num">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shownProcedures.map((p, i) => (
-                <tr key={`${p.date}-${p.service}-${i}`}>
-                  <td>{fmtDate(p.date)}</td>
-                  <td>{p.service}</td>
-                  <td>
-                    <Link href={`/employees/${employeeIdForName(p.stylist)}`}>
-                      {p.stylist}
-                    </Link>
-                  </td>
-                  <td className="num">{money(p.price)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable
+          columns={[
+            { label: "Date", sortLabel: "Date" },
+            { label: "Service", sortLabel: "Service" },
+            { label: "Stylist", sortLabel: "Stylist" },
+            { label: "Price", sortLabel: "Price", numeric: true },
+          ]}
+          rows={shownProcedures.map((p, i) => ({
+            key: `${p.date}-${p.service}-${i}`,
+            cells: [
+              fmtDate(p.date),
+              p.service,
+              <Link href={`/employees/${employeeIdForName(p.stylist)}`}>
+                {p.stylist}
+              </Link>,
+              money(p.price),
+            ],
+            sort: [p.date, p.service, p.stylist, p.price],
+          }))}
+        />
         {hiddenProcedures > 0 && (
           <p className="dash-note">
             Showing the {MAX_PROCEDURES_SHOWN} most recent of{" "}
@@ -149,39 +145,34 @@ export default async function CustomerDetailPage({
         </h2>
         <p>
           Retail products bought in the salon (
-          {money(summary.purchasesTotal)} on products).
+          {money(summary.purchasesTotal)} on products). Click any column
+          heading to sort by that column.
         </p>
         {summary.purchases.length === 0 ? (
           <p>No retail purchases recorded yet.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Product</th>
-                  <th className="num">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.purchases.map((p, i) => (
-                  <tr key={`${p.date}-${p.product}-${i}`}>
-                    <td>{fmtDate(p.date)}</td>
-                    <td>{p.product}</td>
-                    <td className="num">{money(p.price)}</td>
-                  </tr>
-                ))}
-                <tr className="total-row">
-                  <td colSpan={2}>Total on products</td>
-                  <td className="num">
-                    <span className="tag tag-money">
-                      {money(summary.purchasesTotal)}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <SortableTable
+            columns={[
+              { label: "Date", sortLabel: "Date" },
+              { label: "Product", sortLabel: "Product" },
+              { label: "Price", sortLabel: "Price", numeric: true },
+            ]}
+            rows={summary.purchases.map((p, i) => ({
+              key: `${p.date}-${p.product}-${i}`,
+              cells: [fmtDate(p.date), p.product, money(p.price)],
+              sort: [p.date, p.product, p.price],
+            }))}
+            totalRow={
+              <tr className="total-row">
+                <td colSpan={2}>Total on products</td>
+                <td className="num">
+                  <span className="tag tag-money">
+                    {money(summary.purchasesTotal)}
+                  </span>
+                </td>
+              </tr>
+            }
+          />
         )}
       </section>
 

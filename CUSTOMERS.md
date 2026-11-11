@@ -21,6 +21,40 @@ used across the owner pages.
 | `/appointments` | November 2026 diary: date, time, customer (clickable to their page), service, stylist, status (Confirmed / Requested); then Due for a booking — regulars who are due with no appointment, i.e. the nudge cases |
 | Homepage | A small Appointments card just under the hero — signed-in owners only (visitors never see it), linking to `/appointments` |
 
+## Sorting the tables
+
+Every owner-area table sorts — the customers and employees lists,
+the appointments diary and Due-for-a-booking list, the leads table,
+the Procedures and Purchases tables on a customer page, the Sales /
+Products sold / Customers / Appointments tables on an employee page,
+and all eleven tables on the dashboard. Click a column heading to
+sort by that column; click it again to reverse it. The sorted column
+shows an arrow (▲ ascending, ▼ descending). The default order is
+unchanged until a header is clicked (customers by next due soonest,
+employees by sales revenue, the diary by date, leads newest first).
+Money and counts sort numerically, dates sort by their date value
+(not the display text), text sorts alphabetically. Totals rows stay
+at the bottom — sorting never moves a total. One shared component
+does it everywhere: `components/SortableTable.tsx` (a client
+component; the pages stay server components and pass the row cells
+and one sort value per cell as props). The one table that does not
+sort is the Payroll table on an employee page — it has a single row,
+so there is nothing to sort.
+
+## The November calendar
+
+`/appointments` has a month calendar above the diary table
+(`components/AppointmentCalendar.tsx`, server-rendered, no client
+JS). November 2026, Sunday-start weeks: Nov 1 is a Sunday and the
+month has 30 days, so the grid is 5 rows — Nov 1–30 plus Dec 1–5
+filling the last row, muted. Each day cell shows that day's
+appointments as small navy blocks: time + customer name (a link to
+`/customers/<id>`) and the stylist name (a link to
+`/employees/<id>`). Sundays and Mondays are closed — those cells are
+greyed out and labelled Closed. The diary covers November 2026
+only: all 8 booked appointments are in November and there is no
+data for other months, so there is no month navigation.
+
 ## Where the data lives — and how to change it
 
 All of it is in **`lib/customers.ts`**. The roster is the only
@@ -142,8 +176,10 @@ before changing them:
 | `app/customers/page.tsx` | Customers list (owner-gated) |
 | `app/customers/[id]/page.tsx` | Customer detail (owner-gated, unknown id → 404) |
 | `app/customers/loading.tsx`, `app/customers/[id]/loading.tsx` | Loading states |
-| `app/appointments/page.tsx` | November diary + due-for-a-booking (owner-gated) |
+| `app/appointments/page.tsx` | November diary + due-for-a-booking (owner-gated), plus the November calendar |
 | `app/appointments/loading.tsx` | Loading state |
+| `components/AppointmentCalendar.tsx` | November 2026 month grid (server-rendered, no client JS) |
+| `components/SortableTable.tsx` | Shared sortable table used by every owner-area table |
 | `components/OwnerAppointmentsCard.tsx` | Homepage Appointments card (signed-in only) |
 | `components/OwnerNav.tsx` | Now also has Customers + Appointments buttons |
 | `middleware.ts` | `/customers` and `/appointments` added to the guarded routes |

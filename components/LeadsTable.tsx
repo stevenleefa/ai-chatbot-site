@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { LEAD_STATUSES, type Lead } from "@/lib/leads";
+import SortableTable, {
+  type SortableColumn,
+  type SortableRow,
+} from "@/components/SortableTable";
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -28,51 +32,73 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
   if (leads.length === 0) {
     return <p>No leads yet. New booking requests will appear here.</p>;
   }
+
+  // Default order is newest first (the order the page fetched them
+  // in). Click any column heading to re-sort; changing a status
+  // reloads the page, so the sort resets to newest first.
+  const columns: SortableColumn[] = [
+    { label: "Date", sortLabel: "Date" },
+    { label: "Name", sortLabel: "Name" },
+    { label: "Contact", sortLabel: "Contact" },
+    { label: "Service", sortLabel: "Service" },
+    { label: "Message", sortLabel: "Message" },
+    { label: "Status", sortLabel: "Status" },
+  ];
+  const rows: SortableRow[] = leads.map((lead) => ({
+    key: lead.id,
+    cells: [
+      new Date(lead.created_at).toLocaleString(),
+      <>
+        {lead.name}
+        {lead.repeatCount && lead.repeatCount > 1 ? (
+          <div>
+            <small>
+              {lead.repeatCount === 2
+                ? "2nd"
+                : `${lead.repeatCount}th`}{" "}
+              enquiry from this contact
+            </small>
+          </div>
+        ) : null}
+      </>,
+      lead.contact,
+      lead.service,
+      lead.message ?? "—",
+      <select
+        value={lead.status}
+        disabled={busyId === lead.id}
+        onChange={(e) => changeStatus(lead, e.target.value)}
+        aria-label={`Status for ${lead.name}`}
+      >
+        {LEAD_STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>,
+    ],
+    sort: [
+      lead.created_at,
+      lead.name,
+      lead.contact,
+      lead.service,
+      lead.message ?? "",
+      lead.status,
+    ],
+  }));
+
   return (
     <div>
       {error && <p role="alert">{error}</p>}
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Date</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Name</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Contact</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Service</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Message</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leads.map((lead) => (
-            <tr key={lead.id}>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>
-                {new Date(lead.created_at).toLocaleString()}
-              </td>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>
-                {lead.name}
-                {lead.repeatCount && lead.repeatCount > 1 ? (
-                  <div><small>{lead.repeatCount === 2 ? "2nd" : `${lead.repeatCount}th`} enquiry from this contact</small></div>
-                ) : null}
-              </td>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>{lead.contact}</td>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>{lead.service}</td>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>{lead.message ?? "—"}</td>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee", verticalAlign: "top" }}>
-                <select
-                  value={lead.status}
-                  disabled={busyId === lead.id}
-                  onChange={(e) => changeStatus(lead, e.target.value)}
-                  aria-label={`Status for ${lead.name}`}
-                >
-                  {LEAD_STATUSES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="dash-note">
+        Click any column heading to sort by that column.
+      </p>
+      <SortableTable
+        columns={columns}
+        rows={rows}
+        tableClassName="leads-table"
+        wrapClassName={false}
+      />
     </div>
   );
 }

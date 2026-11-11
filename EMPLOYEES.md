@@ -30,6 +30,14 @@ data computed in code — no Supabase table, no new env var.
 
 The list at `/employees` is sorted by sales revenue, highest first.
 
+Every table on the list and detail pages sorts — click a column
+heading to sort by that column, click it again to reverse; the
+sorted column shows an arrow (▲ ascending, ▼ descending). Money and
+counts sort numerically, dates sort by their date value. The one
+table that does not sort is Payroll on an employee page: it has a
+single row, so there is nothing to sort. Sorting is one shared
+component, `components/SortableTable.tsx` — see CUSTOMERS.md.
+
 ## Where the numbers come from
 
 All of it is computed in `lib/employees.ts` from rows that already
@@ -71,18 +79,26 @@ key is the `components/ColourLegend.tsx` row on those three pages):
 
 | Colour | Hex | Category | Used for |
 |---|---|---|---|
-| Plum | `#3d2433` | People | Customer + employee names, Customers sections |
-| Green | `#2e7d4f` | Money | Sales revenue, totals, net pay — the headline money figure of a section, as a money chip |
-| Blue | `#2f6fb2` | Appointments | Appointment sections, diary date columns, Due-for-a-visit |
-| Orange | `#e04e00` | Products | Purchases, Products sold, "Might be interested in" |
-| Rose | `#b76e79` | Services | Procedures / services sections and columns |
+| Deep purple | `#5b21b6` | People | Customer + employee names, Customers sections |
+| Dark grey | `#374151` | Money | Sales revenue, totals, net pay — the headline money figure of a section, as a money chip |
+| Dark navy | `#1e3a5f` | Appointments | Appointment sections, diary date columns, Due-for-a-visit |
+| Medium grey | `#6b7280` | Products | Purchases, Products sold, "Might be interested in" |
+| Medium purple | `#7c3aed` | Services | Procedures / services sections and columns |
+
+The palette is dark navy, purples and greys, and every chip is
+white text on its colour, passing WCAG 2.1 AA (contrast 4.5:1 or
+better: people 8.98:1, money 10.31:1, appointments 11.50:1,
+products 4.83:1, services 5.70:1). The previous palette did not
+fully pass: the old orange Products chip was 3.99:1 and the old
+rose Services chip 3.80:1 against white text, both below the
+4.5:1 AA bar for normal text.
 
 Rules of the scheme:
 
 - A section's heading carries its category chip (for example, the
-  employee page's Sales heading has the green Money chip, Products
-  sold has the orange Products chip).
-- Headline money totals are shown as green money chips (the revenue
+  employee page's Sales heading has the dark grey Money chip, Products
+  sold has the medium grey Products chip).
+- Headline money totals are shown as dark grey money chips (the revenue
   total under Sales, the products total under Products sold, the net
   pay under Payroll, the products total row on a customer page).
 - List tables put the category chip in the column header (for
@@ -115,6 +131,7 @@ Rules of the scheme:
 | `app/employees/[id]/page.tsx` | Employee detail (owner-gated, unknown id → 404) |
 | `app/employees/loading.tsx`, `app/employees/[id]/loading.tsx` | Loading states |
 | `components/ColourLegend.tsx` | The shared colour-key row |
+| `components/SortableTable.tsx` | Shared sortable table used by every owner-area table |
 | `components/OwnerNav.tsx` | Now also has an Employees button |
 | `middleware.ts` | `/employees` added to the guarded routes |
 | `app/globals.css` | `--tag-*` variables, `.tag` / `.tag-*` / `.colour-legend` |

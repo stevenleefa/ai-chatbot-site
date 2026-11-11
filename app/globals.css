@@ -7,12 +7,14 @@
   --sage: #e8ece3;
   /* Standard owner-area colours — one colour per category, used
      everywhere in /employees, /customers and /appointments so the
-     same colour always means the same thing. See EMPLOYEES.md. */
-  --tag-people: #3d2433; /* people: customers + employees (plum) */
-  --tag-money: #2e7d4f; /* money: revenue, totals, pay */
-  --tag-appointments: #2f6fb2; /* appointments: diary, due dates */
-  --tag-products: #e04e00; /* products: retail, purchases */
-  --tag-services: #b76e79; /* services / procedures (rose) */
+     same colour always means the same thing. See EMPLOYEES.md.
+     Palette is dark navy, purples and greys; every chip is white
+     text on the colour and passes WCAG 2.1 AA (contrast >= 4.5:1). */
+  --tag-people: #5b21b6; /* people: customers + employees (deep purple, 8.98:1) */
+  --tag-money: #374151; /* money: revenue, totals, pay (dark grey, 10.31:1) */
+  --tag-appointments: #1e3a5f; /* appointments: diary, due dates (dark navy, 11.50:1) */
+  --tag-products: #6b7280; /* products: retail, purchases (medium grey, 4.83:1) */
+  --tag-services: #7c3aed; /* services / procedures (medium purple, 5.70:1) */
 }
 
 html { scroll-behavior: smooth; }
@@ -112,7 +114,33 @@ button:hover { filter: brightness(1.08); }
 .tag-services { background: var(--tag-services); }
 .colour-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
 
-/* Bar charts on the dashboard (money over time, under the tables). */
+/* Sortable tables (components/SortableTable.tsx). The header button
+   is the whole header cell: transparent, inherits the header's font
+   and colour, so it looks like a plain heading until clicked. The
+   arrow (▲ / ▼) sits next to the label on the sorted column. */
+.sort-btn { display: block; width: 100%; background: transparent; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: inherit; cursor: pointer; border-radius: 0; }
+.sort-btn:hover { filter: none; text-decoration: underline; }
+.sort-arrow { font-size: 12px; }
+
+/* The leads table keeps its plainer pre-dashboard look (no dark
+   header) — these rules replace the inline styles it used to carry. */
+.leads-table { border-collapse: collapse; width: 100%; }
+.leads-table th { text-align: left; padding: 8px; border-bottom: 1px solid #ccc; }
+.leads-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+
+/* Month calendar on /appointments (components/AppointmentCalendar.tsx).
+   Sunday-start grid; appointment blocks are the appointments navy. */
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
+.cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 14px; }
+.cal-cell { background: white; border: 1px solid #eee2d6; border-radius: 10px; min-height: 96px; padding: 6px 8px; }
+.cal-cell.cal-closed { background: #f0ebe4; }
+.cal-cell.cal-outside { background: transparent; border-color: transparent; opacity: 0.45; }
+.cal-day { font-weight: 700; color: var(--plum); font-size: 14px; }
+.cal-closed .cal-day { color: #8a7d75; }
+.cal-closed-label { font-size: 12px; color: #8a7d75; margin-top: 4px; }
+.cal-appt { background: var(--tag-appointments); color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 13px; line-height: 1.35; }
+.cal-appt a { color: white; }
+
 .dash-chart { margin: 20px 0; background: white; border: 1px solid #eee2d6; border-radius: 14px; padding: 16px; }
 .dash-chart figcaption { font-weight: 700; color: var(--plum); margin-bottom: 8px; }
 .dash-chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--plum); margin-bottom: 4px; }

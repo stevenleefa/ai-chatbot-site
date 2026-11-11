@@ -9,6 +9,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
+import SortableTable from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -121,54 +122,39 @@ export default async function EmployeeDetailPage({
           <p>No sales recorded — this role does no services.</p>
         ) : (
           <>
-            <div className="table-wrap">
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Service</th>
-                    <th className="num">Sales</th>
-                    <th className="num">Revenue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.salesByService.map((row) => (
-                    <tr key={row.service}>
-                      <td>{row.service}</td>
-                      <td className="num">{row.count}</td>
-                      <td className="num">{money(row.revenue)}</td>
-                    </tr>
-                  ))}
-                  <tr className="total-row">
-                    <td>Total</td>
-                    <td className="num">{summary.salesCount}</td>
-                    <td className="num">{money(summary.salesRevenue)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <SortableTable
+              columns={[
+                { label: "Service", sortLabel: "Service" },
+                { label: "Sales", sortLabel: "Sales", numeric: true },
+                { label: "Revenue", sortLabel: "Revenue", numeric: true },
+              ]}
+              rows={summary.salesByService.map((row) => ({
+                key: row.service,
+                cells: [row.service, row.count, money(row.revenue)],
+                sort: [row.service, row.count, row.revenue],
+              }))}
+              totalRow={
+                <tr className="total-row">
+                  <td>Total</td>
+                  <td className="num">{summary.salesCount}</td>
+                  <td className="num">{money(summary.salesRevenue)}</td>
+                </tr>
+              }
+            />
             <h3>Recent sales</h3>
-            <div className="table-wrap">
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Service</th>
-                    <th>Payment</th>
-                    <th className="num">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shownSales.map((s, i) => (
-                    <tr key={`${s.date}-${s.service}-${i}`}>
-                      <td>{fmtDate(s.date)}</td>
-                      <td>{s.service}</td>
-                      <td>{s.payment}</td>
-                      <td className="num">{money(s.price)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <SortableTable
+              columns={[
+                { label: "Date", sortLabel: "Date" },
+                { label: "Service", sortLabel: "Service" },
+                { label: "Payment", sortLabel: "Payment" },
+                { label: "Price", sortLabel: "Price", numeric: true },
+              ]}
+              rows={shownSales.map((s, i) => ({
+                key: `${s.date}-${s.service}-${i}`,
+                cells: [fmtDate(s.date), s.service, s.payment, money(s.price)],
+                sort: [s.date, s.service, s.payment, s.price],
+              }))}
+            />
             {hiddenSales > 0 && (
               <p className="dash-note">
                 Showing the {MAX_SALES_SHOWN} most recent of{" "}
@@ -196,36 +182,32 @@ export default async function EmployeeDetailPage({
         {summary.productsSold.length === 0 ? (
           <p>No retail products credited yet.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th>Product</th>
-                  <th className="num">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.productsSold.map((p, i) => (
-                  <tr key={`${p.date}-${p.product}-${p.customerId}-${i}`}>
-                    <td>{fmtDate(p.date)}</td>
-                    <td>
-                      <Link href={`/customers/${p.customerId}`}>
-                        {p.customerName}
-                      </Link>
-                    </td>
-                    <td>{p.product}</td>
-                    <td className="num">{money(p.price)}</td>
-                  </tr>
-                ))}
-                <tr className="total-row">
-                  <td colSpan={3}>Total products sold</td>
-                  <td className="num">{money(summary.productsValue)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <SortableTable
+            columns={[
+              { label: "Date", sortLabel: "Date" },
+              { label: "Customer", sortLabel: "Customer" },
+              { label: "Product", sortLabel: "Product" },
+              { label: "Price", sortLabel: "Price", numeric: true },
+            ]}
+            rows={summary.productsSold.map((p, i) => ({
+              key: `${p.date}-${p.product}-${p.customerId}-${i}`,
+              cells: [
+                fmtDate(p.date),
+                <Link href={`/customers/${p.customerId}`}>
+                  {p.customerName}
+                </Link>,
+                p.product,
+                money(p.price),
+              ],
+              sort: [p.date, p.customerName, p.product, p.price],
+            }))}
+            totalRow={
+              <tr className="total-row">
+                <td colSpan={3}>Total products sold</td>
+                <td className="num">{money(summary.productsValue)}</td>
+              </tr>
+            }
+          />
         )}
       </section>
 
@@ -240,28 +222,30 @@ export default async function EmployeeDetailPage({
         {summary.customers.length === 0 ? (
           <p>No regular customers served yet.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th className="num">Visits with {e.name.split(" ")[0]}</th>
-                  <th className="num">Spent with {e.name.split(" ")[0]}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.customers.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <Link href={`/customers/${c.id}`}>{c.name}</Link>
-                    </td>
-                    <td className="num">{c.visitsWithEmployee}</td>
-                    <td className="num">{money(c.spentWithEmployee)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableTable
+            columns={[
+              { label: "Customer", sortLabel: "Customer" },
+              {
+                label: `Visits with ${e.name.split(" ")[0]}`,
+                sortLabel: "Visits",
+                numeric: true,
+              },
+              {
+                label: `Spent with ${e.name.split(" ")[0]}`,
+                sortLabel: "Spent",
+                numeric: true,
+              },
+            ]}
+            rows={summary.customers.map((c) => ({
+              key: c.id,
+              cells: [
+                <Link href={`/customers/${c.id}`}>{c.name}</Link>,
+                c.visitsWithEmployee,
+                money(c.spentWithEmployee),
+              ],
+              sort: [c.name, c.visitsWithEmployee, c.spentWithEmployee],
+            }))}
+          />
         )}
       </section>
 
@@ -281,40 +265,38 @@ export default async function EmployeeDetailPage({
         {summary.appointments.length === 0 ? (
           <p>No November appointments booked.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Customer</th>
-                  <th>Service</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.appointments.map((a) => (
-                  <tr key={a.id}>
-                    <td>{fmtDate(a.date)}</td>
-                    <td>{a.time}</td>
-                    <td>
-                      <Link href={`/customers/${a.customerId}`}>
-                        {a.customerName}
-                      </Link>
-                    </td>
-                    <td>{a.service}</td>
-                    <td>
-                      {a.status === "confirmed" ? (
-                        <span className="badge badge-ok">Confirmed</span>
-                      ) : (
-                        <span className="badge badge-low">Requested</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableTable
+            columns={[
+              { label: "Date", sortLabel: "Date" },
+              { label: "Time", sortLabel: "Time" },
+              { label: "Customer", sortLabel: "Customer" },
+              { label: "Service", sortLabel: "Service" },
+              { label: "Status", sortLabel: "Status" },
+            ]}
+            rows={summary.appointments.map((a) => ({
+              key: a.id,
+              cells: [
+                fmtDate(a.date),
+                a.time,
+                <Link href={`/customers/${a.customerId}`}>
+                  {a.customerName}
+                </Link>,
+                a.service,
+                a.status === "confirmed" ? (
+                  <span className="badge badge-ok">Confirmed</span>
+                ) : (
+                  <span className="badge badge-low">Requested</span>
+                ),
+              ],
+              sort: [
+                a.date,
+                a.time,
+                a.customerName,
+                a.service,
+                a.status === "confirmed" ? "Confirmed" : "Requested",
+              ],
+            }))}
+          />
         )}
       </section>
 

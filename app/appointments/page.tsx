@@ -9,6 +9,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import OwnerNav from "@/components/OwnerNav";
 import ColourLegend from "@/components/ColourLegend";
+import AppointmentCalendar from "@/components/AppointmentCalendar";
+import SortableTable, {
+  type SortableColumn,
+  type SortableRow,
+} from "@/components/SortableTable";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 import { fmtDate, money } from "@/lib/dashboard";
@@ -47,6 +52,109 @@ export default async function AppointmentsPage() {
   );
   const nudgeCustomers = getNudgeCustomers();
 
+  // Diary table: default order is date, earliest first. The
+  // calendar above it shows the same 8 appointments on a month grid.
+  const diaryColumns: SortableColumn[] = [
+    {
+      label: (
+        <>
+          Date <span className="tag tag-appointments">Appointments</span>
+        </>
+      ),
+      sortLabel: "Date",
+    },
+    { label: "Time", sortLabel: "Time" },
+    {
+      label: (
+        <>
+          Customer <span className="tag tag-people">People</span>
+        </>
+      ),
+      sortLabel: "Customer",
+    },
+    {
+      label: (
+        <>
+          Service <span className="tag tag-services">Services</span>
+        </>
+      ),
+      sortLabel: "Service",
+    },
+    {
+      label: (
+        <>
+          Stylist <span className="tag tag-people">People</span>
+        </>
+      ),
+      sortLabel: "Stylist",
+    },
+    { label: "Status", sortLabel: "Status" },
+  ];
+  const diaryRows: SortableRow[] = appointments.map((a) => {
+    const customer = customers.get(a.customerId)!;
+    return {
+      key: a.id,
+      cells: [
+        fmtDate(a.date),
+        a.time,
+        <Link href={`/customers/${a.customerId}`}>
+          {customer.customer.name}
+        </Link>,
+        a.service,
+        <Link href={`/employees/${employeeIdForName(a.stylist)}`}>
+          {a.stylist}
+        </Link>,
+        a.status === "confirmed" ? (
+          <span className="badge badge-ok">Confirmed</span>
+        ) : (
+          <span className="badge badge-low">Requested</span>
+        ),
+      ],
+      sort: [
+        a.date,
+        a.time,
+        customer.customer.name,
+        a.service,
+        a.stylist,
+        a.status === "confirmed" ? "Confirmed" : "Requested",
+      ],
+    };
+  });
+
+  // Due-for-a-booking table: default order is due date, soonest first.
+  const nudgeColumns: SortableColumn[] = [
+    { label: "Customer", sortLabel: "Customer" },
+    { label: "Due service", sortLabel: "Due service" },
+    { label: "Due date", sortLabel: "Due date" },
+    { label: "Last visit", sortLabel: "Last visit" },
+    { label: "Total spent", sortLabel: "Total spent", numeric: true },
+  ];
+  const nudgeRows: SortableRow[] = nudgeCustomers.map((s) => ({
+    key: s.customer.id,
+    cells: [
+      <Link href={`/customers/${s.customer.id}`}>
+        {s.customer.name}
+      </Link>,
+      s.nextDueService,
+      <>
+        {fmtDate(s.nextDueDate)}
+        <br />
+        <span className="sub">
+          {s.isOverdue ? "overdue" : "due within 7 days"}
+        </span>
+      </>,
+      fmtDate(s.lastVisit),
+      money(s.totalSpent),
+    ],
+    sort: [
+      s.customer.name,
+      s.nextDueService,
+      s.nextDueDate,
+      s.lastVisit,
+      s.totalSpent,
+    ],
+  }));
+
   return (
     <main className="dash-main">
       <h1>Appointments — {BUSINESS_NAME}</h1>
@@ -71,70 +179,34 @@ export default async function AppointmentsPage() {
 
       <section className="dash-section">
         <h2>
+          November 2026 calendar{" "}
+          <span className="tag tag-appointments">Appointments</span>
+        </h2>
+        <p>
+          Every booked appointment on the month grid — click a name to
+          open that customer or stylist. Sundays and Mondays are closed.
+          The diary covers November 2026 only, so there is no month
+          navigation.
+        </p>
+        <AppointmentCalendar
+          appointments={appointments.map((a) => ({
+            ...a,
+            customerName: customers.get(a.customerId)!.customer.name,
+          }))}
+        />
+      </section>
+
+      <section className="dash-section">
+        <h2>
           Upcoming appointments — November 2026{" "}
           <span className="tag tag-appointments">Appointments</span>
         </h2>
         <p>
           {appointments.length} appointments booked. Customer names link to
-          their history.
+          their history. Click any column heading to sort by that column;
+          click it again to reverse.
         </p>
-        <div className="table-wrap">
-          <table className="dash-table">
-            <thead>
-              <tr>
-                <th>
-                  Date{" "}
-                  <span className="tag tag-appointments">Appointments</span>
-                </th>
-                <th>Time</th>
-                <th>
-                  Customer{" "}
-                  <span className="tag tag-people">People</span>
-                </th>
-                <th>
-                  Service{" "}
-                  <span className="tag tag-services">Services</span>
-                </th>
-                <th>
-                  Stylist{" "}
-                  <span className="tag tag-people">People</span>
-                </th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((a) => {
-                const customer = customers.get(a.customerId)!;
-                return (
-                  <tr key={a.id}>
-                    <td>{fmtDate(a.date)}</td>
-                    <td>{a.time}</td>
-                    <td>
-                      <Link href={`/customers/${a.customerId}`}>
-                        {customer.customer.name}
-                      </Link>
-                    </td>
-                    <td>{a.service}</td>
-                    <td>
-                      <Link
-                        href={`/employees/${employeeIdForName(a.stylist)}`}
-                      >
-                        {a.stylist}
-                      </Link>
-                    </td>
-                    <td>
-                      {a.status === "confirmed" ? (
-                        <span className="badge badge-ok">Confirmed</span>
-                      ) : (
-                        <span className="badge badge-low">Requested</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <SortableTable columns={diaryColumns} rows={diaryRows} />
       </section>
 
       <section className="dash-section">
@@ -144,45 +216,13 @@ export default async function AppointmentsPage() {
         </h2>
         <p>
           Regulars who are due for a visit — overdue, or due within 7 days
-          — with no appointment booked. They need a nudge.
+          — with no appointment booked. They need a nudge. Click any
+          column heading to sort by that column.
         </p>
         {nudgeCustomers.length === 0 ? (
           <p>Nobody needs a nudge right now — every due customer is booked.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Due service</th>
-                  <th>Due date</th>
-                  <th>Last visit</th>
-                  <th className="num">Total spent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {nudgeCustomers.map((s) => (
-                  <tr key={s.customer.id}>
-                    <td>
-                      <Link href={`/customers/${s.customer.id}`}>
-                        {s.customer.name}
-                      </Link>
-                    </td>
-                    <td>{s.nextDueService}</td>
-                    <td>
-                      {fmtDate(s.nextDueDate)}
-                      <br />
-                      <span className="sub">
-                        {s.isOverdue ? "overdue" : "due within 7 days"}
-                      </span>
-                    </td>
-                    <td>{fmtDate(s.lastVisit)}</td>
-                    <td className="num">{money(s.totalSpent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableTable columns={nudgeColumns} rows={nudgeRows} />
         )}
       </section>
     </main>
