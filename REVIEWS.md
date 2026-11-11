@@ -33,8 +33,13 @@ only, like leads).
 
 ## Flow — submit → pending → approve
 
-1. A visitor fills in the form in the Reviews section (name, a star
+1. A visitor fills in the "Leave a review" form (name, a star
    rating picker, optional service, written review) and submits.
+   The form sits next to the booking form in a two-column row
+   (`.booking-review-row` in `app/globals.css` — Book on the left,
+   review on the right; they stack vertically below 900px), under
+   the review list in the Reviews section. Its heading is an `h2`
+   sized by the row rule so it matches "Book an appointment".
 2. `POST /api/reviews` validates (name 1–100 chars, rating integer
    1–5, text 1–1,000 chars, **no URLs in the text** — a simple spam
    control — service optional ≤ 100 chars), rate-limits per IP
@@ -69,10 +74,14 @@ used in the review list and in the pop-ups. The avatar is
 A small fixed card at the **bottom-left** of public pages only
 (homepage and `/products` — not owner pages, not `/login`). It
 rotates through the seed reviews one at a time, fading in and out
-every ~8 seconds. It has a visible dismiss button (persisted in
-`localStorage` as `lumen-review-popups-dismissed=1`), pauses on
+every ~8 seconds. It has a visible dismiss button, pauses on
 hover, and respects `prefers-reduced-motion` (no rotation — one
-static review instead). Accessibility: the rotating text is
+static review instead). Dismissing hides the pop-ups for this page
+load only — a refresh (or navigating to another page) brings them
+back. It used to persist the dismiss in `localStorage`
+(`lumen-review-popups-dismissed=1`), so once closed the pop-ups
+never came back; that was changed 2026-11-11 at the owner's
+request. Accessibility: the rotating text is
 `aria-hidden` (the same reviews are in full in the Reviews section,
 so the pop-up is a visual duplicate), but the dismiss button sits
 outside the `aria-hidden` region so it stays keyboard-reachable. It

@@ -59,7 +59,7 @@ export default function ReviewForm() {
 
   return (
     <form className="lead-form review-form" onSubmit={submit}>
-      <h3>Leave a review</h3>
+      <h2>Leave a review</h2>
       <p>
         Your review will appear once the studio approves it — usually
         within a day.

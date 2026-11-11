@@ -18,7 +18,10 @@ import Stars from "./Stars";
 // the aria-hidden region so it stays keyboard-reachable. Hovering
 // pauses the rotation. When the system prefers reduced motion there
 // is no rotation at all — one static review. Dismissing hides the
-// pop-ups and remembers it in localStorage.
+// pop-ups for this page load only — a refresh (or navigating to
+// another page) brings them back. It used to remember the dismiss
+// in localStorage, so once closed the pop-ups never came back; the
+// owner asked for them to return on refresh.
 const ROTATE_MS = 8000;
 const FADE_MS = 500;
 
@@ -35,13 +38,6 @@ export default function ReviewPopups() {
     setReducedMotion(
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     );
-    try {
-      setDismissed(
-        window.localStorage.getItem("lumen-review-popups-dismissed") === "1"
-      );
-    } catch {
-      // Storage unavailable — pop-ups just show.
-    }
   }, []);
 
   useEffect(() => {
@@ -72,12 +68,9 @@ export default function ReviewPopups() {
   const review = SEED_REVIEWS[index];
 
   function dismiss() {
+    // Page-load only — no localStorage, so a refresh brings the
+    // pop-ups back.
     setDismissed(true);
-    try {
-      window.localStorage.setItem("lumen-review-popups-dismissed", "1");
-    } catch {
-      // Storage unavailable — dismissed for this page load only.
-    }
   }
 
   return (
