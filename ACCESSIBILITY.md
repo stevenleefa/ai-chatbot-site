@@ -201,7 +201,12 @@ native button, link, input, or checkbox; nothing captures Tab.
   nav (z-index 60) when focused, and `section { scroll-margin-top:
   80px }` keeps anchor targets clear of the bar. The dashboard's
   sticky section nav uses `top: var(--nav-height)` so it sits under
-  the fixed bar, not underneath it.
+  the fixed bar, not underneath it — and since 2026-11-11 that
+  variable is measured in the browser by `components/NavHeight.tsx`
+  (the nav wraps to two rows at most widths, so a fixed 64px used
+  to put the tabs 44px too high, hidden under the bar). The tab
+  row also carries a matching `scroll-margin-top`, so clicking a
+  tab scrolls it into view just below the bar.
 - **Shop** (`/products`, `components/ShopClient.tsx`): product cards
   are plain articles with headings; the quantity picker is a labelled
   number input; the cart +/- buttons have aria-labels naming the
@@ -212,7 +217,9 @@ native button, link, input, or checkbox; nothing captures Tab.
   Reviews section, so the pop-up is a visual duplicate and must not
   interrupt screen readers. The dismiss button is outside the
   `aria-hidden` region, so it stays keyboard-reachable and
-  focusable; dismissing persists in localStorage. Rotation pauses
+  focusable; dismissing hides the pop-ups for this page load only
+  — a refresh brings them back (the old localStorage persistence
+  was removed 2026-11-11 at the owner's request). Rotation pauses
   on hover and stops entirely under `prefers-reduced-motion` (one
   static review; the fade transition is also switched off in CSS).
 - **Reviews section** (`#reviews`): the average rating is text plus
@@ -228,3 +235,11 @@ native button, link, input, or checkbox; nothing captures Tab.
 - **Orders** (`/orders`): the status badge reuses the lead list's
   badge styles (Paid / Pending / Cancelled), and the table sits in a
   focusable scrollable region like the other owner tables.
+- **Back to top** (`components/BackToTop.tsx`, in `app/layout.tsx`):
+  a real `<button>` with an "Back to top" aria-label, so it is in
+  the Tab order and announces itself; it only renders on a page
+  longer than one screen once you have scrolled down, so short
+  pages never show it. It smooth-scrolls to the top, or jumps
+  straight there under `prefers-reduced-motion`. It sits at the
+  bottom centre so it never covers the chat widget (bottom-right)
+  or the review pop-ups (bottom-left).

@@ -2,6 +2,8 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
 import SiteNav from "@/components/SiteNav";
+import NavHeight from "@/components/NavHeight";
+import BackToTop from "@/components/BackToTop";
 import { business } from "@/lib/business";
 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
@@ -20,7 +22,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Skip to main content
         </a>
         <SiteNav />
+        <NavHeight />
         {children}
+        <BackToTop />
       </body>
     </html>
   );

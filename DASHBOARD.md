@@ -19,7 +19,15 @@ receivable.
 - The section buttons at the top work like tabs: clicking one shows just
   that section in place (the page doesn't jump down to it), and **Overview**
   shows everything again. The buttons stick to the top while you scroll, so
-  they're always in reach.
+  they're always in reach — they stick just below the fixed top nav.
+  That offset is measured, not guessed: the nav wraps to two rows at
+  most widths, so `components/NavHeight.tsx` measures its real height
+  in the browser and writes it into `--nav-height`; the tabs read it
+  (`top: var(--nav-height)`). Before 2026-11-11 the offset was a
+  fixed 64px, so on a normal-width window the tabs stuck 44px too
+  high and slid underneath the fixed nav. Clicking a tab also scrolls
+  the tab row itself into view with a matching scroll margin, so it
+  never lands hidden under the nav.
 - Where a list has dates with money, a line chart sits underneath it
   as a visual: weekly revenue under Sales by week, monthly revenue vs
   profit under P&L, and sales tax collected by month under Taxes. Each
