@@ -67,11 +67,20 @@ the cell. Sundays are closed — those cells are greyed out and
 labelled Closed. The salon is open Monday to Saturday from November
 (see "Opening hours" below).
 
-Above the calendar, a row of filter buttons — All plus one per
-stylist — shows only that stylist's appointments, in the calendar
-(all three views) and in the diary table below. The Due-for-a-
-booking list is NOT filtered (those customers have no appointment).
-Priya has no appointments, so her filter shows the empty state.
+Directly above the calendar, under the Month / Week / Day tabs, a
+row of filter checkboxes — All plus one per stylist — picks which
+stylists' appointments show, in the calendar (all three views) and
+in the diary table below. Each stylist toggles in and out, so any
+combination works: two shows two stylists, three shows three. All
+is checked when every stylist is selected; deselecting any one
+makes All inactive. Nothing selected shows an empty state in both
+the calendar and the diary. The Due-for-a-booking list is NOT
+filtered (those customers have no appointment). Priya has no
+appointments, so selecting only her shows the empty state.
+
+The calendar renders inside one container (`.cal-panel`) in every
+view — Month, Week and Day share the same box, so switching views
+changes only the contents inside it.
 
 Times display in 12-hour clock everywhere appointments appear
 (diary Time column, calendar blocks, employee detail appointments,

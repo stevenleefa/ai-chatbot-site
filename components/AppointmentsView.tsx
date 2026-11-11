@@ -5,10 +5,14 @@
 // of this component — those customers have no appointment, so the
 // filter does not apply to them; the server page renders it below.
 //
-// Filter: "All" plus one button per stylist. Clicking a stylist
-// shows only their appointments in the calendar (all three views)
-// and in the diary table; "All" restores everything. Priya has no
-// appointments, so her filter shows the empty state.
+// Filter: a checkbox group ("All" plus one per stylist) sitting
+// directly above the calendar, under the view tabs. Each stylist
+// toggles in and out, so any combination can be shown — two, three,
+// or all five. "All" is checked when every stylist is selected (and
+// mixed while only some are). Nothing selected shows the empty state
+// in the calendar and the diary. The filter applies to the calendar
+// (all three views) and to the diary table; Priya has no
+// appointments, so selecting only her shows the empty state.
 //
 // Views: Month is the full November grid; Week is a 7-day strip for
 // the chosen week (prev/next-week buttons, clamped to the weeks that
@@ -16,6 +20,10 @@
 // buttons, clamped to Nov 1–30). Week and day default to the week/day
 // of the first appointment. Times display 12-hour everywhere
 // (formatTime); the stored "HH:MM" stays the sort value.
+//
+// The calendar always renders inside one .cal-panel container —
+// Month, Week and Day share the same box, so switching views changes
+// only the contents inside it, not the framing.
 
 "use client";
 
@@ -66,7 +74,24 @@ export default function AppointmentsView({
   const firstDate = appointments[0]?.date ?? NOV_START;
   const [view, setView] = useState<CalendarView>("month");
   const [anchorDate, setAnchorDate] = useState(firstDate);
-  const [stylist, setStylist] = useState<string | null>(null);
+  // Multi-select: the names of the selected stylists. Default is all
+  // of them (the old "All"). "All" itself is derived — checked when
+  // every stylist is selected, mixed while only some are.
+  const [selected, setSelected] = useState<string[]>(() =>
+    stylists.map((s) => s.name)
+  );
+  const allSelected = selected.length === stylists.length;
+  const noneSelected = selected.length === 0;
+  function toggleStylist(name: string) {
+    setSelected((prev) =>
+      prev.includes(name)
+        ? prev.filter((n) => n !== name)
+        : [...prev, name]
+    );
+  }
+  function toggleAll() {
+    setSelected(allSelected ? [] : stylists.map((s) => s.name));
+  }
 
   // Month / Week / Day are tabs (WAI-ARIA tabs, like DashboardTabs):
   // roving tabindex, arrow keys move and select, aria-selected and
@@ -101,11 +126,14 @@ export default function AppointmentsView({
     }
   }
 
-  const filtered =
-    stylist === null
-      ? appointments
-      : appointments.filter((a) => a.stylist === stylist);
-  const stylistName = stylist ?? "All stylists";
+  const filtered = appointments.filter((a) =>
+    selected.includes(a.stylist)
+  );
+  const selectedLabel = allSelected
+    ? "All stylists"
+    : noneSelected
+      ? "no stylists"
+      : selected.join(", ");
 
   const weekStart = weekStartOf(anchorDate);
   const canPrevWeek = weekStart > FIRST_WEEK_START;
@@ -189,54 +217,6 @@ export default function AppointmentsView({
   return (
     <>
       <section className="dash-section">
-        <h2>Filter by stylist</h2>
-        <p>
-          Show appointments for one stylist, or all of them. The filter
-          applies to the calendar and the diary below — the Due-for-a-
-          booking list is not filtered.
-        </p>
-        {/* Native radio group: one shared name gives the group arrow-key
-            navigation and single-select semantics for free; the labels
-            are styled as the pill buttons. */}
-        <fieldset className="filter-row">
-          <legend className="visually-hidden">
-            Filter appointments by stylist
-          </legend>
-          <input
-            type="radio"
-            className="filter-radio visually-hidden"
-            id="filter-all"
-            name="stylist-filter"
-            checked={stylist === null}
-            onChange={() => setStylist(null)}
-          />
-          <label className="filter-btn" htmlFor="filter-all">
-            All
-          </label>
-          {stylists.map((s) => (
-            <Fragment key={s.id}>
-              <input
-                type="radio"
-                className="filter-radio visually-hidden"
-                id={`filter-${s.id}`}
-                name="stylist-filter"
-                checked={stylist === s.name}
-                onChange={() => setStylist(s.name)}
-              />
-              <label className="filter-btn" htmlFor={`filter-${s.id}`}>
-                <span
-                  className="stylist-dot"
-                  style={{ background: s.colour }}
-                  aria-hidden="true"
-                />{" "}
-                {s.name}
-              </label>
-            </Fragment>
-          ))}
-        </fieldset>
-      </section>
-
-      <section className="dash-section">
         <h2>
           November 2026 calendar{" "}
           <span className="tag tag-appointments">Appointments</span>
@@ -315,15 +295,73 @@ export default function AppointmentsView({
           </div>
         )}
 
+        <div className="cal-filter">
+          <h3>Filter by stylist</h3>
+          <p>
+            Tick the stylists to show — one, several, or all of them.
+            The filter applies to the calendar and the diary below —
+            the Due-for-a-booking list is not filtered.
+          </p>
+          {/* Native checkbox group: real checkboxes give the checked
+              state and the group semantics for free, and each one
+              toggles with Space; the labels are styled as the pill
+              buttons. "All" is the select-all box — checked when
+              every stylist is selected, mixed while only some are. */}
+          <fieldset className="filter-row">
+            <legend className="visually-hidden">
+              Filter appointments by stylist
+            </legend>
+            <input
+              type="checkbox"
+              className="filter-checkbox visually-hidden"
+              id="filter-all"
+              checked={allSelected}
+              ref={(el) => {
+                if (el)
+                  el.indeterminate = selected.length > 0 && !allSelected;
+              }}
+              onChange={toggleAll}
+            />
+            <label className="filter-btn" htmlFor="filter-all">
+              All
+            </label>
+            {stylists.map((s) => (
+              <Fragment key={s.id}>
+                <input
+                  type="checkbox"
+                  className="filter-checkbox visually-hidden"
+                  id={`filter-${s.id}`}
+                  checked={selected.includes(s.name)}
+                  onChange={() => toggleStylist(s.name)}
+                />
+                <label className="filter-btn" htmlFor={`filter-${s.id}`}>
+                  <span
+                    className="stylist-dot"
+                    style={{ background: s.colour }}
+                    aria-hidden="true"
+                  />{" "}
+                  {s.name}
+                </label>
+              </Fragment>
+            ))}
+          </fieldset>
+        </div>
+
         <div
           id="calendar-panel"
+          className="cal-panel"
           role="tabpanel"
           aria-labelledby={`cal-tab-${view}`}
         >
-          {filtered.length === 0 ? (
+          {noneSelected ? (
             <p>
-              No appointments in November for {stylistName}. Try another
-              stylist, or All.
+              No stylists selected — tick at least one stylist above to
+              show their appointments.
+            </p>
+          ) : filtered.length === 0 ? (
+            <p>
+              No appointments in November for {selectedLabel}. Try
+              other stylists, or All.
             </p>
           ) : (
             <AppointmentCalendar
@@ -358,12 +396,16 @@ export default function AppointmentsView({
         <p>
           {filtered.length}{" "}
           {filtered.length === 1 ? "appointment" : "appointments"} booked
-          {stylist === null ? "" : ` for ${stylist}`}. Customer names
-          link to their history. Click any column heading to sort by
-          that column; click it again to reverse.
+          {allSelected || noneSelected
+            ? ""
+            : ` for ${selected.join(", ")}`}
+          . Customer names link to their history. Click any column
+          heading to sort by that column; click it again to reverse.
         </p>
-        {filtered.length === 0 ? (
-          <p>No appointments to show for {stylistName}.</p>
+        {noneSelected ? (
+          <p>No stylists selected — choose at least one above.</p>
+        ) : filtered.length === 0 ? (
+          <p>No appointments to show for {selectedLabel}.</p>
         ) : (
           <SortableTable columns={diaryColumns} rows={diaryRows} />
         )}

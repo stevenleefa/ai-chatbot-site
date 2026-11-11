@@ -195,20 +195,25 @@ button:hover { filter: brightness(1.08); }
 .view-nav button:hover:not(:disabled) { background: var(--rose); color: white; border-color: var(--rose); }
 .view-nav button:disabled { opacity: 0.45; cursor: default; }
 
-/* Stylist filter buttons across the top of /appointments, and the
-   stylist colour dots + legend. The dot is the stylist's colour.
-   The filter is a native radio group (fieldset + legend) whose
-   labels look like the other pill buttons: radios give the group
-   arrow-key navigation and single-select semantics for free, which
-   plain buttons with aria-pressed do not. The input itself is
-   visually hidden but stays in the tab order; the checked label
-   gets the rose active style, and focusing the radio rings its
-   label. */
+/* One calendar container for Month, Week and Day: the same box
+   (border, background, padding, width) wraps the calendar in every
+   view, so switching views changes only the contents inside it. */
+.cal-panel { background: #fbf3ec; border: 1px solid #eee2d6; border-radius: 16px; padding: 16px; margin: 12px 0; }
+
+/* Stylist filter buttons directly above the calendar on
+   /appointments, and the stylist colour dots + legend. The dot is
+   the stylist's colour. The filter is a native checkbox group
+   (fieldset + legend) whose labels look like the other pill
+   buttons: checkboxes give each stylist a real checked state that
+   toggles with Space and is announced as a group, which plain
+   buttons with aria-pressed do not. The input itself is visually
+   hidden but stays in the tab order; the checked label gets the
+   rose active style, and focusing the checkbox rings its label. */
 .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; border: 0; padding: 0; }
 .filter-btn { background: white; border: 1px solid #eee2d6; border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
 .filter-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
-.filter-radio:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
-.filter-radio:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+.filter-checkbox:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
+.filter-checkbox:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 .stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
 .stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: #6b5560; margin: 12px 0; }
 

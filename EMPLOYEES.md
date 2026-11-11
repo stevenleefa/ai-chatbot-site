@@ -126,13 +126,17 @@ dots, the filter buttons and the legend all read it):
 | Stylist | Colour | Hex | White-text contrast |
 |---|---|---|---|
 | Amelia Brooks | Dark navy | `#1e3a5f` | 11.50:1 |
-| Sofia Reyes | Deep purple | `#5b21b6` | 8.98:1 |
-| Maya Chen | Medium purple | `#7c3aed` | 5.70:1 |
-| Jordan Lee | Dark grey | `#374151` | 10.31:1 |
-| Priya Nair | Medium grey | `#6b7280` | 4.83:1 |
+| Sofia Reyes | Dark red | `#7f1d1d` | 10.02:1 |
+| Maya Chen | Dark teal | `#0f766e` | 5.47:1 |
+| Jordan Lee | Dark green | `#166534` | 7.13:1 |
+| Priya Nair | Dark amber | `#92400e` | 7.09:1 |
 
-All five pass WCAG 2.1 AA with white text (4.5:1 or better). Priya
-is the receptionist and has no appointments, so her colour appears
+All five pass WCAG 2.1 AA with white text (4.5:1 or better). Five
+clearly distinct dark hues — the previous set (two purples, two
+greys) was too samey. Only Amelia's navy is shared with the tag
+palette (the appointments tag); the other four are hues the tags do
+not use, so a stylist colour never reads as a category colour.
+Priya is the receptionist and has no appointments, so her colour appears
 only in the legend and her filter button — filtering to her shows
 the empty state.
 

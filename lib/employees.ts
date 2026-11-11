@@ -60,18 +60,20 @@ export const PAYROLL_MONTH = "2026-10";
 // colour identifies a category. Every colour is white text on a
 // solid block, and all five pass WCAG 2.1 AA (>= 4.5:1):
 //   Amelia Brooks — dark navy #1e3a5f (11.50:1)
-//   Sofia Reyes — deep purple #5b21b6 (8.98:1)
-//   Maya Chen — medium purple #7c3aed (5.70:1)
-//   Jordan Lee — dark grey #374151 (10.31:1)
-//   Priya Nair — medium grey #6b7280 (4.83:1)
-// (Three are reused from the tag palette, two are new greys/purples
-// from the same WCAG palette family.) See EMPLOYEES.md.
+//   Sofia Reyes — dark red #7f1d1d (10.02:1)
+//   Maya Chen — dark teal #0f766e (5.47:1)
+//   Jordan Lee — dark green #166534 (7.13:1)
+//   Priya Nair — dark amber #92400e (7.09:1)
+// Five clearly distinct dark hues — the old set (two purples, two
+// greys) was too samey. Amelia's navy coincides with the
+// appointments tag colour; the other four are hues the tag palette
+// does not use. See EMPLOYEES.md.
 export const STYLIST_COLOURS: Record<string, string> = {
   "Amelia Brooks": "#1e3a5f",
-  "Sofia Reyes": "#5b21b6",
-  "Maya Chen": "#7c3aed",
-  "Jordan Lee": "#374151",
-  "Priya Nair": "#6b7280",
+  "Sofia Reyes": "#7f1d1d",
+  "Maya Chen": "#0f766e",
+  "Jordan Lee": "#166534",
+  "Priya Nair": "#92400e",
 };
 
 // Colour for a stylist by full name; falls back to the appointments

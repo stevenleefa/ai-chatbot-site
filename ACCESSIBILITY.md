@@ -24,11 +24,20 @@ what was fixed, and what is still only provable on a signed-in clone.
 | Input border on cream / white (non-text, needs 3:1) | 1.55:1 FAIL | 3.46:1 / 3.66:1 PASS | `#d8c7b8` → `#97826f` |
 | Focus ring: navy `#1e3a5f` on plum `#3d2433` | 1.22:1 FAIL | — | Replaced by a double ring: a white outline plus a navy box-shadow, so one ring is always visible (navy on cream 10.89:1, white on plum 14.01:1) |
 | Outside-month calendar day numbers (plum at 45% opacity) | 2.64:1 FAIL | 6.42:1 PASS | Opacity removed; outside days use `#6b5560` on cream |
+| Stylist colours, white text (calendar blocks, dots) | Two purples + two greys, too samey | All five PASS | Reworked to five distinct dark hues: navy `#1e3a5f` 11.50:1, dark red `#7f1d1d` 10.02:1, dark teal `#0f766e` 5.47:1, dark green `#166534` 7.13:1, dark amber `#92400e` 7.09:1 |
 
 The tag palette (people deep purple `#5b21b6` 8.98:1, money dark grey
 `#374151` 10.31:1, appointments dark navy `#1e3a5f` 11.50:1, products
 medium grey `#6b7280` 4.83:1, services medium purple `#7c3aed` 5.70:1)
-and the stylist colours were already verified AA and were **not changed**.
+is unchanged. The stylist colours were reworked when the filter
+became multi-select: the old set (two purples, two greys) was too
+samey to tell apart, so each stylist now has a clearly distinct
+dark hue — Amelia dark navy `#1e3a5f` 11.50:1, Sofia dark red
+`#7f1d1d` 10.02:1, Maya dark teal `#0f766e` 5.47:1, Jordan dark
+green `#166534` 7.13:1, Priya dark amber `#92400e` 7.09:1 — all
+passing WCAG 2.1 AA with white text. Only Amelia's navy is shared
+with the tag palette (appointments); the other four are hues the
+tags do not use.
 The rose/plum/gold theme is unchanged in look — the rose is a touch
 deeper, which is what makes the white button text pass.
 
@@ -73,7 +82,7 @@ deeper, which is what makes the white button text pass.
 - The hero image has alt text ("Inside a bright, elegant hair
   studio"). It is the only content image on the site.
 
-### Tabs, radios, and the calendar
+### Tabs, checkboxes, and the calendar
 
 - **Dashboard tabs** (`components/DashboardTabs.tsx`) are now a real
   tab pattern: `role="tablist"` / `role="tab"` / `role="tabpanel"`,
@@ -84,11 +93,15 @@ deeper, which is what makes the white button text pass.
 - **Appointments views** (`components/AppointmentsView.tsx`) use the
   same tab pattern for Month / Week / Day, with a `tabpanel` around
   the calendar.
-- **Stylist filter** is now a native radio group
-  (`<fieldset>` + `<legend>` + one `<input type="radio">` per
-  stylist, labels styled as the pill buttons). Arrow keys move
-  between stylists and the selection is announced as a group —
-  free, correct semantics instead of `aria-pressed` buttons.
+- **Stylist filter** is a native checkbox group
+  (`<fieldset>` + `<legend>` + one `<input type="checkbox">` per
+  stylist, labels styled as the pill buttons). Tab reaches each
+  stylist and Space toggles it; the checked state is announced as
+  part of the group — free, correct semantics instead of
+  `aria-pressed` buttons. "All" is the select-all box: checked when
+  every stylist is selected, mixed while only some are. The filter
+  sits directly above the calendar, and the calendar renders inside
+  one `.cal-panel` container in every view.
 - **Calendar** (`components/AppointmentCalendar.tsx`): the bogus
   `role="grid"` was removed — a grid role needs row / gridcell
   children and arrow-key interaction, which this calendar does not
@@ -135,18 +148,18 @@ close, Escape returns focus. On owner pages: owner nav buttons
 (Dashboard, Leads, Customers, Appointments, Employees, Admin for
 admins, Sign out) → dashboard tabs (one Tab stop, arrows move
 between sections) → sortable headers (Enter/Space sorts, ▲/▼
-announced) → appointments view tabs (arrows) → stylist radios
-(arrows) → calendar appointment links (Tab, Enter opens the
+announced) → appointments view tabs (arrows) → stylist checkboxes
+(Tab, Space toggles) → calendar appointment links (Tab, Enter opens the
 customer page) → diary links. No keyboard traps: every stop is a
-native button, link, input, or radio; nothing captures Tab.
+native button, link, input, or checkbox; nothing captures Tab.
 
 ## Known limits — what could NOT be verified here
 
 - **No screen reader is available in this workspace**, so the
-  announcements (live region, tab selections, radio group) were
+  announcements (live region, tab selections, checkbox group) were
   verified from the markup, not heard.
 - **Signed-in owner pages only show their unconfigured branch in
-  this workspace** (no Supabase session here). The tab, radio,
+  this workspace** (no Supabase session here). The tab, checkbox,
   sortable-header, and calendar interactions on the configured
   branches need checking on a signed-in clone after
   `git pull origin main` + dev restart: dashboard tabs with arrow
