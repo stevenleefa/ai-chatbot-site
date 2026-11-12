@@ -1,0 +1,8 @@
+# Build context exclusions — keep the image small and secret-free.
+node_modules
+.next
+.git
+.github
+coverage
+.env.local
+.env*.local
