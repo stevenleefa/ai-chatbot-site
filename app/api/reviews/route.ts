@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getPublicReviews } from "@/lib/reviews-server";
+import { emitEvent } from "@/lib/events";
 import { clientIp, rateLimit, readCappedJson } from "@/lib/security";
 
 // Public reviews API. GET returns the approved visitor reviews plus
@@ -90,6 +91,19 @@ export async function POST(req: Request) {
   }
 
   if (!isSupabaseConfigured()) {
+    // Accepted in demo mode (nothing persisted): the automation event
+    // still fires with saved:false so the n8n workflow is testable
+    // without Supabase. Fire-and-forget — never awaited, never blocks.
+    void emitEvent("review.submitted", {
+      saved: false,
+      name: name.trim(),
+      rating,
+      text: text.trim(),
+      service:
+        typeof service === "string" && service.trim()
+          ? service.trim()
+          : undefined,
+    });
     return NextResponse.json({
       ok: true,
       saved: false,
@@ -117,6 +131,19 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+  // Saved as pending (an admin approves it on /admin before it shows
+  // on the site). The thank-you draft workflow fires now — the draft
+  // is for the owner to review, not an auto-reply to the visitor.
+  void emitEvent("review.submitted", {
+    saved: true,
+    name: name.trim(),
+    rating,
+    text: text.trim(),
+    service:
+      typeof service === "string" && service.trim()
+        ? service.trim()
+        : undefined,
+  });
   return NextResponse.json({
     ok: true,
     saved: true,

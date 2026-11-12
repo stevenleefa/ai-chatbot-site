@@ -1,5 +1,6 @@
 import Link from "next/link";
 import OwnerNav from "./OwnerNav";
+import ThemeToggle from "./ThemeToggle";
 import { getSiteSettings } from "@/lib/site-settings";
 
 // Fixed top navigation, rendered from app/layout.tsx so it is on
@@ -26,6 +27,7 @@ export default async function SiteNav() {
           <Link href="/#assistant">Assistant</Link>
         </nav>
         <OwnerNav />
+        <ThemeToggle />
       </div>
     </header>
   );

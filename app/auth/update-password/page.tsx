@@ -126,7 +126,7 @@ export default function UpdatePasswordPage() {
     <main id="main-content" style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
       <h1>Choose a new password — Lumen Hair Studio</h1>
       {fatal ? (
-        <p role="alert" style={{ color: "#8e4a56" }}>
+        <p role="alert" className="alert-error">
           {fatal} <a href="/login">Back to sign in</a>.
         </p>
       ) : done ? (
@@ -164,7 +164,7 @@ export default function UpdatePasswordPage() {
         </form>
       )}
       {error && (
-        <p role="alert" style={{ color: "#8e4a56" }}>
+        <p role="alert" className="alert-error">
           {error}
         </p>
       )}

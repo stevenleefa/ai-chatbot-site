@@ -1,0 +1,129 @@
+{
+  "name": "Lumen \u2014 Lead follow-up draft",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead.created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "cb780dc9-0fe5-4291-a278-5095f05813e5",
+      "name": "New lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "28f7ca51-8798-4edc-995d-714096239c07"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You write short, warm follow-up messages for Lumen Hair Studio, a hair salon. Use only the details given \u2014 never invent prices, services, opening times or dates. Keep it under 60 words. Sign off as 'Lumen Hair Studio'."
+            },
+            {
+              "role": "user",
+              "content": "=New lead: {{ $json.name }} asked about {{ $json.service }}. Their message: {{ $json.message || '\u2014' }}. Write a personal follow-up message the owner can send to confirm the booking."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 300
+        }
+      },
+      "id": "143a998d-5158-4b4f-a8e7-c79e817e75e3",
+      "name": "Draft follow-up with AI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "OpenAI account \u2014 add your key in n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ddc8592f-f661-4831-a738-17cb295520e1",
+              "name": "lead_name",
+              "type": "string",
+              "value": "={{ $('New lead').item.json.name }}"
+            },
+            {
+              "id": "5fa598d5-0c29-41b9-9ea4-687355d8a107",
+              "name": "service",
+              "type": "string",
+              "value": "={{ $('New lead').item.json.service }}"
+            },
+            {
+              "id": "85abb00b-9917-436d-8427-ebe327804d18",
+              "name": "draft",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "id": "6a3d5e11-0bd1-4ec7-add3-41c215688c86",
+              "name": "status",
+              "type": "string",
+              "value": "draft \u2014 owner to review, do not send"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ae5c3ff1-6fce-4c0b-8fd6-1f9936a98608",
+      "name": "Shape draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "New lead": {
+      "main": [
+        [
+          {
+            "node": "Draft follow-up with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft follow-up with AI": {
+      "main": [
+        [
+          {
+            "node": "Shape draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

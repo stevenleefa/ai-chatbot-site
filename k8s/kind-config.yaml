@@ -1,0 +1,23 @@
+# kind cluster config for the free local Kubernetes track.
+#
+#   kind create cluster --config k8s/kind-config.yaml
+#
+# One control-plane + two workers: enough to watch the Deployment's
+# 3 replicas spread across nodes, small enough for a laptop. The
+# extraPortMappings expose the ingress controller's 80/443 on the
+# Mac's localhost (kind's documented ingress setup), so
+# http://lumen.local reaches the cluster.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lumen-salon
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+  - role: worker

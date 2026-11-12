@@ -1,0 +1,44 @@
+# Local dev run of the salon demo in a container.
+#
+#   docker compose up --build
+#   # then open http://localhost:3000
+#
+# .env.local is optional: `required: false` means compose starts fine
+# without it, and the app runs unconfigured (leads/chat fall back to
+# their no-Supabase behaviour). Copy .env.example to .env.local and fill
+# it in to run with the real Supabase/Stripe backends. Never commit a
+# real .env.local — it is gitignored and dockerignored.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env.local
+        required: false
+
+  # n8n — the workflow/automation layer (see AUTOMATIONS.md).
+  # Open http://localhost:5678 and sign in with N8N_USER /
+  # N8N_PASSWORD (defaults below are public change-me values — set
+  # your own in a .env file in this folder or in the shell before
+  # `docker compose up`). The app posts automation events to n8n's
+  # webhooks (N8N_WEBHOOK_URL in .env.local); n8n data persists in
+  # the n8n-data volume, so workflows survive restarts.
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-change-me}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Los_Angeles
+    volumes:
+      - n8n-data:/home/node/.n8n
+
+volumes:
+  n8n-data:

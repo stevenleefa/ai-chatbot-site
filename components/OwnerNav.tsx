@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
+import SignOutButton from "./SignOutButton";
 
 // Owner navigation buttons. A Server Component: it reads the session on
 // the server, so it shows the right buttons without a client fetch.
@@ -26,9 +27,9 @@ export default async function OwnerNav() {
       <Link href="/employees">Employees</Link>
       <Link href="/orders">Orders</Link>
       {session.profile.role === "admin" && <Link href="/admin">Admin</Link>}
-      <form action="/auth/signout" method="post">
-        <button type="submit">Sign out</button>
-      </form>
+      {/* Sign out asks first (components/SignOutButton.tsx): the
+          dialog confirms, and only then posts to /auth/signout. */}
+      <SignOutButton />
     </nav>
   );
 }

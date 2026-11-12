@@ -1,0 +1,154 @@
+{
+  "name": "Lumen \u2014 Appointment reminder draft",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment.booked",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "03f5bf9c-5bc5-4dea-9038-52fdf3528a47",
+      "name": "New booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "201cc202-e3bb-4f40-929d-4436dd3f40d4"
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "96eb7980-7225-4230-80c3-5ac014d71343",
+      "name": "Wait until tomorrow",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You write short appointment reminders for Lumen Hair Studio, a hair salon. Use only the details given \u2014 never invent a date or time. The booking has no date in this demo, so write the reminder without a specific time and leave a [day/time] placeholder the owner fills in before sending. Keep it under 40 words. Sign off as 'Lumen Hair Studio'."
+            },
+            {
+              "role": "user",
+              "content": "=Appointment booked: {{ $json.name }} \u2014 {{ $json.service }}. Contact: {{ $json.contact }}. Write a short reminder the owner can send the day before the appointment."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 300
+        }
+      },
+      "id": "17949fc7-321d-420f-b76c-4094be5da52a",
+      "name": "Draft reminder with AI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        520,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "OpenAI account \u2014 add your key in n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bf40196e-40e9-4cae-a2c3-bd8edacbeed0",
+              "name": "customer_name",
+              "type": "string",
+              "value": "={{ $('New booking').item.json.name }}"
+            },
+            {
+              "id": "24033e21-1773-4a29-bfaf-42b7758b6716",
+              "name": "service",
+              "type": "string",
+              "value": "={{ $('New booking').item.json.service }}"
+            },
+            {
+              "id": "9915cbb3-b9f4-42b7-871c-9fc51c377e5a",
+              "name": "draft",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "id": "c941ade6-af14-4fb3-894f-72dc2b74c11d",
+              "name": "status",
+              "type": "string",
+              "value": "draft \u2014 owner to review, do not send"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "69bb7a5d-b7de-40aa-93fd-eaad253943e2",
+      "name": "Shape draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "New booking": {
+      "main": [
+        [
+          {
+            "node": "Wait until tomorrow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait until tomorrow": {
+      "main": [
+        [
+          {
+            "node": "Draft reminder with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft reminder with AI": {
+      "main": [
+        [
+          {
+            "node": "Shape draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

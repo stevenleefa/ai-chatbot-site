@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { BUSINESS_SLUG } from "@/lib/leads";
+import { saveLead } from "@/lib/leads";
+import { emitEvent } from "@/lib/events";
 import {
   clientIp,
   rateLimit,
@@ -79,36 +79,26 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!isSupabaseConfigured()) {
-    console.log("New lead received but not saved — Supabase not configured.");
-    return NextResponse.json({
-      ok: true,
-      saved: false,
-      message:
-        "Thanks! The studio will confirm your booking request shortly. Note: this enquiry was not saved yet — lead storage is not set up.",
-    });
+  // Persistence (including the 60-second duplicate protection and
+  // the demo-mode saved:false branch) lives in lib/leads.ts, shared
+  // with the chatbot's createBooking tool — this route keeps only
+  // its own validation, rate limit and automation events.
+  const result = await saveLead({
+    name,
+    contact,
+    service,
+    message: typeof message === "string" ? message : undefined,
+  });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "Could not save your request. Please call us instead." },
+      { status: 500 }
+    );
   }
-
-  const supabase = getServerSupabase();
-  // Safety net for a double-click / double-submit that slips past the
-  // disabled button: if the exact same lead (same name, contact,
-  // service and message) was already saved in the last 60 seconds,
-  // don't insert it again — just say thanks as if it saved.
-  const since = new Date(Date.now() - 60_000).toISOString();
-  const { data: recent } = await supabase!
-    .from("leads")
-    .select("created_at, message")
-    .eq("business", BUSINESS_SLUG)
-    .eq("name", name)
-    .eq("contact", contact)
-    .eq("service", service)
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const duplicate = (recent ?? []).find(
-    (row) => (row.message ?? "") === (message ?? "")
-  );
-  if (duplicate) {
+  if (result.duplicate) {
+    // Already saved in the last 60 seconds: say thanks as if it
+    // saved. The duplicate branch does NOT emit events — the
+    // original submit already did.
     return NextResponse.json({
       ok: true,
       saved: true,
@@ -116,28 +106,18 @@ export async function POST(req: Request) {
       message: "Thanks! The studio will confirm your booking request shortly.",
     });
   }
-
-  const { error } = await supabase!
-    .from("leads")
-    .insert({
-      business: BUSINESS_SLUG,
-      name,
-      contact,
-      service,
-      message: message ?? null,
-      status: "new",
-    });
-  if (error) {
-    // Never leak Supabase error details (or keys) to the client.
-    console.error("Failed to save lead:", error.message);
-    return NextResponse.json(
-      { error: "Could not save your request. Please call us instead." },
-      { status: 500 }
-    );
-  }
+  // Saved (or accepted in demo mode with saved:false): one booking
+  // request is both a new lead (CRM) and a new appointment (diary),
+  // so both events fire. Fire-and-forget — the response does not
+  // wait for n8n.
+  const event = { saved: result.saved, name, contact, service, message: message ?? undefined };
+  void emitEvent("lead.created", event);
+  void emitEvent("appointment.booked", event);
   return NextResponse.json({
     ok: true,
-    saved: true,
-    message: "Thanks! The studio will confirm your booking request shortly.",
+    saved: result.saved,
+    message: result.saved
+      ? "Thanks! The studio will confirm your booking request shortly."
+      : "Thanks! The studio will confirm your booking request shortly. Note: this enquiry was not saved yet — lead storage is not set up.",
   });
 }

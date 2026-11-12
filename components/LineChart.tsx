@@ -32,6 +32,18 @@ function axisMoney(v: number): string {
   return "$" + Math.round(v).toLocaleString("en-US");
 }
 
+// Series colours are theme-aware. The dashboard passes the light-mode
+// hexes (rose #a05a66, gold #8a6d1f); they map to the CSS variables
+// --chart-rose/--chart-gold, which are the same colours in light mode
+// and lighter, readable variants in dark mode. Unknown colours pass
+// through unchanged. The variables are applied via inline style (not
+// SVG attributes) so the chart re-colours the moment the theme flips.
+function seriesColor(hex: string): string {
+  if (hex === "#a05a66") return "var(--chart-rose)";
+  if (hex === "#8a6d1f") return "var(--chart-gold)";
+  return hex;
+}
+
 // "Nice" y ticks: a round step (1 / 2 / 5 / 10 x a power of ten) that
 // gives about 4 intervals, spanning the data (0 at the bottom unless a
 // value is negative — profits can be, in principle).
@@ -93,7 +105,7 @@ export default function LineChart({
             <span key={s.label}>
               <span
                 className="dash-chart-swatch"
-                style={{ background: s.color }}
+                style={{ background: seriesColor(s.color) }}
               />{" "}
               {s.label}
             </span>
@@ -114,7 +126,7 @@ export default function LineChart({
               y1={y(t)}
               x2={W - RIGHT}
               y2={y(t)}
-              stroke="#eee2d6"
+              style={{ stroke: "var(--chart-grid)" }}
               strokeWidth={1}
             />
             <text
@@ -122,7 +134,7 @@ export default function LineChart({
               y={y(t) + 4}
               textAnchor="end"
               fontSize={11}
-              fill="#6b5560"
+              style={{ fill: "var(--chart-axis)" }}
             >
               {axisMoney(t)}
             </text>
@@ -134,7 +146,7 @@ export default function LineChart({
           y1={TOP + PLOT_H}
           x2={W - RIGHT}
           y2={TOP + PLOT_H}
-          stroke="#97826f"
+          style={{ stroke: "var(--chart-axis-line)" }}
           strokeWidth={1}
         />
         <line
@@ -142,7 +154,7 @@ export default function LineChart({
           y1={TOP}
           x2={LEFT}
           y2={TOP + PLOT_H}
-          stroke="#97826f"
+          style={{ stroke: "var(--chart-axis-line)" }}
           strokeWidth={1}
         />
         {/* Y-axis title, rotated. */}
@@ -152,7 +164,7 @@ export default function LineChart({
           y={TOP + PLOT_H / 2}
           textAnchor="middle"
           fontSize={12}
-          fill="#6b5560"
+          style={{ fill: "var(--chart-axis)" }}
         >
           {yLabel}
         </text>
@@ -164,19 +176,28 @@ export default function LineChart({
             y={TOP + PLOT_H + 20}
             textAnchor="middle"
             fontSize={12}
-            fill="#6b5560"
+            style={{ fill: "var(--chart-axis)" }}
           >
             {label}
           </text>
         ))}
         {/* One line + dots per series. The <title> on each dot is the
-            native hover tooltip carrying the exact value. */}
+            native hover tooltip carrying the exact value. It MUST
+            be a single string child (one template literal): React
+            18's server renderer drops the children of a <title>
+            with several children ({label}: {money} as separate
+            text nodes), emitting an empty <title></title> in the
+            server HTML while the client render has the text — a
+            hydration mismatch ("Expected server HTML to contain a
+            matching text node for 'Jul 27' in <title>") on every
+            chart. A single string child renders identically on
+            server and client. Do not split it back into parts. */}
         {series.map((s) => (
           <g key={s.label}>
             <polyline
               points={s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ")}
               fill="none"
-              stroke={s.color}
+              style={{ stroke: seriesColor(s.color) }}
               strokeWidth={2.5}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -187,13 +208,10 @@ export default function LineChart({
                 cx={x(i)}
                 cy={y(v)}
                 r={4.5}
-                fill={s.color}
-                stroke="#fff"
+                style={{ fill: seriesColor(s.color), stroke: "var(--chart-dot-stroke)" }}
                 strokeWidth={1.5}
               >
-                <title>
-                  {labels[i]}: {money(v)}
-                </title>
+                <title>{`${labels[i]}: ${money(v)}`}</title>
               </circle>
             ))}
           </g>

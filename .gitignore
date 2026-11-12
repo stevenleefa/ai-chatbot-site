@@ -1,4 +1,11 @@
 node_modules
 .next
+.env
 .env*.local
 data/leads.json
+
+# Terraform (infra/terraform): local state, lock dir and overrides.
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfvars

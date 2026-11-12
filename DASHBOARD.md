@@ -38,7 +38,11 @@ receivable.
   `components/LineChart.tsx` (plain SVG, no chart library). They were
   bar charts until 2026-11-10: the bar chart put a money label above
   every bar, and with 13 weekly bars the labels overlapped, so the
-  charts became lines with no per-point text labels.
+  charts became lines with no per-point text labels. In dark mode the
+  dashboard still passes the same light hexes, and `LineChart` maps
+  them to the theme variables `--chart-rose` / `--chart-gold` (rose
+  `#e08a94`, gold `#d9b45b` in dark), so the lines stay readable on
+  the dark panel — see the contrast table in ACCESSIBILITY.md.
 
 ## What it shows
 
