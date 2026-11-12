@@ -60,7 +60,9 @@ function dayDiff(a: string, b: string): number {
   );
 }
 
-function isOpenDay(iso: string): boolean {
+// Exported for the chatbot tools (lib/tools.ts): availability and
+// booking both need the same open-day rule as the diary.
+export function isOpenDay(iso: string): boolean {
   const d = new Date(iso + "T12:00:00Z").getUTCDay(); // 0 Sun ... 6 Sat
   return d >= 1 && d <= 6; // Mon-Sat — the salon opened Mondays in
   // November 2026. The historical Aug–Oct SALES in lib/dashboard.ts
@@ -272,7 +274,7 @@ export type CustomerSummary = {
   nudgeMessage: string;
 };
 
-const APPOINTMENT_SLOTS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"];
+export const APPOINTMENT_SLOTS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"];
 
 function serviceDues(procedures: Sale[]): ServiceDue[] {
   const byService = new Map<string, { count: number; lastDate: string }>();

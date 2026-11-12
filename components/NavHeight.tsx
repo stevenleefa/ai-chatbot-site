@@ -16,6 +16,19 @@ import { useEffect } from "react";
 // top of every page started 44px under the nav. Runs on mount and
 // whenever the header resizes (window resize, font load, wrap
 // changes); the CSS 64px stays as the pre-JavaScript fallback.
+//
+// INVARIANT — do not break this: --nav-height must never feed back
+// into the header's own size. .site-nav-inner has no min-height
+// (and no other header rule reads the variable), so the height
+// measured here is always the header's NATURAL content height and
+// a transient tall measurement can shrink back again. An earlier
+// version had min-height: var(--nav-height) on .site-nav-inner:
+// the measured height held the header up, the observer re-measured
+// the inflated height, and --nav-height could only grow — the
+// fixed header, body padding-top and sticky tab offset all blew up
+// together, and the default align-content: stretch spread the
+// header's two rows apart into a huge cream gap at the top while
+// scrolling. That is fixed by keeping the measurement one-way.
 export default function NavHeight() {
   useEffect(() => {
     // Re-query inside measure (with its own null check) so the

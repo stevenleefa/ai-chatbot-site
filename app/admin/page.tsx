@@ -23,7 +23,7 @@ export default async function AdminPage() {
         <p>
           <Link href="/">← Back to the site</Link>
         </p>
-        <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+        <p role="alert" className="alert-note">
           <strong>Auth is not configured.</strong> Add
           NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
           .env.local and restart the dev server. See AUTH.md.
@@ -95,7 +95,7 @@ export default async function AdminPage() {
           deactivated.
         </p>
         {storageError && (
-          <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+          <p role="alert" className="alert-note">
             {storageError}
           </p>
         )}
@@ -108,26 +108,26 @@ export default async function AdminPage() {
             role="region"
             aria-label="Users table"
           >
-            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <table className="leads-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Email</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Role</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Active</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Joined</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Actions</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Active</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {profiles.map((p) => (
                   <tr key={p.id}>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{p.email}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{p.role}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{p.is_active ? "Yes" : "No"}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    <td>{p.email}</td>
+                    <td>{p.role}</td>
+                    <td>{p.is_active ? "Yes" : "No"}</td>
+                    <td>
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    <td>
                       <form action={setUserRole} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="userId" value={p.id} />
                         <input
@@ -178,7 +178,7 @@ export default async function AdminPage() {
           rows here — they are not listed.
         </p>
         {!isSupabaseConfigured() ? (
-          <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+          <p role="alert" className="alert-note">
             Review storage is not configured
             (SUPABASE_SERVICE_ROLE_KEY missing), so reviews cannot be
             listed or approved yet. See REVIEWS.md.
@@ -192,28 +192,28 @@ export default async function AdminPage() {
             role="region"
             aria-label="Pending reviews table"
           >
-            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <table className="leads-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Name</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Rating</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Service</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Review</th>
-                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>Actions</th>
+                  <th>Name</th>
+                  <th>Rating</th>
+                  <th>Service</th>
+                  <th>Review</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingReviews.map((r) => (
                   <tr key={r.id}>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.name}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    <td>{r.name}</td>
+                    <td>
                       <span role="img" aria-label={`${r.rating} out of 5 stars`}>
                         {"★".repeat(r.rating) + "☆".repeat(5 - r.rating)}
                       </span>
                     </td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.service ?? "—"}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>{r.text}</td>
-                    <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    <td>{r.service ?? "—"}</td>
+                    <td>{r.text}</td>
+                    <td>
                       <form action={approveReview} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="reviewId" value={r.id} />
                         <button type="submit">Approve</button>

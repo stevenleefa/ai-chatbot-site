@@ -1,0 +1,26 @@
+# Ingress — the front door. Requires the NGINX ingress controller
+# installed in the kind cluster (see KUBERNETES.md step 4); kind
+# ships no ingress controller by default. Host lumen.local must
+# resolve to 127.0.0.1 (add it to /etc/hosts).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lumen-salon
+  namespace: lumen
+  labels:
+    app.kubernetes.io/name: lumen-salon
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: lumen.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lumen-salon
+                port:
+                  number: 80

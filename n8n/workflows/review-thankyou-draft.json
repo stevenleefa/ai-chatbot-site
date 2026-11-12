@@ -1,0 +1,135 @@
+{
+  "name": "Lumen \u2014 Review thank-you draft",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "review.submitted",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "dc78f70d-8de9-4a87-a12e-ae6385df16f2",
+      "name": "New review",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e0c91ce7-f8d2-421a-92fb-3270c9bd6f4a"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You write short, warm thank-you notes for Lumen Hair Studio, a hair salon. Thank the customer by first name for their review. You may mention the service they reviewed. Never invent anything. Keep it under 40 words. Sign off as 'Lumen Hair Studio'."
+            },
+            {
+              "role": "user",
+              "content": "=New {{ $json.rating }}-star review from {{ $json.name }} for {{ $json.service || 'the studio' }}: \"{{ $json.text }}\". Write a personal thank-you note the owner can send."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 300
+        }
+      },
+      "id": "dad8e49b-7b93-424e-8c24-5b81886ffa6d",
+      "name": "Draft thank-you with AI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "OpenAI account \u2014 add your key in n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfcdd993-3b28-462c-9c16-1e36a2ab440c",
+              "name": "reviewer_name",
+              "type": "string",
+              "value": "={{ $('New review').item.json.name }}"
+            },
+            {
+              "id": "17f31f35-292a-4c90-bc26-c836f5d813d1",
+              "name": "rating",
+              "type": "number",
+              "value": "={{ $('New review').item.json.rating }}"
+            },
+            {
+              "id": "17eddca9-c993-49dd-b52f-fb881e39daeb",
+              "name": "service",
+              "type": "string",
+              "value": "={{ $('New review').item.json.service }}"
+            },
+            {
+              "id": "8964ea13-de6e-47f4-87b0-8b910eaf2e75",
+              "name": "draft",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "id": "d60f35a8-4bd5-4b85-8d33-70395c993c3e",
+              "name": "status",
+              "type": "string",
+              "value": "draft \u2014 owner to review, do not send"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5a82360e-a76f-4457-a862-ce3b7c2d6dc0",
+      "name": "Shape draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "New review": {
+      "main": [
+        [
+          {
+            "node": "Draft thank-you with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft thank-you with AI": {
+      "main": [
+        [
+          {
+            "node": "Shape draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

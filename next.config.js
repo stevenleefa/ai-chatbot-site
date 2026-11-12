@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Standalone output: `next build` emits a self-contained server in
+  // .next/standalone (server.js + pruned node_modules) that the
+  // Dockerfile's runner stage copies and runs with plain `node`.
+  // No `next start` or full node_modules needed in the final image.
+  output: "standalone",
   // Security headers (see SECURITY.md). Applied to every route.
   // No Content-Security-Policy here on purpose: Next.js App Router
   // ships inline scripts for hydration, so a strict CSP would break

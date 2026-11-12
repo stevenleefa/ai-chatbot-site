@@ -86,7 +86,8 @@ request. Accessibility: the rotating text is
 so the pop-up is a visual duplicate), but the dismiss button sits
 outside the `aria-hidden` region so it stays keyboard-reachable. It
 never covers the chat widget (bottom-right) or the nav, and it plays
-no sound.
+no sound. In dark mode the card follows the theme (dark surface and
+border, same gold stars) — see ACCESSIBILITY.md.
 
 ## Replacing the seed reviews with real ones
 

@@ -52,7 +52,7 @@ export default async function OrdersPage() {
         <p>
           <Link href="/">← Back to the site</Link>
         </p>
-        <p role="alert" style={{ background: "#fff3cd", padding: 12 }}>
+        <p role="alert" className="alert-note">
           <strong>Auth is not configured.</strong> Add
           NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
           .env.local and restart the dev server. Sign-in is unavailable

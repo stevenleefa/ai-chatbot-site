@@ -1,15 +1,35 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { ChatAction } from "@/lib/tools";
 
-type Msg = { role: "user" | "bot"; text: string; sources?: string[] };
+type Msg = { role: "user" | "bot"; text: string; sources?: string[]; action?: ChatAction };
 
 const SUGGESTED = [
   "What are your opening hours?",
   "How much is a haircut?",
   "How do I book an appointment?",
-  "What is your cancellation policy?",
+  "Is Saturday free?",
 ];
+
+// One-line rendering of a structured action (see lib/tools.ts):
+// a booking confirmation or a free-slots summary, under the reply
+// text. The text itself already carries the details — this is the
+// glanceable version.
+function actionLine(action: ChatAction): string | null {
+  if (action.type === "booking_created") {
+    return (
+      `✓ Booking requested: ${action.service} · ${action.date} at ${action.time} with ${action.stylist}` +
+      (action.saved ? "" : " (demo mode — not saved yet)")
+    );
+  }
+  if (action.type === "availability") {
+    const free = action.free.filter((f) => f.times.length > 0);
+    if (free.length === 0) return null;
+    return `Free ${action.dayLabel}: ` + free.map((f) => `${f.stylist} ${f.times.join(", ")}`).join(" · ");
+  }
+  return null;
+}
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -74,7 +94,7 @@ export default function ChatWidget() {
         body: JSON.stringify({ message: question }),
       });
       const data = await res.json();
-      setMessages((m) => [...m, { role: "bot", text: data.answer, sources: data.sources }]);
+      setMessages((m) => [...m, { role: "bot", text: data.answer, sources: data.sources, action: data.action }]);
     } catch {
       setMessages((m) => [...m, { role: "bot", text: "Sorry, something went wrong. Please try again or call the studio." }]);
     } finally {
@@ -113,6 +133,9 @@ export default function ChatWidget() {
             {messages.map((m, i) => (
               <div key={i} className={`msg ${m.role}`}>
                 <p>{m.text}</p>
+                {m.action && actionLine(m.action) && (
+                  <p className="chat-action">{actionLine(m.action)}</p>
+                )}
                 {m.sources && m.sources.length > 0 && (
                   <small>Sources: {m.sources.join(", ")}</small>
                 )}

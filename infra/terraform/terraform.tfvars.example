@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars to override the defaults:
+#   cp terraform.tfvars.example terraform.tfvars
+# (terraform.tfvars is gitignored — it may hold a local image tag.)
+# image    = "lumen-salon:test"
+# replicas = 3
+# host     = "lumen.local"

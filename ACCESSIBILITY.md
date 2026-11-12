@@ -10,6 +10,103 @@ what was fixed, and what is still only provable on a signed-in clone.
   separately where it was improved for free — the site is not claimed
   2.2 compliant.
 
+## Dark mode (2026-11-11)
+
+A light/dark switch sits in the fixed top nav on every page. Files:
+`components/ThemeToggle.tsx` (the button, a client component),
+`app/layout.tsx` (the pre-paint script), `app/globals.css` (all colours),
+`components/LineChart.tsx` (chart series colours).
+
+### How the toggle works
+
+- The theme lives on `<html data-theme="light|dark">`. The choice is
+  saved in localStorage under `lumen-theme` (same naming as the shop's
+  `lumen-cart` key); with no saved choice the site follows the system
+  `prefers-color-scheme`.
+- **No flash of the wrong theme:** an inline blocking script in the
+  layout `<head>` reads the saved choice (or the system preference)
+  and sets `data-theme` before first paint. `components/ThemeToggle.tsx`
+  only keeps the attribute, localStorage and the icon in sync after
+  that. `<html>` carries `suppressHydrationWarning` for this one
+  attribute, which the script sets before React hydrates.
+- The toggle is a real `<button>` (40×40px circle, sun icon in dark
+  mode, moon icon in light mode), keyboard-reachable, with an
+  `aria-label` that names the action ("Switch to dark mode" /
+  "Switch to light mode") and `aria-pressed`. It uses the standard
+  `:focus-visible` double ring — the white inner ring is what reads
+  against dark surfaces.
+- Every colour goes through CSS variables in `app/globals.css`: the
+  light values are the exact colours the site already used, so light
+  mode is unchanged, and `:root[data-theme="dark"]` overrides them.
+  The rose button gradient, the tag palette and the stylist colours
+  are the same in both modes (dark hues that read on dark surfaces
+  too); `--plum` flips to light in dark mode, so solid plum
+  backgrounds use a separate `--plum-deep`, and rose text uses
+  `--rose-text` (light `#8e4a56`, dark `#e8a7ad`). The two rules a
+  variable cannot express are the hero tag's ink (gold background
+  keeps its colour, the text goes dark) and the back-to-top hover
+  (darkens in light, lightens in dark).
+- Charts: the dashboard still passes the light hexes (`#a05a66`,
+  `#8a6d1f`); `LineChart` maps them to `--chart-rose`/`--chart-gold`,
+  which are the same colours in light mode and lighter variants in
+  dark mode (`#e08a94`, `#d9b45b`).
+
+### Contrast — dark-mode pairs (computed with a relative-luminance script)
+
+Same bars as light mode: text 4.5:1, non-text UI/graphics 3:1. The
+first border candidates (`#4a3642`, `#3d2c36`) failed at 1.23–1.56:1
+and were lightened to `#84707d` / `#7a6672` until they reached 3:1.
+
+| Pair | Foreground on background | Ratio | Bar |
+|---|---|---|---|
+| Body text on page bg | `#f2e7de` on `#221820` | 14.15:1 | 4.5:1 |
+| Body text on card/surface | `#f2e7de` on `#2a1e27` | 13.14:1 | 4.5:1 |
+| Body text on surface-2 (calendar panel) | `#f2e7de` on `#31242c` | 12.16:1 | 4.5:1 |
+| Body text on surface-3 (table total row) | `#f2e7de` on `#372a32` | 11.21:1 | 4.5:1 |
+| Input text on input bg | `#f2e7de` on `#241a21` | 13.87:1 | 4.5:1 |
+| Body text on banner bg | `#f2e7de` on `#3a2f14` | 10.81:1 | 4.5:1 |
+| Body text on banner-2 bg | `#f2e7de` on `#33222c` | 12.28:1 | 4.5:1 |
+| Body text on closed-cell bg | `#f2e7de` on `#241a20` | 13.88:1 | 4.5:1 |
+| Body text on chat user message | `#f2e7de` on `#4a2c35` | 10.14:1 | 4.5:1 |
+| Body text on sage (bot msg / product tile) | `#f2e7de` on `#2e3b2e` | 9.69:1 | 4.5:1 |
+| Muted text on card/surface | `#c9b8bd` on `#2a1e27` | 8.43:1 | 4.5:1 |
+| Muted text on page bg | `#c9b8bd` on `#221820` | 9.08:1 | 4.5:1 |
+| Placeholder/muted on input bg | `#c9b8bd` on `#241a21` | 8.90:1 | 4.5:1 |
+| Muted on closed-cell bg | `#c9b8bd` on `#241a20` | 8.91:1 | 4.5:1 |
+| Rose text (headings, prices, brand) on page bg | `#e8a7ad` on `#221820` | 8.66:1 | 4.5:1 |
+| Rose text on card/surface | `#e8a7ad` on `#2a1e27` | 8.04:1 | 4.5:1 |
+| White on rose (buttons) | `#ffffff` on `#a05a66` | 5.06:1 | 4.5:1 |
+| White on rose-deep (gradient end) | `#ffffff` on `#8e4a56` | 6.43:1 | 4.5:1 |
+| White on plum-deep (table th / chat head) | `#ffffff` on `#46303d` | 12.00:1 | 4.5:1 |
+| White on hover rose | `#ffffff` on `#7a3f4a` | 7.96:1 | 4.5:1 |
+| Badge paid text on bg | `#a8dba8` on `#1e3a24` | 7.93:1 | 4.5:1 |
+| Badge unpaid text on bg | `#f0d48a` on `#3d2f10` | 8.99:1 | 4.5:1 |
+| Badge overdue/low text on bg | `#f5b5ba` on `#451a1e` | 8.60:1 | 4.5:1 |
+| Negative money on card | `#ff9d9d` on `#2a1e27` | 8.04:1 | 4.5:1 |
+| Stars on card | `#d9b45b` on `#2a1e27` | 8.09:1 | 4.5:1 |
+| Products text on card | `#b9bcc2` on `#2a1e27` | 8.40:1 | 4.5:1 |
+| Hero-tag ink on gold | `#2b1a24` on `#c9a86a` | 7.28:1 | 4.5:1 |
+| Chart rose line on panel | `#e08a94` on `#2a1e27` | 6.27:1 | 3:1 |
+| Chart gold line on panel | `#d9b45b` on `#2a1e27` | 8.09:1 | 3:1 |
+| Chart axis text on panel | `#c9b8bd` on `#2a1e27` | 8.43:1 | 4.5:1 |
+| Idle star on card | `#9aa0a6` on `#2a1e27` | 6.05:1 | 3:1 |
+| Input border on input bg | `#97826f` on `#241a21` | 4.61:1 | 3:1 |
+| Border on card | `#84707d` on `#2a1e27` | 3.50:1 | 3:1 |
+| Border on page bg | `#84707d` on `#221820` | 3.77:1 | 3:1 |
+| Soft border on card | `#7a6672` on `#2a1e27` | 3.02:1 | 3:1 |
+
+The tag palette and the stylist colours are unchanged from light mode
+and pass on dark surfaces too — white text: people `#5b21b6`
+8.98:1, money `#374151` 10.31:1, appointments `#1e3a5f` 11.50:1,
+products `#6b7280` 4.83:1, services `#7c3aed` 5.70:1; stylists Sofia
+`#7f1d1d` 10.02:1, Maya `#0f766e` 5.47:1, Jordan `#166534` 7.13:1,
+Priya `#92400e` 7.09:1 (Amelia `#1e3a5f` 11.50:1, same as appointments).
+
+Dark rendering cannot be clicked in this workspace (no browser here),
+so the visual proof — toggle, system-default behaviour, charts,
+pop-ups and chat in dark, and no light-mode regressions — still needs
+a signed-in clone.
+
 ## What was changed (2026-11-10)
 
 ### Contrast — colours darkened just enough to pass
