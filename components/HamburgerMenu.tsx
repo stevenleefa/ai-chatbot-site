@@ -140,19 +140,16 @@ export default function HamburgerMenu({
               </Link>
               {/* The entry is a working link, so it is the tab stop
                   itself (focusable={false}) — hovering or tabbing to
-                  it shows "For demo purposes only". block so the row
-                  stays full-width in the panel: an inline wrapper
-                  would shrink it to the text. */}
+                  it shows "For demo purposes only". The asterisks in
+                  the label are the marker that this is a demo: no
+                  sub-line, the popover carries the explanation. */}
               <DemoPopover focusable={false} block>
                 <Link
                   href="/api/demo?on=1"
-                  className="menu-row menu-row-stacked"
+                  className="menu-row"
                   onClick={closeMenu}
                 >
-                  Test Admin Mode
-                  <span className="menu-row-sub">
-                    Sample data — for recruiters
-                  </span>
+                  *Test Admin Mode*
                 </Link>
               </DemoPopover>
             </>
@@ -210,10 +207,10 @@ export default function HamburgerMenu({
               <div className="menu-divider" aria-hidden="true" />
             </>
           )}
-          <div className="menu-row menu-theme-row">
-            <span id="menu-dark-mode-label">Dark mode</span>
-            <ThemeToggle />
-          </div>
+          {/* The dark-mode row IS the theme toggle: one button, the
+              whole row, with the label naming the mode it switches
+              to (see components/ThemeToggle.tsx). */}
+          <ThemeToggle />
           <div className="menu-divider" aria-hidden="true" />
           <Link href="/contact" className="menu-row" onClick={closeMenu}>
             Contact us

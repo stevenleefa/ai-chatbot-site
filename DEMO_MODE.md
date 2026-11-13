@@ -98,13 +98,14 @@ the visitor does can change anything. Exit from the hamburger menu
     it.
 - **The menu** (`components/HamburgerMenu.tsx`, `demo` prop from
   `components/SiteNav.tsx`, which reads `getDemoOrSession()`): signed
-  out, "Test Admin Mode" sits under "Sign in" / "Customer sign in"
-  with the sub-line "Sample data — for recruiters". While demo mode is
-  on, the menu shows a "Test Admin Mode" identity block (avatar "TA",
-  "Sample data — no real account", role "Demo"), an "Exit Test Admin
-  Mode" row, the sign-in rows, and the full Owner section including
-  Admin. Signed-in users never see the demo entry — for them the flag
-  is inert.
+  out, "*Test Admin Mode*" sits under "Sign in" / "Customer sign in"
+  — the asterisks are the marker that it is a demo, and there is no
+  sub-line (the "For demo purposes only" popover carries the
+  explanation). While demo mode is on, the menu shows a "Test Admin
+  Mode" identity block (avatar "TA", "Sample data — no real account",
+  role "Demo"), an "Exit Test Admin Mode" row, the sign-in rows, and
+  the full Owner section including Admin. Signed-in users never see
+  the demo entry — for them the flag is inert.
 
 ## What demo mode deliberately does NOT block
 

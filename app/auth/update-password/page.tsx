@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
+import { isStrongPassword } from "@/lib/password";
+import PasswordStrength from "@/components/PasswordStrength";
 
 // Set a new password after following a link from an email. Two ways in:
 // - Password reset: the link goes through /auth/callback first, which
@@ -25,6 +27,10 @@ export default function UpdatePasswordPage() {
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState("");
   const [done, setDone] = useState(false);
+  // The submit button stays disabled until the password passes every
+  // strength requirement (see PasswordStrength below) — a weak
+  // password cannot be submitted, and the checklist explains why.
+  const strong = isStrongPassword(password);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,8 +99,11 @@ export default function UpdatePasswordPage() {
       setError("The two passwords do not match.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    // Fallback only — the submit button is already disabled until
+    // the password passes every strength requirement (8 characters
+    // minimum), so this can only trigger if the gate is bypassed.
+    if (password.length < 8) {
+      setError("Choose a password of at least 8 characters.");
       return;
     }
     const supabase = getBrowserClient();
@@ -142,11 +151,16 @@ export default function UpdatePasswordPage() {
               type="password"
               required
               autoComplete="new-password"
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
+              aria-describedby="password-requirements"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
+          <PasswordStrength
+            id="password-requirements"
+            password={password}
+          />
           <label>
             Confirm new password
             <input
@@ -158,7 +172,7 @@ export default function UpdatePasswordPage() {
               onChange={(e) => setConfirm(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={busy}>
+          <button type="submit" disabled={busy || !strong}>
             {busy ? "Updating…" : "Update password"}
           </button>
         </form>

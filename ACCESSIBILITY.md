@@ -12,10 +12,11 @@ what was fixed, and what is still only provable on a signed-in clone.
 
 ## Dark mode (2026-11-11)
 
-A light/dark switch sits in the fixed top nav on every page. Files:
-`components/ThemeToggle.tsx` (the button, a client component),
-`app/layout.tsx` (the pre-paint script), `app/globals.css` (all colours),
-`components/LineChart.tsx` (chart series colours).
+A light/dark switch sits in the hamburger menu on every page (the
+Dark mode row). Files: `components/ThemeToggle.tsx` (the row button,
+a client component), `app/layout.tsx` (the pre-paint script),
+`app/globals.css` (all colours), `components/LineChart.tsx` (chart
+series colours).
 
 ### How the toggle works
 
@@ -29,12 +30,17 @@ A light/dark switch sits in the fixed top nav on every page. Files:
   only keeps the attribute, localStorage and the icon in sync after
   that. `<html>` carries `suppressHydrationWarning` for this one
   attribute, which the script sets before React hydrates.
-- The toggle is a real `<button>` (40×40px circle, sun icon in dark
-  mode, moon icon in light mode), keyboard-reachable, with an
-  `aria-label` that names the action ("Switch to dark mode" /
-  "Switch to light mode") and `aria-pressed`. It uses the standard
+- The toggle is the Dark mode row in the hamburger menu: one real
+  `<button>` for the whole row (label on the left, the 40×40px icon
+  circle on the right), keyboard-reachable, with the standard
   `:focus-visible` double ring — the white inner ring is what reads
-  against dark surfaces.
+  against dark surfaces. The label names the mode the row switches
+  TO ("Dark mode" in light mode, "Light mode" in dark mode) and the
+  icon matches (moon when offering dark, sun when offering light).
+  The accessible name is the same action ("Switch to dark mode" /
+  "Switch to light mode") with `aria-pressed`, so a screen reader
+  hears the same thing the label says. There is no nested button
+  inside the row.
 - Every colour goes through CSS variables in `app/globals.css`: the
   light values are the exact colours the site already used, so light
   mode is unchanged, and `:root[data-theme="dark"]` overrides them.
@@ -257,7 +263,10 @@ Escape.)
   keyboard-focusable (`tabIndex={0}`) so a keyboard user can scroll
   back through the conversation. Opening the chat moves focus into
   the question box; Escape closes it and returns focus to the
-  "Ask Lumen" button. The chat open button now has
+  "Ask Lumen" button. Clicking anywhere outside the chat panel also
+  closes it (clicks inside the panel, the "Ask Lumen" button and the
+  Assistant nav button are excluded — the Assistant click is what
+  opens it). The chat open button now has
   `aria-expanded` / `aria-controls`.
 - Decorative emoji and arrows (✂️, 💬, →) are `aria-hidden="true"`.
 - Scrollable regions are keyboard-focusable: the sortable-table wrapper

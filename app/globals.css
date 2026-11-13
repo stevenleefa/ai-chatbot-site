@@ -277,6 +277,10 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
 .card h3 { margin-top: 0; }
 .price { font-weight: 800; color: var(--rose-text); font-size: 18px; }
 .card-icon { font-size: 28px; }
+/* Social links on the contact page (app/contact/page.tsx): a plain
+   stacked list inside the "Follow us" card, no bullets. */
+.social-links { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.social-links a { font-weight: 600; }
 
 .booking-card, .review-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
 /* The two form cards are flex columns whose form fills the card, so
@@ -353,6 +357,15 @@ button:disabled { opacity: 0.6; cursor: default; }
 .deal-qr:hover:not(:disabled) { background: #fff; border-color: var(--hover-border); }
 .deal-qr svg { display: block; }
 .deal-coupon-btn { margin-top: 8px; }
+/* Deal cards: the card is a flex column and the QR code + "Show
+   coupon" button sit in a footer pinned to the bottom
+   (margin-top: auto — the same pattern as the booking/review form
+   buttons) and centred, so they line up across cards even though
+   the title, description and terms above vary in length. The grid
+   already stretches cards in a row to equal height. The QR pad
+   stays white in both themes so the code scans (see above). */
+.deal-card { display: flex; flex-direction: column; }
+.deal-card-footer { margin-top: auto; display: flex; flex-direction: column; align-items: center; }
 .signout-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
 .signout-actions form { display: inline; margin: 0; }
 .signout-cancel { background: var(--surface); color: var(--plum); border: 2px solid var(--border); }
@@ -694,11 +707,6 @@ button:disabled { opacity: 0.6; cursor: default; }
 .menu-user-role { font-size: 13px; color: var(--muted); }
 .menu-divider { border-top: 1px solid var(--border); margin: 6px 0; }
 .menu-section-label { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-/* A menu row with a second, smaller line underneath (the "Test Admin
-   Mode" entry carries its "Sample data — for recruiters" note). The
-   row stacks its lines instead of centring them side by side. */
-.menu-panel .menu-row-stacked { flex-direction: column; align-items: flex-start; gap: 2px; }
-.menu-panel .menu-row-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
 .menu-theme-row { justify-content: space-between; }
 /* The theme toggle sits on the panel's surface, so it gets the pill
    background to read as a distinct control instead of blending in. */

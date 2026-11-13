@@ -188,4 +188,38 @@ describe("HamburgerMenu", () => {
       screen.queryByRole("link", { name: "Sign in" })
     ).not.toBeInTheDocument();
   });
+
+  it("in dark mode the theme row says Light mode, and clicking the row label flips it back", () => {
+    window.localStorage.setItem("lumen-theme", "dark");
+    render(<HamburgerMenu user={null} />);
+    openMenu();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    // The label names the mode the row switches TO, and the
+    // accessible name says the same thing.
+    const row = screen.getByRole("button", { name: "Switch to light mode" });
+    expect(screen.getByText("Light mode")).toBeInTheDocument();
+    expect(screen.queryByText("Dark mode")).not.toBeInTheDocument();
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    // The whole row is one button: there is no nested button inside
+    // it, and clicking the label text (not the icon) toggles it.
+    expect(row.querySelector("button")).toBeNull();
+    fireEvent.click(screen.getByText("Light mode"));
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(screen.getByText("Dark mode")).toBeInTheDocument();
+    expect(row).toHaveAttribute("aria-pressed", "false");
+    expect(row).toHaveAccessibleName("Switch to dark mode");
+  });
+
+  it("in light mode the theme row says Dark mode and the icon is the moon", () => {
+    render(<HamburgerMenu user={null} />);
+    openMenu();
+    const row = screen.getByRole("button", { name: "Switch to dark mode" });
+    expect(screen.getByText("Dark mode")).toBeInTheDocument();
+    expect(row).toHaveAttribute("aria-pressed", "false");
+    // The icon is decorative (aria-hidden) inside the row button.
+    expect(row.querySelector(".theme-toggle")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
+  });
 });

@@ -70,4 +70,39 @@ describe("ChatWidget", () => {
     expect(screen.queryByText("Lumen assistant")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask Lumen" })).toHaveFocus();
   });
+
+  it("closes when clicking outside the chat panel", () => {
+    render(<ChatWidget />);
+    openChat();
+    expect(screen.getByText("Lumen assistant")).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText("Lumen assistant")).not.toBeInTheDocument();
+    // Focus stays where the visitor clicked — it does not jump back
+    // to the "Ask Lumen" button (unlike the Escape/✕ close).
+    expect(screen.getByRole("button", { name: "Ask Lumen" })).not.toHaveFocus();
+  });
+
+  it("stays open when clicking inside the chat panel", () => {
+    render(<ChatWidget />);
+    openChat();
+    fireEvent.mouseDown(screen.getByLabelText("Ask the assistant"));
+    expect(screen.getByText("Lumen assistant")).toBeInTheDocument();
+  });
+
+  it("stays open when the Assistant nav button is mousedowned", () => {
+    render(
+      <div>
+        <button type="button" data-open-assistant>
+          Assistant
+        </button>
+        <ChatWidget />
+      </div>
+    );
+    openChat();
+    // The Assistant button's click dispatches lumen:open-assistant,
+    // which reopens the chat — so its mousedown must not close it
+    // first, or the open would fight the close.
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Assistant" }));
+    expect(screen.getByText("Lumen assistant")).toBeInTheDocument();
+  });
 });

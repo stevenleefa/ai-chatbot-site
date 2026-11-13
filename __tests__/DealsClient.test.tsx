@@ -42,6 +42,24 @@ describe("DealsClient", () => {
     expect(screen.getAllByRole("button", { name: "Show coupon" })).toHaveLength(4);
   });
 
+  it("each card pins the QR code and Show coupon button in a footer at the bottom", () => {
+    const { container } = render(<DealsClient />);
+    const cards = container.querySelectorAll("article.deal-card");
+    expect(cards).toHaveLength(4);
+    cards.forEach((card) => {
+      const footer = card.querySelector(".deal-card-footer");
+      expect(footer).not.toBeNull();
+      expect(footer!.querySelector(".deal-qr")).not.toBeNull();
+      expect(footer!.querySelector(".deal-coupon-btn")).not.toBeNull();
+      // The footer is the last child of the card, so with the
+      // card's flex column + margin-top: auto it sits at the
+      // bottom, and the footer's centred column centres both
+      // controls — the QR and the button line up across cards even
+      // though the text above varies in length.
+      expect(card.lastElementChild).toBe(footer);
+    });
+  });
+
   it("Show coupon opens the dialog with that deal's code, focused on Close", () => {
     render(<DealsClient />);
     fireEvent.click(screen.getAllByRole("button", { name: "Show coupon" })[0]);

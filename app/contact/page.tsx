@@ -31,6 +31,42 @@ export default function ContactPage() {
           </Link>
         </p>
       </div>
+      {/* Follow us: the fictional demo salon's social links, below
+          the contact info. Plain text links, opening in a new tab.
+          The handles are the demo salon's own (@lumenhairstudio) —
+          not a real business's. */}
+      <div className="card">
+        <h2>Follow us</h2>
+        <ul className="social-links">
+          <li>
+            <a
+              href="https://www.instagram.com/lumenhairstudio"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Instagram — @lumenhairstudio
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://www.facebook.com/lumenhairstudio"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Facebook — Lumen Hair Studio
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://www.tiktok.com/@lumenhairstudio"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              TikTok — @lumenhairstudio
+            </a>
+          </li>
+        </ul>
+      </div>
     </main>
   );
 }

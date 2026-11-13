@@ -39,6 +39,7 @@ export default function ChatWidget() {
     { role: "bot", text: "Hi! Ask me about services, prices, hours or booking at Lumen Hair Studio." },
   ]);
   const listRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const openButtonRef = useRef<HTMLButtonElement>(null);
@@ -58,7 +59,8 @@ export default function ChatWidget() {
   // .site-nav) closes the chat. The Assistant control is a <button>,
   // not an anchor, so it never triggers the close; clicks inside
   // the chat itself are outside .site-nav, so typing and sending
-  // never close it either.
+  // never close it either. Clicking anywhere else outside the chat
+  // panel also closes it — see the mousedown effect below.
   useEffect(() => {
     function onOpenAssistant() {
       setOpen(true);
@@ -101,6 +103,32 @@ export default function ChatWidget() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open ]);
+
+  // Clicking anywhere outside the chat panel closes it — in
+  // addition to Escape, the ✕ button and the header-nav-link close
+  // above. mousedown (not click) so the close happens before the
+  // click that would otherwise reopen it. Three exclusions, or the
+  // open click would close the chat the same instant it opens:
+  // clicks inside the panel itself (typing, buttons, links); the
+  // floating "Ask Lumen" button (unmounted while open, but guarded
+  // anyway); and the Assistant nav button (data-open-assistant —
+  // its click dispatches lumen:open-assistant, which reopens the
+  // chat, so closing on its mousedown would fight the open). Like
+  // the nav-link close, this does NOT return focus to "Ask Lumen":
+  // the visitor clicked somewhere else on purpose, so focus stays
+  // where they clicked.
+  useEffect(() => {
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (panelRef.current?.contains(target)) return;
+      if (openButtonRef.current?.contains(target)) return;
+      if (target.closest?.("[data-open-assistant]")) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
   }, [open ]);
 
   // Track whether the visitor is near the bottom. If they scrolled
@@ -157,7 +185,7 @@ export default function ChatWidget() {
         </button>
       )}
       {open && (
-        <div className="chat-box" id="chat-box">
+        <div className="chat-box" id="chat-box" ref={panelRef}>
           <div className="chat-head">
             <strong>Lumen assistant</strong>
             <button

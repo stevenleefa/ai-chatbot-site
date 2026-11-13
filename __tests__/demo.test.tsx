@@ -235,7 +235,7 @@ describe("HamburgerMenu in demo mode", () => {
     render(<HamburgerMenu user={null} />);
     openMenu();
     const entry = screen.getByRole("link", {
-      name: "Test Admin Mode Sample data — for recruiters",
+      name: "*Test Admin Mode*",
     });
     expect(entry).toHaveAttribute("href", "/api/demo?on=1");
     // The sign-in rows are still there above it.
@@ -266,7 +266,7 @@ describe("HamburgerMenu in demo mode", () => {
     // The entry link is gone — demo mode is already on.
     expect(
       screen.queryByRole("link", {
-        name: "Test Admin Mode Sample data — for recruiters",
+        name: "*Test Admin Mode*",
       })
     ).not.toBeInTheDocument();
     // Sign in is still offered (a recruiter can sign in for real).
@@ -291,7 +291,7 @@ describe("HamburgerMenu in demo mode", () => {
     render(<HamburgerMenu user={null} />);
     openMenu();
     const entry = screen.getByRole("link", {
-      name: "Test Admin Mode Sample data — for recruiters",
+      name: "*Test Admin Mode*",
     });
     const tip = document.getElementById(
       entry.getAttribute("aria-describedby")!

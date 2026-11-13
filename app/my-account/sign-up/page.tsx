@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
+import { isStrongPassword } from "@/lib/password";
 import { safeRedirect } from "@/lib/security";
+import PasswordStrength from "@/components/PasswordStrength";
 
 // Customer sign-up. Anyone can create a customer account — this is
 // the one public signup on the site (staff still join by admin invite
@@ -29,6 +31,10 @@ function CustomerSignUpForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  // The submit button stays disabled until the password passes every
+  // strength requirement (see PasswordStrength below) — a weak
+  // password cannot be submitted, and the checklist explains why.
+  const strong = isStrongPassword(password);
 
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
@@ -131,10 +137,15 @@ function CustomerSignUpForm() {
               required
               autoComplete="new-password"
               placeholder="At least 8 characters"
+              aria-describedby="password-requirements"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
+          <PasswordStrength
+            id="password-requirements"
+            password={password}
+          />
           <label>
             Confirm password
             <input
@@ -146,7 +157,7 @@ function CustomerSignUpForm() {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={busy}>
+          <button type="submit" disabled={busy || !strong}>
             {busy ? "Creating your account…" : "Create account"}
           </button>
         </form>

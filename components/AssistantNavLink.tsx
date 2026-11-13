@@ -13,6 +13,11 @@ export default function AssistantNavLink() {
   return (
     <button
       type="button"
+      // Hook for the chat widget's outside-click close
+      // (components/ChatWidget.tsx): a mousedown on this button must
+      // NOT close the chat, or the click that opens it would close
+      // it again the same instant.
+      data-open-assistant
       onClick={() =>
         window.dispatchEvent(new Event("lumen:open-assistant"))
       }

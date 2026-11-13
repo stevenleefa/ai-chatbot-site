@@ -50,34 +50,40 @@ export default function DealsClient() {
     <>
       <div className="grid">
         {DEALS.map((deal) => (
-          <article key={deal.id} className="card">
+          <article key={deal.id} className="card deal-card">
             <h2>{deal.title}</h2>
             <p className="price">{deal.highlight}</p>
             <p>{deal.description}</p>
             <p className="dash-note">{deal.terms}</p>
-            <button
-              type="button"
-              className="deal-qr"
-              aria-label={`Show coupon for ${deal.title}`}
-              onClick={(e) => openCoupon(deal, e.currentTarget)}
-            >
-              <QRCode
-                value={couponUrl(deal)}
-                size={120}
-                bgColor="#FFFFFF"
-                fgColor="#000000"
-              />
-            </button>
-            <button
-              type="button"
-              className="deal-coupon-btn"
-              ref={(el) => {
-                if (el) buttonRefs.current.set(deal.id, el);
-              }}
-              onClick={(e) => openCoupon(deal, e.currentTarget)}
-            >
-              Show coupon
-            </button>
+            {/* The QR code and "Show coupon" button sit in a footer
+                pinned to the bottom of the card and centred (see
+                globals.css) — so they line up across cards even
+                though the text above varies in length. */}
+            <div className="deal-card-footer">
+              <button
+                type="button"
+                className="deal-qr"
+                aria-label={`Show coupon for ${deal.title}`}
+                onClick={(e) => openCoupon(deal, e.currentTarget)}
+              >
+                <QRCode
+                  value={couponUrl(deal)}
+                  size={120}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                />
+              </button>
+              <button
+                type="button"
+                className="deal-coupon-btn"
+                ref={(el) => {
+                  if (el) buttonRefs.current.set(deal.id, el);
+                }}
+                onClick={(e) => openCoupon(deal, e.currentTarget)}
+              >
+                Show coupon
+              </button>
+            </div>
           </article>
         ))}
       </div>
