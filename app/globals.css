@@ -8,6 +8,7 @@
      See ACCESSIBILITY.md for the full contrast table. */
   --rose: #a05a66;
   --rose-deep: #8e4a56;
+  --rose-hover: #7a3f4a;
   --plum: #3d2433;
   --gold: #c9a86a;
   --sage: #e8ece3;
@@ -154,6 +155,121 @@
   --chart-dot-stroke: #2a1e27;
 }
 
+
+/* --- Per-customer personalisation (2026-11-13, see PERSONALIZATION.md) --- */
+/* The customer's choice lives on <html> as data attributes, set before
+   first paint by the pre-paint script and kept in sync by
+   components/PersonalizationProvider.tsx + PersonalizationSettings.tsx.
+   Plum is the default: with no choice saved there is NO
+   [data-personalization-theme="plum"] block, because the :root values
+   above already ARE plum/rose. Every other theme overrides the same
+   five variables in light mode and the matching set in dark mode, so
+   each theme works in both modes. White-on-accent, header and
+   accent-text pairs for every theme are >= 4.5:1 (WCAG 2.1 AA);
+   the ratios are in lib/personalization.ts and PERSONALIZATION.md.
+   --plum-deep follows the theme too, so the chat head, table headers
+   and back-to-top button match the chosen colour. */
+/* Rose: deeper rose red. White on #9c3d54 6.54:1, on #7f2d40 8.93:1,
+   on #6b2436 10.88:1; cream on #4a1524 13.96:1; #7f2d40 on cream 8.45:1;
+   #f9a8d4 on dark page 9.50:1. */
+html[data-personalization-theme="rose"] { --rose: #9c3d54; --rose-deep: #7f2d40; --rose-hover: #6b2436; --rose-text: #7f2d40; --nav-bg: #4a1524; --nav-fg: #fdf8f1; --plum-deep: #4a1524; --chart-rose: #9c3d54; }
+html[data-personalization-theme="rose"][data-theme="dark"] { --nav-bg: #9c3d54; --nav-fg: #ffffff; --rose-text: #f9a8d4; --plum-deep: #7f2d40; --chart-rose: #f9a8d4; }
+/* Teal: dark teal (stylist Maya's #0f766e). White on #0f766e 5.47:1,
+   on #0b5a53 8.07:1, on #084c46 9.85:1; cream on #0b3d3a 11.40:1;
+   #0b5a53 on cream 7.64:1; #7dd3c8 on dark page 9.86:1. */
+html[data-personalization-theme="teal"] { --rose: #0f766e; --rose-deep: #0b5a53; --rose-hover: #084c46; --rose-text: #0b5a53; --nav-bg: #0b3d3a; --nav-fg: #fdf8f1; --plum-deep: #0b3d3a; --chart-rose: #0f766e; }
+html[data-personalization-theme="teal"][data-theme="dark"] { --nav-bg: #0f766e; --nav-fg: #ffffff; --rose-text: #7dd3c8; --plum-deep: #0b5a53; --chart-rose: #7dd3c8; }
+/* Forest: dark green (stylist Jordan's #166534). White on #166534
+   7.13:1, on #14532d 9.11:1, on #0f3d21 12.28:1; cream on #0f2e1d
+   13.91:1; #14532d on cream 8.62:1; #86efac on dark page 12.26:1. */
+html[data-personalization-theme="forest"] { --rose: #166534; --rose-deep: #14532d; --rose-hover: #0f3d21; --rose-text: #14532d; --nav-bg: #0f2e1d; --nav-fg: #fdf8f1; --plum-deep: #0f2e1d; --chart-rose: #166534; }
+html[data-personalization-theme="forest"][data-theme="dark"] { --nav-bg: #166534; --nav-fg: #ffffff; --rose-text: #86efac; --plum-deep: #14532d; --chart-rose: #86efac; }
+/* Navy: dark navy (appointments #1e3a5f). White on #1e3a5f 11.50:1,
+   on #172c49 14.07:1, on #12263f 15.28:1; cream on #101f33 15.70:1;
+   #172c49 on cream 13.31:1; #93c5fd on dark page 9.55:1. */
+html[data-personalization-theme="navy"] { --rose: #1e3a5f; --rose-deep: #172c49; --rose-hover: #12263f; --rose-text: #172c49; --nav-bg: #101f33; --nav-fg: #fdf8f1; --plum-deep: #101f33; --chart-rose: #1e3a5f; }
+html[data-personalization-theme="navy"][data-theme="dark"] { --nav-bg: #1e3a5f; --nav-fg: #ffffff; --rose-text: #93c5fd; --plum-deep: #172c49; --chart-rose: #93c5fd; }
+
+/* Font pairings: only fonts the site already loads (Playfair Display
+   + Inter, via next/font in app/layout.tsx) plus system fonts — no
+   new font load. "classic" has no rules: it is the site as it is.
+   "clean" puts Inter on headings too; "readable" puts a system serif
+   on headings and a system sans on the body. */
+html[data-font-pairing="clean"] h1, html[data-font-pairing="clean"] h2, html[data-font-pairing="clean"] h3, html[data-font-pairing="clean"] .site-nav-brand, html[data-font-pairing="clean"] .kpi-value { font-family: var(--font-body), system-ui, sans-serif; }
+html[data-font-pairing="readable"] body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+html[data-font-pairing="readable"] h1, html[data-font-pairing="readable"] h2, html[data-font-pairing="readable"] h3, html[data-font-pairing="readable"] .site-nav-brand, html[data-font-pairing="readable"] .kpi-value { font-family: Georgia, "Times New Roman", serif; }
+
+/* Font size: medium is the site as it is (no rules). Small is ~0.9x
+   and large ~1.15x on the text that scales. The site uses px in many
+   places, so a root font-size change alone would scale almost
+   nothing — these are targeted rules on the most-read text instead.
+   What scales: body text, section headings, buttons, form inputs,
+   the brand, hero text and dashboard tables. What does NOT scale:
+   the hero h1 (clamp() px), chat messages, review stars, badges and
+   the small muted notes — they keep their px sizes. See
+   PERSONALIZATION.md. */
+html[data-font-size="small"] body { font-size: 15px; }
+html[data-font-size="small"] section h2, html[data-font-size="small"] .booking-review-row h2, html[data-font-size="small"] .featured-section h2, html[data-font-size="small"] .dash-section h2 { font-size: 30px; }
+html[data-font-size="small"] button { font-size: 13px; }
+html[data-font-size="small"] .lead-form input, html[data-font-size="small"] .lead-form select, html[data-font-size="small"] .lead-form textarea, html[data-font-size="small"] .chat-form input { font-size: 15px; }
+html[data-font-size="small"] .dash-table th, html[data-font-size="small"] .dash-table td { font-size: 14px; }
+html[data-font-size="small"] .site-nav-brand { font-size: 20px; }
+html[data-font-size="small"] .hero-content p { font-size: 16px; }
+html[data-font-size="large"] body { font-size: 18px; }
+html[data-font-size="large"] section h2, html[data-font-size="large"] .booking-review-row h2, html[data-font-size="large"] .featured-section h2, html[data-font-size="large"] .dash-section h2 { font-size: 39px; }
+html[data-font-size="large"] button { font-size: 16px; }
+html[data-font-size="large"] .lead-form input, html[data-font-size="large"] .lead-form select, html[data-font-size="large"] .lead-form textarea, html[data-font-size="large"] .chat-form input { font-size: 18px; }
+html[data-font-size="large"] .dash-table th, html[data-font-size="large"] .dash-table td { font-size: 17px; }
+html[data-font-size="large"] .site-nav-brand { font-size: 25px; }
+html[data-font-size="large"] .hero-content p { font-size: 20px; }
+
+/* Larger text (accessibility toggle): a stronger boost than the
+   Large size above. These rules come AFTER the font-size rules, so
+   when both are set the larger-text sizes win on the same elements.
+   Body text also gets a roomier 1.7 line-height. */
+html[data-larger-text="true"] body { font-size: 19px; line-height: 1.7; }
+html[data-larger-text="true"] section h2, html[data-larger-text="true"] .booking-review-row h2, html[data-larger-text="true"] .featured-section h2, html[data-larger-text="true"] .dash-section h2 { font-size: 40px; }
+html[data-larger-text="true"] button { font-size: 16px; }
+html[data-larger-text="true"] .lead-form input, html[data-larger-text="true"] .lead-form select, html[data-larger-text="true"] .lead-form textarea, html[data-larger-text="true"] .chat-form input { font-size: 18px; }
+
+/* High contrast (accessibility toggle): darker body and muted text,
+   stronger borders and input borders, a thicker focus ring and
+   2px card borders — in both light and dark mode. The accent text
+   (--rose-text) is NOT touched here: every theme's accent text
+   already passes 4.5:1 on its page background (6.09:1 or better in
+   light mode), so darkening it would only lose the theme's hue. */
+html[data-high-contrast="true"] { --plum: #1a0f16; --muted: #3d2c36; --border: #6b5560; --border-soft: #97826f; --input-border: #3d2433; }
+html[data-high-contrast="true"][data-theme="dark"] { --plum: #ffffff; --muted: #e8dde2; --border: #b9a7b0; --border-soft: #a08d97; --input-border: #c9b8bd; }
+html[data-high-contrast="true"] :focus-visible { outline-width: 4px; }
+html[data-high-contrast="true"] .card, html[data-high-contrast="true"] .product-card, html[data-high-contrast="true"] .booking-card, html[data-high-contrast="true"] .review-card, html[data-high-contrast="true"] .kpi-card { border-width: 2px; }
+
+/* Reduce motion (accessibility toggle): the same switch-offs as the
+   prefers-reduced-motion media query below, but driven by the
+   customer's choice — so it applies even when their OS does not ask
+   for it. */
+html[data-reduce-motion="true"] { scroll-behavior: auto; }
+html[data-reduce-motion="true"] .hero-img, html[data-reduce-motion="true"] .reveal { animation: none; }
+html[data-reduce-motion="true"] .card { transition: none; }
+html[data-reduce-motion="true"] .spinner { animation: none; }
+html[data-reduce-motion="true"] .review-popup { transition: none; }
+html[data-reduce-motion="true"] .demo-popover { transition: none; transform: none; }
+
+/* Personalisation settings panel (components/PersonalizationSettings.tsx):
+   grouped fieldsets, a row of theme swatches (real radio inputs with
+   labels — the swatch dot is decorative, aria-hidden) and stacked
+   radio/checkbox rows. The checked swatch gets the accent border;
+   focusing its radio rings the swatch. */
+.personalization-settings fieldset { border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+.personalization-settings legend { font-weight: 700; padding: 0 6px; }
+.settings-options { display: grid; gap: 10px; margin: 8px 0; }
+.settings-options label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.settings-options input { flex: none; margin-top: 4px; }
+.theme-picker { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.theme-swatch-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; padding: 6px 12px 6px 8px; border: 2px solid var(--border); border-radius: 999px; }
+.theme-swatch-label:has(input:checked) { border-color: var(--rose); }
+.theme-swatch-label:has(input:focus-visible) { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+.theme-swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.2); flex: none; }
+
 html { scroll-behavior: smooth; }
 /* Keyboard focus, WCAG 2.1 AA (2.4.7, 1.4.11): one clear indicator
    everywhere. Two concentric rings — white inside, dark navy
@@ -246,7 +362,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 .hero-content p { margin: 6px 0; font-size: 18px; }
 .hero-tag { display: inline-block; background: var(--gold); color: var(--plum); font-weight: 700; padding: 6px 12px; border-radius: 999px; font-size: 14px; margin-bottom: 14px; }
 .hero-cta { display: inline-block; margin-top: 16px; background: var(--rose); color: white; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 999px; border: 2px solid transparent; text-align: center; }
-.hero-cta:hover { background: #7a3f4a; border-color: var(--hover-border); }
+.hero-cta:hover { background: var(--rose-hover); border-color: var(--hover-border); }
 
 @keyframes heroZoom { from { transform: scale(1.12); } to { transform: scale(1); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -324,7 +440,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
    black border at the button edge, focus is a navy ring outside it
    with a white gap. */
 button { padding: 12px 20px; font-size: 14px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
-button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
+button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); border-color: var(--hover-border); }
 button:disabled { opacity: 0.6; cursor: default; }
 /* Admin table Actions column: the buttons are right-justified and all
    the same length, so the column reads as a uniform block instead of
@@ -382,7 +498,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .signout-cancel { background: var(--surface); color: var(--plum); border: 2px solid var(--border); }
 .signout-cancel:hover:not(:disabled) { background: var(--pill-bg); border-color: var(--hover-border); }
 .signout-confirm { background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; border: 2px solid transparent; }
-.signout-confirm:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
+.signout-confirm:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); border-color: var(--hover-border); }
 
 /* Small loading spinner for buttons (invite form while sending). White
    ring on the rose button background. */
@@ -438,7 +554,7 @@ button:disabled { opacity: 0.6; cursor: default; }
    darkens to the deeper rose like every other rose button. */
 .dash-nav a:hover, .dash-nav button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .dash-nav button.active { background: var(--rose); color: white; border-color: var(--rose); }
-.dash-nav button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.dash-nav button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .dash-section { margin: 40px 0; scroll-margin-top: 24px; }
 .dash-section h2 { font-size: 30px; color: var(--rose-text); margin-bottom: 12px; }
 .dash-section h3 { font-size: 20px; margin: 24px 0 10px; }
@@ -523,7 +639,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .view-tabs button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
 .view-tabs button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .view-tabs button.active { background: var(--rose); color: white; border-color: var(--rose); }
-.view-tabs button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.view-tabs button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .view-nav { display: flex; gap: 8px; margin: 8px 0 12px; }
 .view-nav button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
 .view-nav button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
@@ -547,7 +663,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .filter-btn { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
 .filter-btn:hover { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .filter-checkbox:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
-.filter-checkbox:checked + .filter-btn:hover { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.filter-checkbox:checked + .filter-btn:hover { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .filter-checkbox:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 .stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
 .stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); margin: 12px 0; }
@@ -605,7 +721,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .product-category { color: var(--tag-products-text); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .product-card .price { font-weight: 700; font-size: 18px; }
 /* No product photos — a styled tile with the product's initials. */
-.product-tile { height: 96px; border-radius: 12px; background: var(--sage); overflow: hidden; }
+.product-tile { position: relative; height: 96px; border-radius: 12px; background: var(--sage); overflow: hidden; }
 .product-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qty-row { display: flex; gap: 12px; align-items: flex-end; margin-top: auto; padding-top: 8px; }
 .qty-row label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
@@ -617,6 +733,42 @@ button:disabled { opacity: 0.6; cursor: default; }
 .cart-qty button { min-width: 32px; }
 .cart-remove { margin-left: auto; }
 .cart-total { font-size: 18px; }
+
+/* --- Shop: featured, out of stock & sales (see SHOP.md) ------------- */
+/* Featured section: a heading plus one larger card (wider, taller
+   photo) above the grid. The featured product also appears in the
+   grid with its badge, so the section is a highlight, not the only
+   place to buy it. */
+.featured-section { margin: 24px 0; }
+.featured-section h2 { font-size: 30px; margin-bottom: 12px; }
+.featured-card { max-width: 560px; }
+.featured-card .product-tile { height: 220px; }
+/* Featured badge: plum text on gold (6.20:1, WCAG AA). The
+   out-of-stock badge is white on dark grey #374151 (10.31:1).
+   Both are plain text, not colour alone. */
+.badge-featured { background: var(--gold); color: var(--plum-deep); }
+.badge-out-of-stock { background: var(--tag-money); color: white; }
+.out-of-stock-note { color: var(--muted); font-size: 14px; }
+/* Sale price: the struck-through original sits next to the sale
+   price in muted text, and the offer is plain text too — the sale
+   is never shown by colour alone. */
+.price-original { color: var(--muted); font-weight: 400; font-size: 16px; }
+.sale-label { color: var(--rose-text); font-weight: 700; font-size: 14px; }
+.cart-sale-note { color: var(--rose-text); font-weight: 700; font-size: 14px; }
+/* Sale ribbon: a diagonal RED bar across the BOTTOM-LEFT corner of
+   the product photo tile. The tile is position: relative with
+   overflow: hidden; the ribbon is a 200px strip centred on the
+   tile's bottom-left corner (left -100px, bottom -12px puts its
+   centre on the corner) and rotated 45deg clockwise, so its long
+   axis runs along the corner's diagonal and the tile clips both
+   ends — a band across the corner, on the photo only, never over
+   the product name or price below the tile. White bold text on
+   #b91c1c is 6.47:1 (WCAG 2.1 AA needs >= 4.5:1 for normal text);
+   the same fixed red is used in both themes, so the ratio holds in
+   light and dark mode. The ribbon is aria-hidden in the markup
+   (decorative): the offer text is also shown as plain text next to
+   the price, so screen readers hear it once. */
+.sale-ribbon { position: absolute; left: -100px; bottom: -12px; width: 200px; padding: 4px 0; transform: rotate(45deg); background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; white-space: nowrap; }
 
 /* --- Rave-review pop-ups (public pages only) --------------------------- */
 /* Bottom-left, so it never covers the chat widget (bottom-right) or

@@ -5,6 +5,13 @@ import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 import SignOutButton from "./SignOutButton";
 import DemoPopover from "./DemoPopover";
+import {
+  TOUR_START_EVENT,
+  TOUR_STEPS,
+  getTourProgress,
+  resumeStepIndex,
+  type TourProgress,
+} from "@/lib/tour";
 
 // The signed-in user, as passed from the server component
 // components/SiteNav.tsx (which reads the session the same way
@@ -50,10 +57,29 @@ export default function HamburgerMenu({
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // Guided-tour progress, read when the menu opens: a saved
+  // mid-tour position offers "Resume tour", a finished tour
+  // offers "Restart tour". The tour itself lives in
+  // components/GuidedTour.tsx and is started by event below.
+  const [tourProgress, setTourProgress] = useState<TourProgress | null>(null);
 
   function closeMenu() {
     setOpen(false);
   }
+
+  // Start (or resume) the guided tour at the given step: close
+  // the menu, then tell the tour component to open. The tour
+  // never auto-starts — only this row (or a resume) starts it.
+  function startTour(step: number) {
+    closeMenu();
+    window.dispatchEvent(
+      new CustomEvent(TOUR_START_EVENT, { detail: { step } })
+    );
+  }
+
+  useEffect(() => {
+    if (open) setTourProgress(getTourProgress());
+  }, [open ]);
 
   useEffect(() => {
     if (!open) return;
@@ -221,6 +247,40 @@ export default function HamburgerMenu({
           <Link href="/deals" className="menu-row" onClick={closeMenu}>
             Deals
           </Link>
+          <div className="menu-divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="menu-row"
+            onClick={() => startTour(0)}
+          >
+            Take a guided tour
+          </button>
+          {(() => {
+            const resume = resumeStepIndex(tourProgress);
+            if (resume !== null) {
+              return (
+                <button
+                  type="button"
+                  className="menu-row"
+                  onClick={() => startTour(resume)}
+                >
+                  Resume tour (step {resume + 1} of {TOUR_STEPS.length})
+                </button>
+              );
+            }
+            if (tourProgress?.finished) {
+              return (
+                <button
+                  type="button"
+                  className="menu-row"
+                  onClick={() => startTour(0)}
+                >
+                  Restart tour
+                </button>
+              );
+            }
+            return null;
+          })()}
           {((user && !isCustomer) || demo) && (
             <>
               <div className="menu-divider" aria-hidden="true" />

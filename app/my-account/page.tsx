@@ -7,6 +7,11 @@ export const revalidate = 0;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
+import ReferralCard from "@/components/ReferralCard";
+import BookingActions from "@/components/BookingActions";
+import RepurchaseSection from "@/components/RepurchaseSection";
+import SavedCartsSection from "@/components/SavedCartsSection";
+import PersonalizationSettings from "@/components/PersonalizationSettings";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -16,9 +21,17 @@ import {
   getCustomerOrders,
   type CustomerOrder,
 } from "@/lib/customer-account";
+import {
+  buildReferralLink,
+  getOrCreateReferralCode,
+  getReferrerDiscount,
+} from "@/lib/referrals";
+import { getCatalogue } from "@/lib/products-db";
+import { buildBundle, getPreviouslyPurchased } from "@/lib/repurchase";
 import { BUSINESS_NAME } from "@/lib/leads";
 import { formatPrice } from "@/lib/products";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, formatTime } from "@/lib/format";
+import type { Lead } from "@/lib/leads";
 
 // The customer area for Lumen Hair Studio. Any signed-in account with
 // an active profile can open it — customers see their own bookings
@@ -35,6 +48,23 @@ function orderStatusBadge(status: CustomerOrder["status"]) {
   if (status === "cancelled")
     return <span className="badge badge-overdue">Cancelled</span>;
   return <span className="badge badge-unpaid">Pending</span>;
+}
+
+// The date shown for a booking: the rescheduled date/time
+// (appointment_at) when the customer moved it, else the date the
+// booking was made. The rescheduled one is labelled, so the two
+// are never confused.
+function bookingDate(b: Lead) {
+  if (b.appointment_at) {
+    return (
+      <>
+        {fmtDate(b.appointment_at.slice(0, 10))} at{" "}
+        {formatTime(b.appointment_at.slice(11, 16))}{" "}
+        <small>(rescheduled)</small>
+      </>
+    );
+  }
+  return <>{fmtDate(b.created_at.slice(0, 10))}</>;
 }
 
 export default async function MyAccountPage() {
@@ -74,11 +104,34 @@ export default async function MyAccountPage() {
   // only ever sees their own (lib/customer-account.ts).
   let bookings: Awaited<ReturnType<typeof getCustomerBookings>> = [];
   let orders: CustomerOrder[] = [];
-  if (isSupabaseConfigured()) {
-    const supabase = getServerSupabase();
-    bookings = await getCustomerBookings(supabase!, email);
-    orders = await getCustomerOrders(supabase!, email);
+  let referralCode = "";
+  let referralLink = "";
+  let hasReferralCredit = false;
+  let usedReferralCredits = 0;
+  const supabase = isSupabaseConfigured() ? getServerSupabase() : null;
+  if (supabase) {
+    bookings = await getCustomerBookings(supabase, email);
+    orders = await getCustomerOrders(supabase, email);
+    referralCode = await getOrCreateReferralCode(email);
+    referralLink = buildReferralLink(referralCode);
+    hasReferralCredit = (await getReferrerDiscount(email)).hasCredit;
+    // Credits already spent: redeemed referrals for this email, so
+    // the page can say "you already used it" instead of nothing.
+    // (getReferrerDiscount only reports an unused credit.)
+    const { data: redeemed } = await supabase
+      .from("referrals")
+      .select("id")
+      .eq("referrer_email", email.trim().toLowerCase())
+      .eq("status", "redeemed");
+    usedReferralCredits = redeemed?.length ?? 0;
   }
+
+  // Previously purchased + bundle come from the orders above and
+  // the catalogue (Supabase when configured, the static list
+  // otherwise — see lib/repurchase.ts).
+  const catalogue = await getCatalogue();
+  const previouslyPurchased = getPreviouslyPurchased(orders, catalogue);
+  const bundle = buildBundle(orders, catalogue);
 
   return (
     <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
@@ -110,6 +163,29 @@ export default async function MyAccountPage() {
       </div>
 
       <section>
+        <h2>Display settings</h2>
+        <p>
+          <small>
+            Your colour theme, fonts, text size and accessibility
+            options. They apply across the whole site as soon as you
+            pick them, and are saved on this device — and to your
+            account when the studio has set up Supabase storage, so
+            they follow you to another device.
+          </small>
+        </p>
+        <PersonalizationSettings />
+      </section>
+
+      {supabase && (
+        <ReferralCard
+          code={referralCode}
+          link={referralLink}
+          hasCredit={hasReferralCredit}
+          usedCount={usedReferralCredits}
+        />
+      )}
+
+      <section>
         <h2>My bookings</h2>
         <p>
           <small>
@@ -136,15 +212,23 @@ export default async function MyAccountPage() {
                   <th>Date</th>
                   <th>Service</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {bookings.map((b) => (
                   <tr key={b.id}>
-                    <td>{fmtDate(b.created_at.slice(0, 10))}</td>
+                    <td>{bookingDate(b)}</td>
                     <td>{b.service}</td>
                     <td>
                       {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                    </td>
+                    <td>
+                      <BookingActions
+                        id={b.id}
+                        status={b.status}
+                        appointmentAt={b.appointment_at ?? null}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -201,6 +285,13 @@ export default async function MyAccountPage() {
           </div>
         )}
       </section>
+
+      <RepurchaseSection
+        previouslyPurchased={previouslyPurchased}
+        bundle={bundle}
+      />
+
+      <SavedCartsSection />
     </main>
   );
 }

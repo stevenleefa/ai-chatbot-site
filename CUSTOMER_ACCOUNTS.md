@@ -195,6 +195,120 @@ deploy (a separate go-ahead).
 - **Staff sign-in unchanged:** `/login` still signs staff in, and
   the "Are you a customer?" link goes to the customer pages.
 
+## Referrals
+
+A customer shares a link like
+`https://ai-chatbot-site-tawny.vercel.app/?ref=<code>` (8-char
+lowercase base36, from `lib/referrals.ts`
+`getOrCreateReferralCode()`). The friend who opens it sees a
+`ReferralBanner` note on the homepage and the code is stored in
+the `lumen-ref` cookie (7 days); when the friend then books with
+an email contact, `POST /api/lead` calls `recordReferralBooking()`
+after the lead saves, marking the referral `completed` — which
+earns the referrer a 50%-off-a-haircut credit
+(`getReferrerDiscount()` / `redeemReferralCredit()`, spent when
+the referrer books a Haircut with the discount). Table:
+`supabase/referrals-schema.sql` (code unique, referrer_email,
+referred_email, status pending/completed/redeemed, completed_at;
+RLS on, NO public policies). Without Supabase the link still
+displays via a deterministic code derived from the email, but
+earning is tracked only when Supabase is configured.
+
+- **The credit on /my-account** — the Refer a friend section
+  (`components/ReferralCard.tsx`) shows the code + full link with
+  a Copy button (clipboard with a plain fallback, "Copied"
+  confirmation), the plain explanation (a friend booking through
+  the link earns the referrer 50% off their next haircut), and the
+  credit itself: "You have 50% off your next haircut" with a
+  "Book your discounted haircut" link to `/#booking` while a
+  completed referral is waiting, or "You already used your 50%
+  off haircut credit" once it has been spent (redeemed referrals
+  are counted on the page).
+- **Redemption is real.** When the referrer themself books a
+  Haircut through `POST /api/lead` with an email contact,
+  the route calls `redeemReferralCredit()` after the lead saves
+  (best-effort, never fails the booking) — the oldest completed
+  referral becomes `redeemed`, so the credit is spent on that
+  one haircut only. A duplicate (60s) re-submit does not redeem
+  again: the duplicate branch returns before the hook runs.
+
+## Reschedule / cancel
+
+Each booking in My bookings has Reschedule and Cancel actions
+(`components/BookingActions.tsx`; the page stays a server
+component). Cancel is two-step ("Cancel this booking? Yes,
+cancel / Keep it") and sets the lead status to `cancelled`.
+Reschedule is a labelled date input (min = tomorrow) + time
+select (09:00–18:00, every 30 minutes) and writes the new
+date/time to the lead's `appointment_at` — the original stays in
+the message text. Both go through `POST
+/api/my-bookings/[id]/cancel` and `POST
+/api/my-bookings/[id]/reschedule`, which take the email from the
+verified session only, check ownership with
+`getCustomerBookingById()` (401 unsigned in, 404 for a booking
+that is not theirs), re-validate server-side (future date,
+Mon–Sat, 09:00–18:00), are body-capped + rate-limited like
+`/api/lead`, and revalidate `/my-account`. The new date shows in
+My bookings (appointment date first, with "(rescheduled)") and
+in the owner `/leads` list, which prefers `appointment_at` and
+labels the row "Rescheduled" (column `supabase/
+leads-appointment.sql`, already run — see LEADS.md).
+
+## Previously purchased + bundle
+
+`/my-account` also shows **Previously purchased** — the unique
+products from the customer's orders (gone or removed products
+skipped; out-of-stock ones shown with a disabled Buy again) —
+and a **Complete the routine** bundle card. With a previous
+order the bundle is that order's products ("Your last order,
+again"); otherwise it is the curated Shampoo (1L) + Conditioner
+(1L) + Leave-in treatment. The price is the sum of
+`getLineTotalCents(product, 1)`, so sale prices apply, and one
+"Add bundle to cart" tap adds all of them to the `lumen-cart`
+localStorage cart (Buy again adds one). Out-of-stock or removed
+bundle products are skipped and named on the card. Pure logic in
+`lib/repurchase.ts` (unit-tested); the client add lives in
+`components/RepurchaseSection.tsx`.
+
+## Saved carts
+
+A signed-in customer can save a cart under a label of their own
+choosing ("Monthly restock") and restore or delete it later from
+`/my-account`. Table: `supabase/saved-carts-schema.sql`
+(customer_email, name, items jsonb as an array of
+`{id, quantity}`; RLS on, NO public policies). Server helpers in
+`lib/saved-carts.ts` (`saveCart`, `listSavedCarts`, `getSavedCart`,
+`deleteSavedCart`) validate items server-side (string ids,
+integer quantities 1–99, at most 20 lines) and only ever touch
+carts belonging to the session email. The on-device fallback for
+signed-out visitors (or an unconfigured Supabase) lives in
+`lib/saved-carts-client.ts` (`lumen-saved-carts` key) — see the
+full flow below.
+
+**The full flow (Wave 3).** The shop's cart section has a Save
+cart control (name input, default "Saved cart") — signed in with
+Supabase configured it POSTs to `/api/saved-carts` (GET lists,
+DELETE `/api/saved-carts/[id]` removes; all 401 unsigned in,
+400 on bad input, and GET answers `{ configured: false }` when
+Supabase is unconfigured). Otherwise the cart is saved on the
+device only, under a separate key `lumen-saved-carts`
+(`lib/saved-carts-client.ts`), and the confirmation says so.
+`/my-account` lists the saved carts (server list, or the
+on-device list when the API says unconfigured) with Restore and
+Delete per cart. **Restore replaces the current cart, never
+merges** — when the current cart is non-empty the customer is
+asked first (window.confirm), then the saved items are written
+to `lumen-cart` and the customer is linked to `/products`.
+
+## Display settings (personalisation)
+
+`/my-account` also has a **Display settings** section — the
+customer's colour theme (Plum/Rose/Teal/Forest/Navy), font pairing,
+text size and accessibility options (larger text, high contrast,
+reduce motion). Saved to localStorage always and to the
+`customer_preferences` table when signed in — see
+PERSONALIZATION.md.
+
 ## Known limits (not tested here)
 
 - **No live Supabase in this workspace.** The sign-up flow, the

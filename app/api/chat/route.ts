@@ -5,7 +5,9 @@ import {
   actionToText,
   dispatchTool,
   OPENAI_TOOL_DEFS,
+  parseProductIntent,
   type ChatAction,
+  type ProductIntent,
 } from "@/lib/tools";
 import { CHAT_FALLBACK, CHAT_PROMPT_VERSION, CHAT_SYSTEM_PROMPT } from "@/lib/prompts";
 import { clientIp, rateLimit, readCappedJson } from "@/lib/security";
@@ -17,7 +19,12 @@ type ChatOutcome =
   | "booking_failed"
   | "booking_needs_details"
   | "availability"
-  | "availability_failed";
+  | "availability_failed"
+  | "products"
+  | "product_recommendation"
+  | "cart_added"
+  | "cart_failed"
+  | "product_failed";
 
 // One structured log line per turn (see AI_ENGINEER.md). JSON so it
 // can be grepped and counted; deliberately no personal data — no
@@ -89,9 +96,59 @@ async function handleBookingTool(args: {
   };
 }
 
+// Free mode, product intent: the same tools the OpenAI mode calls,
+// run deterministically (see lib/tools.ts parseProductIntent).
+function productOutcome(action: ChatAction): ChatOutcome {
+  switch (action.type) {
+    case "products":
+      return "products";
+    case "product_recommendation":
+      return "product_recommendation";
+    case "cart_added":
+      return "cart_added";
+    case "cart_failed":
+      return "cart_failed";
+    case "product_failed":
+      return "product_failed";
+    default:
+      return "answered";
+  }
+}
+
+function productToolName(intent: ProductIntent): string {
+  switch (intent.kind) {
+    case "product_search":
+      return "searchProducts";
+    case "product_recommend":
+      return "recommendProduct";
+    case "product_add":
+      return "addToCart";
+    default:
+      return "none";
+  }
+}
+
+async function handleProductFree(
+  intent: Extract<ProductIntent, { kind: "product_search" | "product_recommend" | "product_add" }>
+): Promise<{ answer: string; action: ChatAction; outcome: ChatOutcome }> {
+  let action: ChatAction;
+  if (intent.kind === "product_search") {
+    ({ action } = await dispatchTool("searchProducts", { query: intent.query }));
+  } else if (intent.kind === "product_recommend") {
+    ({ action } = await dispatchTool("recommendProduct", { need: intent.need }));
+  } else {
+    ({ action } = await dispatchTool("addToCart", {
+      productId: intent.productId,
+      productName: intent.productName,
+      quantity: intent.quantity,
+    }));
+  }
+  return { answer: actionToText(action), action, outcome: productOutcome(action) };
+}
+
 // OpenAI mode: real function calling. The model sees the versioned
 // system prompt, the retrieved chunks as its only context, and the
-// three tools — and decides what to call. Tool results are the
+// six tools — and decides what to call. Tool results are the
 // server-side actions, fed back to the model verbatim, so the model
 // can never invent a price, slot or booking. If the model finishes
 // a tool intent without calling a tool, the deterministic tool call
@@ -99,7 +156,8 @@ async function handleBookingTool(args: {
 async function answerWithTools(
   question: string,
   context: string,
-  intent: ParsedIntent
+  intent: ParsedIntent,
+  productIntent?: ProductIntent
 ): Promise<{ answer: string; action?: ChatAction } | null> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
@@ -171,6 +229,10 @@ async function answerWithTools(
         stylist: intent.stylist,
       });
       return { answer: actionToText(toolAction), action: toolAction };
+    }
+    if (!action && productIntent && productIntent.kind !== "none") {
+      const handled = await handleProductFree(productIntent);
+      return { answer: handled.answer, action: handled.action };
     }
     return { answer: lastText, action };
   } catch {
@@ -306,6 +368,56 @@ export async function POST(req: Request) {
       mode,
       promptVersion: CHAT_PROMPT_VERSION,
     });
+  }
+
+  // Product intents run after booking/availability and before
+  // retrieval: a product question is answered from the shop tools
+  // (lib/products.ts), not from the service chunks. A search with
+  // no matches falls through to the plain Q&A below, so an
+  // out-of-scope question ("Do you sell wedding dresses?") still
+  // gets the grounded refusal instead of a shop answer.
+  const productIntent = parseProductIntent(message);
+  if (productIntent.kind !== "none") {
+    if (useOpenAI) {
+      const context = chunks.map((c) => `${c.title}: ${c.text}`).join("\n");
+      const llm = await answerWithTools(message, context, intent, productIntent);
+      if (
+        llm?.action &&
+        !(
+          llm.action.type === "products" &&
+          llm.action.products.length === 0
+        )
+      ) {
+        const outcome = productOutcome(llm.action);
+        logTurn({ mode, intent: "product", tool: productToolName(productIntent), chunks: chunkIds, outcome, latencyMs: Date.now() - started });
+        return NextResponse.json({
+          answer: llm.answer,
+          sources: chunks.map((c) => c.title),
+          grounded: true,
+          mode,
+          promptVersion: CHAT_PROMPT_VERSION,
+          action: llm.action,
+        });
+      }
+      // LLM unavailable, or it found no product: free mode below.
+    }
+    const handled = await handleProductFree(productIntent);
+    if (
+      handled.action.type === "products" &&
+      handled.action.products.length === 0
+    ) {
+      // No product matched — fall through to plain Q&A (refusal).
+    } else {
+      logTurn({ mode: "free", intent: "product", tool: productToolName(productIntent), chunks: chunkIds, outcome: handled.outcome, latencyMs: Date.now() - started });
+      return NextResponse.json({
+        answer: handled.answer,
+        sources: chunks.map((c) => c.title),
+        grounded: true,
+        mode: "free",
+        promptVersion: CHAT_PROMPT_VERSION,
+        action: handled.action,
+      });
+    }
   }
 
   // Plain Q&A: the grounded path is unchanged — no retrieved chunk,

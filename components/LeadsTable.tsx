@@ -57,7 +57,20 @@ export default function LeadsTable({
   const rows: SortableRow[] = leads.map((lead) => ({
     key: lead.id,
     cells: [
-      new Date(lead.created_at).toLocaleString(),
+      // A rescheduled booking shows its NEW date (appointment_at)
+      // instead of the date the booking was made — the owner sees
+      // when the customer is actually coming in. The lead message
+      // string is untouched; it still holds the original date/time.
+      lead.appointment_at ? (
+        <>
+          {new Date(lead.appointment_at).toLocaleString()}
+          <div>
+            <small>Rescheduled</small>
+          </div>
+        </>
+      ) : (
+        new Date(lead.created_at).toLocaleString()
+      ),
       <>
         {lead.name}
         {lead.repeatCount && lead.repeatCount > 1 ? (

@@ -37,6 +37,31 @@ const cases = [
     expect: "closed",
     action: "booking_failed",
   },
+  // Product cases: a price answered with the real (sale) price, a
+  // recommendation, a successful add to cart, an out-of-stock add
+  // refused, and a service question still answered from the
+  // business data (not the shop).
+  {
+    q: "How much is the colour-care shampoo?",
+    expect: "$23.80",
+    action: "products",
+  },
+  {
+    q: "What product do you recommend for coloured hair?",
+    expect: "Colour-care mask",
+    action: "product_recommendation",
+  },
+  {
+    q: "Add the colour-care mask to my cart",
+    expect: "Added Colour-care mask",
+    action: "cart_added",
+  },
+  {
+    q: "Add the hair oil to my cart",
+    expect: "out of stock",
+    action: "cart_failed",
+  },
+  { q: "How much is a balayage?", expect: "$110" },
 ];
 
 let passed = 0;

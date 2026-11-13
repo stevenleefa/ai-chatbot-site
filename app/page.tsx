@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import HomeClient from "@/components/HomeClient";
 import OwnerAppointmentsCard from "@/components/OwnerAppointmentsCard";
+import ReferralBanner from "@/components/ReferralBanner";
 import { services } from "@/lib/business";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getPublicReviews } from "@/lib/reviews-server";
@@ -17,11 +19,18 @@ export default async function Home() {
   const settings = await getSiteSettings();
   const reviews = await getPublicReviews();
   return (
-    <HomeClient
-      settings={settings}
-      services={services}
-      reviews={reviews}
-      ownerAppointmentsCard={<OwnerAppointmentsCard />}
-    />
+    <>
+      {/* The referral banner reads ?ref= (useSearchParams), so it
+          needs the Suspense boundary — same pattern as /deals. */}
+      <Suspense>
+        <ReferralBanner />
+      </Suspense>
+      <HomeClient
+        settings={settings}
+        services={services}
+        reviews={reviews}
+        ownerAppointmentsCard={<OwnerAppointmentsCard />}
+      />
+    </>
   );
 }

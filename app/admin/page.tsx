@@ -113,6 +113,9 @@ export default async function AdminPage() {
           Signed in as <strong>{session.user.email}</strong> (admin).
         </p>
       ) : null}
+      <p>
+        <Link href="/admin/products">Manage products →</Link>
+      </p>
 
       <section>
         <h2>Users</h2>

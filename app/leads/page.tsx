@@ -54,7 +54,7 @@ export default async function LeadsPage() {
     const supabase = getServerSupabase();
     const { data, error } = await supabase!
       .from("leads")
-      .select("id,created_at,business,name,contact,service,message,status")
+      .select("id,created_at,business,name,contact,service,message,status,appointment_at")
       .eq("business", BUSINESS_SLUG)
       .order("created_at", { ascending: false });
     if (!error && data) {
