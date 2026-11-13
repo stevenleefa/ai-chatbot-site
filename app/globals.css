@@ -222,21 +222,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 /* Hover keeps the underline only: the old rose-deep hover colour
    would fail contrast on the rose header and vanish on plum. */
 .site-nav-links a:hover { text-decoration: underline; }
-.site-nav-owner { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-/* Signed-out "Owner sign in" link (components/OwnerNav.tsx): a
-   plain link in the nav, so it uses the header foreground like the
-   brand and the nav links. Hover is the underline only, as above. */
-.site-nav-owner-link { color: var(--nav-fg); text-decoration: none; font-weight: 600; }
-.site-nav-owner-link:hover { text-decoration: underline; }
-/* Owner pills in the fixed nav (components/OwnerNav.tsx, signed-in
-   state): the rose gradient would disappear on the rose dark-mode
-   header, so in the header they use the header foreground as a
-   solid pill with the header background as the text instead.
-   Same pairs as the header text (13.26:1 light, 5.06:1 dark). */
-.site-nav .owner-nav a,
-.site-nav .owner-nav button { background: var(--nav-fg); color: var(--nav-bg); border-color: transparent; }
-.site-nav .owner-nav a:hover,
-.site-nav .owner-nav button:hover:not(:disabled) { background: var(--nav-fg); color: var(--nav-bg); filter: brightness(0.92); border-color: transparent; }
+/* Right side of the header (components/SiteNav.tsx): the search box
+   and the hamburger menu. margin-left: auto pushes them to the far
+   right; they wrap below the nav links on a narrow screen. */
+.site-nav-tools { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 
 .hero { position: relative; overflow: hidden; border-radius: 28px; margin: 20px 0 8px; min-height: 420px; display: flex; align-items: flex-end; color: white; box-shadow: 0 20px 50px rgba(61, 36, 51, 0.25); }
 .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: heroZoom 14s ease-out forwards; }
@@ -323,13 +312,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 button { padding: 12px 20px; font-size: 16px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
 button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
 button:disabled { opacity: 0.6; cursor: default; }
-/* Owner navigation buttons (site nav + top of /leads, /dashboard, /admin).
-   Real buttons that go to the owner routes, so nobody has to type a URL. */
-.owner-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
-.owner-nav a, .owner-nav button { display: inline-block; padding: 8px 16px; font-size: 15px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; text-decoration: none; cursor: pointer; font-weight: 700; font-family: inherit; text-align: center; }
-.owner-nav a:hover, .owner-nav button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
-.owner-nav form { display: inline; margin: 0; }
-
 /* Sign-out confirmation dialog (components/SignOutButton.tsx).
    Native <dialog> shown with showModal(), so the browser centres
    it on the top layer, traps Tab inside it, and closes it on
@@ -551,7 +533,8 @@ button:disabled { opacity: 0.6; cursor: default; }
 .product-category { color: var(--tag-products-text); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .product-card .price { font-weight: 700; font-size: 18px; }
 /* No product photos — a styled tile with the product's initials. */
-.product-tile { height: 96px; border-radius: 12px; background: var(--sage); color: var(--plum); display: flex; align-items: center; justify-content: center; font-family: var(--font-display), Georgia, serif; font-size: 36px; font-weight: 700; }
+.product-tile { height: 96px; border-radius: 12px; background: var(--sage); overflow: hidden; }
+.product-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qty-row { display: flex; gap: 12px; align-items: flex-end; margin-top: auto; padding-top: 8px; }
 .qty-row label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
 .qty-row input[type="number"] { width: 72px; }
@@ -611,13 +594,15 @@ button:disabled { opacity: 0.6; cursor: default; }
 .star-value { margin: 0; }
 
 /* --- Theme toggle + alert classes (dark mode) ----------------------------- */
-/* Theme toggle (components/ThemeToggle.tsx): a plain circular button in
-   the fixed nav, NOT the rose gradient — it is a utility control, so it
-   uses the surface and border like the other nav pills. The sun/moon
-   icon is an inline SVG (aria-hidden); the button's aria-label names
-   the action ("Switch to dark mode" / "Switch to light mode"). */
-.theme-toggle { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
-.theme-toggle:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
+/* Theme toggle (components/ThemeToggle.tsx) and hamburger button
+   (components/HamburgerMenu.tsx): plain circular utility buttons in
+   the fixed nav — NOT the rose gradient — so they use the surface
+   and border like the other nav pills. The sun/moon icon is an
+   inline SVG (aria-hidden); the button's aria-label names the
+   action ("Switch to dark mode" / "Switch to light mode"). The
+   hamburger shows a ☰ glyph instead of an icon. */
+.theme-toggle, .hamburger-button { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
+.theme-toggle:hover:not(:disabled), .hamburger-button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .theme-toggle svg { width: 20px; height: 20px; }
 
 /* Alert banners that used to be inline styles (background #fff3cd, or
@@ -635,3 +620,43 @@ button:disabled { opacity: 0.6; cursor: default; }
    which would vanish on a dark page, so it lightens instead. */
 [data-theme="dark"] .hero-tag { color: #2b1a24; }
 [data-theme="dark"] .back-to-top:hover { background: #55404a; }
+
+/* --- Hamburger menu + header search --------------------------------------- */
+/* Hamburger menu (components/HamburgerMenu.tsx): a ☰ button at the far
+   right of the header opens a dropdown panel with the account rows,
+   the dark-mode toggle, the site links and the owner links. The
+   panel is absolutely positioned against its wrapper, so it hangs
+   below the button and never widens the header. Rows are plain
+   links/buttons (Tab reaches them); the hover rule is scoped under
+   .menu-panel so it beats the global button:hover rose gradient.
+   The avatar reuses the rose from the buttons. */
+.menu-wrap { position: relative; }
+.menu-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); padding: 8px; z-index: 70; }
+.menu-panel .menu-row { display: flex; align-items: center; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 10px; background: none; color: var(--plum); text-decoration: none; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.menu-panel .menu-row:hover { background: var(--pill-bg); }
+.menu-user { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.menu-avatar { width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--rose); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+.menu-user-text { display: flex; flex-direction: column; min-width: 0; }
+.menu-user-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-user-email { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-user-role { font-size: 13px; color: var(--muted); }
+.menu-divider { border-top: 1px solid var(--border); margin: 6px 0; }
+.menu-section-label { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.menu-theme-row { justify-content: space-between; }
+/* The theme toggle sits on the panel's surface, so it gets the pill
+   background to read as a distinct control instead of blending in. */
+.menu-theme-row .theme-toggle { background: var(--pill-bg); }
+
+/* Header search (components/SearchBox.tsx): a compact pill input in
+   the header; the dropdown hangs below it with matching results.
+   The wrapper is position: relative so the dropdown anchors to it.
+   The input is a surface pill on the coloured header, like the
+   theme toggle circle. */
+.header-search { position: relative; flex: 0 1 220px; min-width: 140px; }
+.header-search-input { width: 100%; box-sizing: border-box; padding: 8px 14px; font-size: 15px; font-family: inherit; color: var(--plum); background: var(--surface); border: 2px solid var(--border); border-radius: 999px; }
+.header-search-input::placeholder { color: var(--muted); }
+.header-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; min-width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.2); padding: 6px; z-index: 70; }
+.header-search-dropdown ul { list-style: none; margin: 0; padding: 0; }
+.header-search-dropdown a { display: block; padding: 8px 10px; border-radius: 8px; color: var(--plum); text-decoration: none; font-weight: 600; }
+.header-search-dropdown a:hover { background: var(--pill-bg); }
+.header-search-empty { margin: 0; padding: 8px 10px; color: var(--muted); font-size: 14px; }

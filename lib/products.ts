@@ -16,6 +16,7 @@ export type Product = {
   description: string;
   priceCents: number;
   category: string;
+  image: string; // Unsplash stock photo (direct images.unsplash.com URL, freely usable)
 };
 
 // The shop's cart is saved under this key in localStorage so it
@@ -32,6 +33,7 @@ export const PRODUCTS: Product[] = [
     description: "The studio's everyday shampoo — gentle, for all hair types.",
     priceCents: 2400,
     category: "Hair care",
+    image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "conditioner-1l",
@@ -39,6 +41,7 @@ export const PRODUCTS: Product[] = [
     description: "The matching conditioner — soft, detangled hair after every wash.",
     priceCents: 2200,
     category: "Hair care",
+    image: "https://images.unsplash.com/photo-1519735777090-ec97162dc266?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "colour-care-shampoo",
@@ -46,6 +49,7 @@ export const PRODUCTS: Product[] = [
     description: "Sulphate-free wash that keeps colour vivid for longer.",
     priceCents: 2800,
     category: "Colour care",
+    image: "https://images.unsplash.com/photo-1601070846144-6be3aad73f7b?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "colour-care-mask",
@@ -53,6 +57,7 @@ export const PRODUCTS: Product[] = [
     description: "A weekly deep mask for coloured hair — soft, shiny, protected.",
     priceCents: 3200,
     category: "Colour care",
+    image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "hairspray",
@@ -60,6 +65,7 @@ export const PRODUCTS: Product[] = [
     description: "Flexible hold that brushes out — no crunch, no stiffness.",
     priceCents: 1800,
     category: "Styling",
+    image: "https://images.unsplash.com/photo-1629458681434-e321fc1fd906?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "styling-gel",
@@ -67,6 +73,7 @@ export const PRODUCTS: Product[] = [
     description: "A versatile gel for definition, texture and all-day hold.",
     priceCents: 1600,
     category: "Styling",
+    image: "https://images.unsplash.com/photo-1556217256-dcd735bb8711?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "leave-in-treatment",
@@ -74,6 +81,7 @@ export const PRODUCTS: Product[] = [
     description: "Leave-in softness for dry ends — especially after balayage.",
     priceCents: 2600,
     category: "Treatment",
+    image: "https://images.unsplash.com/photo-1597354984706-fac992d9306f?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "heat-protect-spray",
@@ -81,6 +89,7 @@ export const PRODUCTS: Product[] = [
     description: "Shields hair from heat styling and keeps colour from fading.",
     priceCents: 2000,
     category: "Styling",
+    image: "https://images.unsplash.com/photo-1593560368818-bd0c238ef976?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "beard-oil",
@@ -88,6 +97,7 @@ export const PRODUCTS: Product[] = [
     description: "Keeps a beard soft and tidy between trims — a little goes a long way.",
     priceCents: 1400,
     category: "Beard care",
+    image: "https://images.unsplash.com/photo-1627875777089-d32f1127e9ff?w=800&q=80&auto=format&fit=crop",
   },
   // New to the shop — plausible salon retail, priced in line with
   // the range above.
@@ -97,6 +107,7 @@ export const PRODUCTS: Product[] = [
     description: "A light cream for smooth, frizz-free styling with a natural finish.",
     priceCents: 1900,
     category: "Styling",
+    image: "https://images.unsplash.com/photo-1547997825-ac153dc46a97?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "dry-shampoo",
@@ -104,6 +115,7 @@ export const PRODUCTS: Product[] = [
     description: "Refreshes hair between washes — volume and a clean feel, no water.",
     priceCents: 1700,
     category: "Styling",
+    image: "https://images.unsplash.com/photo-1610595426075-eed5a3f521ee?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "hair-oil",
@@ -111,6 +123,7 @@ export const PRODUCTS: Product[] = [
     description: "A few drops for shine and smoothness on dry or frizzy hair.",
     priceCents: 2500,
     category: "Treatment",
+    image: "https://images.unsplash.com/photo-1591130901921-3f0652bb3915?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "scalp-scrub",
@@ -118,6 +131,7 @@ export const PRODUCTS: Product[] = [
     description: "A gentle weekly scrub for a healthy scalp and lighter-feeling hair.",
     priceCents: 2100,
     category: "Hair care",
+    image: "https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "colour-care-gift-set",
@@ -125,6 +139,7 @@ export const PRODUCTS: Product[] = [
     description: "Colour-care shampoo + colour-care mask, boxed — the gift for coloured hair.",
     priceCents: 5600,
     category: "Gift sets",
+    image: "https://images.unsplash.com/photo-1592150282082-37698debe277?w=800&q=80&auto=format&fit=crop",
   },
   {
     id: "everyday-gift-set",
@@ -132,6 +147,7 @@ export const PRODUCTS: Product[] = [
     description: "Shampoo, conditioner and styling gel, boxed — the everyday trio.",
     priceCents: 4400,
     category: "Gift sets",
+    image: "https://images.unsplash.com/photo-1451443700141-5ddb6d85a8fc?w=800&q=80&auto=format&fit=crop",
   },
 ];
 

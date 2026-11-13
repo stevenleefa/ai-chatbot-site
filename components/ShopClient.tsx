@@ -22,13 +22,6 @@ import ReviewPopups from "./ReviewPopups";
 
 type Cart = Record<string, number>; // product id -> quantity
 
-function productInitials(name: string): string {
-  const words = name.replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean);
-  const first = words[0]?.[0] ?? "";
-  const second = words.length > 1 ? words[1][0] ?? "" : "";
-  return (first + second).toUpperCase();
-}
-
 export default function ShopClient({
   products,
   checkoutEnabled,
@@ -170,7 +163,7 @@ export default function ShopClient({
         {products.map((p) => (
           <article key={p.id} className="product-card">
             <div className="product-tile" aria-hidden="true">
-              {productInitials(p.name)}
+              <img src={p.image} alt="" loading="lazy" />
             </div>
             <h3>{p.name}</h3>
             <p className="product-category">{p.category}</p>
