@@ -161,7 +161,7 @@ export default function HomeClient({
               <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
             </form>
             {leadResult && <p>{leadResult}</p>}
-            <p><small>Cancellations need at least 24 hours notice.</small></p>
+            <p className="form-note"><small>Cancellations need at least 24 hours notice.</small></p>
           </div>
         </section>
         <ReviewForm />

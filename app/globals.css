@@ -253,9 +253,14 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
    vertical spacing as a section, and the 40px column gap is the
    breathing room between the two forms; the section inside the row
    drops its own margin so the row sets the spacing. Both headings
-   are h2s sized by the row rule so they match exactly. */
-.booking-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; margin: 56px 0; align-items: start; }
-.booking-review-row section { margin: 0; }
+   are h2s sized by the row rule so they match exactly. The grid
+   stretches both sections to the same height; each section is a
+   flex column whose card fills it, and each card is a flex column
+   whose form fills it, so the two submit buttons sit at the same
+   level (the note below each button reserves two lines of small
+   text on both sides — see .form-note). */
+.booking-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; margin: 56px 0; align-items: stretch; }
+.booking-review-row section { margin: 0; display: flex; flex-direction: column; }
 .booking-review-row h2 { font-size: 34px; margin: 0 0 20px; }
 .booking-review-row .review-form { margin: 0; }
 @media (max-width: 900px) {
@@ -268,7 +273,25 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
 .price { font-weight: 800; color: var(--rose-text); font-size: 18px; }
 .card-icon { font-size: 28px; }
 
-.booking-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
+.booking-card, .review-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
+/* The two form cards are flex columns whose form fills the card, so
+   the submit button (margin-top: auto, below) pins to the same level
+   in both cards. The assistant card is not in the row, so it stays
+   a plain block. */
+.booking-card, .review-card { display: flex; flex-direction: column; flex: 1; }
+/* Inside the two cards the form is a flex column that fills the card.
+   The global .lead-form stays a grid everywhere else (login, admin, …). */
+.booking-card .lead-form, .review-card .lead-form { display: flex; flex-direction: column; flex: 1; }
+/* The submit button in each card pins to the bottom of its form, so
+   both buttons sit at the same level. */
+.booking-card .lead-form > button, .review-card .lead-form > button { margin-top: auto; }
+/* The small note under each submit button. Both notes reserve two
+   lines of small text: the review note is longer and wraps to two
+   lines at desktop width, while the booking note is one line — the
+   same reserved height on both keeps the buttons level. The text
+   itself is the default body colour on the card surface, so it
+   passes WCAG 2.1 AA like the booking note always did. */
+.booking-card .form-note, .review-card .form-note { min-height: 2.7em; }
 .lead-form { display: grid; gap: 12px; max-width: 540px; }
 /* Labels wrap their input (Email, Password, …). Stack the label text
    above the input and make the input fill the form width, so every field
