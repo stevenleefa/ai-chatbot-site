@@ -15,6 +15,12 @@ const staffUser: MenuUser = {
   role: "staff",
 };
 const adminUser: MenuUser = { ...staffUser, role: "admin" };
+const customerUser: MenuUser = {
+  initials: "AR",
+  name: "Alex Rivera",
+  email: "alex@example.com",
+  role: "customer",
+};
 
 function setPrefersDark(dark: boolean) {
   window.matchMedia = (query: string) => ({
@@ -110,6 +116,49 @@ describe("HamburgerMenu", () => {
       "href",
       "/admin"
     );
+  });
+
+  it("signed out: shows a Customer sign in link too", () => {
+    render(<HamburgerMenu user={null} />);
+    openMenu();
+    expect(
+      screen.getByRole("link", { name: "Customer sign in" })
+    ).toHaveAttribute("href", "/my-account/sign-in");
+  });
+
+  it("signed in as customer: shows My account and Log out, but no owner links, no Profile, no Switch user", () => {
+    render(<HamburgerMenu user={customerUser} />);
+    openMenu();
+    expect(screen.getByText("Alex Rivera")).toBeInTheDocument();
+    expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Customer")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "My account" })
+    ).toHaveAttribute("href", "/my-account");
+    expect(
+      screen.getByRole("button", { name: "Log out" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Profile" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Switch user" })
+    ).not.toBeInTheDocument();
+    for (const name of [
+      "Dashboard",
+      "Leads",
+      "Customers",
+      "Appointments",
+      "Employees",
+      "Orders",
+      "Admin",
+    ]) {
+      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+    }
+    // The public links are still there for customers.
+    expect(screen.getByRole("link", { name: "Contact us" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Deals" })).toBeInTheDocument();
+    expect(screen.getByText("Dark mode")).toBeInTheDocument();
   });
 
   it("Escape closes the panel and returns focus to the button", () => {

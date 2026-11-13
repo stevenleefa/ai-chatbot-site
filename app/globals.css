@@ -181,6 +181,8 @@ html { scroll-behavior: smooth; }
      for reduced motion (the component also stops its timer and
      shows one static review). */
   .review-popup { transition: none; }
+  /* The demo popover appears instantly instead of fading in. */
+  .demo-popover { transition: none; transform: none; }
 }
 body { font-family: var(--font-body), system-ui, sans-serif; margin: 0; color: var(--plum); background: var(--cream); line-height: 1.6; padding-top: var(--nav-height); /* Room for the fixed top nav, so it never covers the hero or a page heading. */ }
 h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
@@ -418,6 +420,25 @@ button:disabled { opacity: 0.6; cursor: default; }
 .dash-section h3 { font-size: 20px; margin: 24px 0 10px; }
 .demo-banner { background: var(--banner-bg); border: 1px solid var(--banner-border); border-radius: 14px; padding: 12px 16px; }
 .demo-banner-sample { background: var(--banner2-bg); border-color: var(--banner2-border); }
+/* "For demo purposes only" popover (components/DemoPopover.tsx). A
+   small floating note over the controls that are disabled in Test
+   Admin Mode, and over the Test Admin Mode menu entry. It is
+   position: fixed so it is never clipped by a scrolling table
+   container (the owner tables sit in overflow-x: auto wrappers);
+   its coordinates are measured from the wrapped control when it
+   opens. Plum background with white text in both modes — white on
+   plum-deep is 13.26:1 in light mode and about 10:1 in dark mode.
+   Shown on hover and on keyboard focus; hidden otherwise. The
+   wrapper is the tab stop when the control inside is disabled
+   (disabled elements cannot take focus), and it takes the site's
+   usual :focus-visible double ring. The popover itself never takes
+   pointer events, so moving the mouse off the control hides it. */
+.demo-popover-wrap { position: relative; display: inline-block; }
+.demo-popover-wrap-block { display: block; }
+.demo-popover { position: fixed; z-index: 90; max-width: 260px; width: max-content; background: var(--plum-deep); color: #fff; border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.35); font-size: 14px; line-height: 1.4; text-align: left; opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s; pointer-events: none; }
+.demo-popover-visible { opacity: 1; visibility: visible; transform: translateY(0); }
+.demo-popover strong { display: block; font-weight: 700; }
+.demo-popover > span { display: block; margin-top: 2px; font-size: 13px; color: rgba(255, 255, 255, 0.85); }
 .dash-note { color: var(--muted); font-size: 14px; }
 
 /* Standard colour coding for the owner area. .tag is a small pill
@@ -673,6 +694,11 @@ button:disabled { opacity: 0.6; cursor: default; }
 .menu-user-role { font-size: 13px; color: var(--muted); }
 .menu-divider { border-top: 1px solid var(--border); margin: 6px 0; }
 .menu-section-label { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+/* A menu row with a second, smaller line underneath (the "Test Admin
+   Mode" entry carries its "Sample data — for recruiters" note). The
+   row stacks its lines instead of centring them side by side. */
+.menu-panel .menu-row-stacked { flex-direction: column; align-items: flex-start; gap: 2px; }
+.menu-panel .menu-row-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
 .menu-theme-row { justify-content: space-between; }
 /* The theme toggle sits on the panel's surface, so it gets the pill
    background to read as a distinct control instead of blending in. */

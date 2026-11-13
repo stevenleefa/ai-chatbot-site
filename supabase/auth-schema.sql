@@ -8,10 +8,13 @@
 --   public.site_settings — a single row (id = 1) of editable site info.
 --   RLS policies so the database itself enforces who can see/change what.
 --   A trigger that creates a profiles row on every new auth user.
---     Every new profile starts as 'staff' — nobody becomes an admin
---     just by signing up. There is no public signup on the site: staff
---     join only by admin invite (see AUTH.md), and the single owner
---     admin is seeded once by the site owner (one SQL line, AUTH.md).
+--     Invited users become 'staff' (staff join only by admin invite,
+--     see AUTH.md); everyone else — a public sign-up from the customer
+--     pages, or a user added in the Supabase dashboard — becomes
+--     'customer'. Admin is a role granted by an existing admin (on
+--     /admin, or the one-time owner-seed SQL in AUTH.md) — never
+--     claimed by being the first to sign up, and never granted by
+--     this trigger. Customer accounts are documented in CUSTOMERS.md.
 --   Helper functions is_active_staff() / is_admin() used by the policies.
 --     They are SECURITY DEFINER so they bypass RLS when they read
 --     public.profiles — without that, the policies would recurse on
@@ -28,17 +31,24 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
   role text not null default 'staff'
-    check (role in ('admin', 'staff')),
+    check (role in ('admin', 'staff', 'customer')),
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;
 
--- Runs on every new auth.users row. Every new profile starts as
--- 'staff'. Admin is a role granted by an existing admin (on /admin, or
--- the one-time owner-seed SQL in AUTH.md) — never claimed by being the
--- first to sign up, and there is no public signup on the site.
+-- Runs on every new auth.users row. Invited users become 'staff'
+-- (invited_at is set by inviteUserByEmail, which is how staff join);
+-- everyone else — a public sign-up from the customer pages, or a user
+-- added in the Supabase dashboard — becomes 'customer'. Admin is a
+-- role granted by an existing admin (on /admin, or the one-time
+-- owner-seed SQL in AUTH.md) — never claimed by being the first to
+-- sign up, and never granted by this trigger. The distinction matters
+-- because the customer sign-up page is public: without it, every
+-- customer who signed up would get a staff profile and could open the
+-- owner pages. (Projects that already ran the old version of this file
+-- need supabase/customer-accounts.sql once to pick up the change.)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -47,7 +57,11 @@ set search_path = public
 as $$
 begin
   insert into public.profiles (id, email, role)
-  values (new.id, new.email, 'staff')
+  values (
+    new.id,
+    new.email,
+    case when new.invited_at is not null then 'staff' else 'customer' end
+  )
   on conflict (id) do nothing;
   return new;
 end;

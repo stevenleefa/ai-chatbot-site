@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { LEAD_STATUSES, type Lead } from "@/lib/leads";
+import DemoPopover from "@/components/DemoPopover";
 import SortableTable, {
   type SortableColumn,
   type SortableRow,
 } from "@/components/SortableTable";
 
-export default function LeadsTable({ leads }: { leads: Lead[] }) {
+export default function LeadsTable({
+  leads,
+  demo = false,
+}: {
+  leads: Lead[];
+  // Test Admin Mode: the status select is disabled — a demo visitor
+  // can look at the leads but cannot change a status (and
+  // /api/leads/status refuses demo requests anyway).
+  demo?: boolean;
+}) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -64,18 +74,20 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
       lead.contact,
       lead.service,
       lead.message ?? "—",
-      <select
-        value={lead.status}
-        disabled={busyId === lead.id}
-        onChange={(e) => changeStatus(lead, e.target.value)}
-        aria-label={`Status for ${lead.name}`}
-      >
-        {LEAD_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>,
+      <DemoPopover enabled={demo}>
+        <select
+          value={lead.status}
+          disabled={demo || busyId === lead.id}
+          onChange={(e) => changeStatus(lead, e.target.value)}
+          aria-label={`Status for ${lead.name}`}
+        >
+          {LEAD_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </DemoPopover>,
     ],
     sort: [
       lead.created_at,

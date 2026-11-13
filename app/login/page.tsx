@@ -104,6 +104,12 @@ function LoginForm() {
         <Link href="/auth/reset-password">Forgot your password?</Link>
       </p>
       <p>
+        Are you a customer?{" "}
+        <Link href="/my-account/sign-up">Create an account</Link> or{" "}
+        <Link href="/my-account/sign-in">sign in</Link> to see your
+        bookings and orders.
+      </p>
+      <p>
         <small>
           Staff accounts are created by admin invitation only. If you
           need access, ask an admin to invite you from /admin.

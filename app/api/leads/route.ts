@@ -1,14 +1,30 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { getSession } from "@/lib/auth/session";
+import { getDemoOrSession } from "@/lib/auth/demo";
+import { SAMPLE_LEADS } from "@/lib/demo-data";
 import { BUSINESS_SLUG } from "@/lib/leads";
 
 // Owner-only: list this business's leads, newest first.
 // Requires a signed-in account with an active staff/admin profile.
+// Test Admin Mode: a signed-out visitor with the demo cookie gets
+// the sample leads below and never touches the real leads table.
 export async function GET(req: Request) {
-  const session = await getSession();
+  const { demo, session } = await getDemoOrSession();
+  if (demo) {
+    return NextResponse.json({
+      ok: true,
+      configured: true,
+      leads: SAMPLE_LEADS,
+      demo: true,
+    });
+  }
   if (!session) {
     return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  }
+  // Defence in depth behind the middleware: a customer must never
+  // read the owner leads list.
+  if (session.profile.role === "customer") {
+    return NextResponse.json({ error: "Owner access required." }, { status: 401 });
   }
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ ok: true, configured: false, leads: [] });

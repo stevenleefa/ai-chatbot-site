@@ -2,7 +2,7 @@ import Link from "next/link";
 import HamburgerMenu, { type MenuUser } from "./HamburgerMenu";
 import SearchBox, { type SearchItem } from "./SearchBox";
 import AssistantNavLink from "./AssistantNavLink";
-import { getSession } from "@/lib/auth/session";
+import { getDemoOrSession } from "@/lib/auth/demo";
 import { getDisplayName, getInitials } from "@/lib/user-display";
 import { getSiteSettings } from "@/lib/site-settings";
 import { services } from "@/lib/business";
@@ -25,7 +25,10 @@ import { PRODUCTS, formatPrice } from "@/lib/products";
 // goes to /login, which already recognises the owner automatically.
 export default async function SiteNav() {
   const settings = await getSiteSettings();
-  const session = await getSession();
+  // Demo mode (Test Admin Mode) is only ever on for a signed-out
+  // visitor with the demo cookie — a signed-in user is judged by
+  // their real role, so demo is false whenever a session exists.
+  const { demo, session } = await getDemoOrSession();
   let menuUser: MenuUser | null = null;
   if (session) {
     const name = getDisplayName(session.user);
@@ -63,7 +66,7 @@ export default async function SiteNav() {
         </nav>
         <div className="site-nav-tools">
           <SearchBox items={searchItems} />
-          <HamburgerMenu user={menuUser} />
+          <HamburgerMenu user={menuUser} demo={demo} />
         </div>
       </div>
     </header>

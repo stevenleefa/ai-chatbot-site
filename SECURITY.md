@@ -106,7 +106,10 @@ places user input is rendered or redirected.
     server routes filter by `business = 'salon'`); the auth schema
     adds staff SELECT/UPDATE on salon leads only, no INSERT policy.
     `profiles`: users read their own row, admins read/update all,
-    rows are created only by the signup trigger (always `staff`).
+    rows are created only by the signup trigger (invited users
+    become `staff`, public sign-ups become `customer` — see
+    CUSTOMER_ACCOUNTS.md; a customer profile can never open an
+    owner page, the middleware and the pages both check the role).
     `site_settings`: staff read, admins update. The service-role
     key is imported only from server code (`app/leads/page.tsx`,
     `app/admin/page.tsx`, API routes, server actions) — never from a

@@ -195,7 +195,9 @@ in code:
 - No `autofocus` anywhere except the Cancel button inside a modal
   dialog (the safe choice there — see the sign-out and coupon
   dialogs). No positive `tabindex` anywhere; the only `tabIndex={0}`
-  stops are scrollable regions (chat log, table wrappers).
+  stops are scrollable regions (chat log, table wrappers) — plus, in
+  Test Admin Mode only, the demo-popover wrappers around disabled
+  controls (see below).
 - The `:focus-visible` double ring (white outline + navy shadow)
   applies to every focusable element, including the header links,
   the search input and dropdown, the menu rows, and the chat.
@@ -220,6 +222,26 @@ in code:
 - Known limit: the search combobox has no arrow-key navigation
   (Tab reaches the results, so every result is keyboard reachable
   under 2.1.1, but the ARIA combobox pattern expects arrow keys).
+
+### Demo popover (2026-11-13)
+
+In Test Admin Mode, every disabled control carries a "For demo
+purposes only" popover (`components/DemoPopover.tsx`). A disabled
+element cannot take focus or fire pointer events, so the popover's
+wrapper is the tab stop (`tabIndex={0}`) and takes the site's usual
+`:focus-visible` double ring; it carries the description
+(`aria-describedby`, `role="tooltip"`) so a screen reader announces
+it on focus. The Test Admin Mode menu entry is a working link, so
+the link itself is the tab stop and carries the description. The
+popover shows on hover and on focus, hides on mouse-leave, blur and
+Escape, and appears instantly (no fade) under
+`prefers-reduced-motion`. White on plum-deep is 13.26:1 in light
+mode and about 10:1 in dark mode. It only ever exists in demo mode
+— a signed-in admin's buttons render with no popover at all.
+(WCAG 2.1.1 — every disabled control's reason is keyboard
+reachable; 2.4.7 — focus is always visible; 1.4.13 — the popover
+content is available on hover and focus, and dismissible with
+Escape.)
 
 ### Landmarks, labels and live regions
 

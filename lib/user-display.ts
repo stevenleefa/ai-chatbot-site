@@ -1,12 +1,13 @@
-// Display name + initials for a signed-in staff member, used by
-// the header menu (components/HamburgerMenu.tsx) and /profile.
-// Profiles store no display name (see supabase/auth-schema.sql:
-// id, email, role, is_active, created_at only), so the name is
-// derived: the full_name in the auth user's metadata when one was
-// set, otherwise the part of the email before the "@", with
-// separators turned into spaces and the first letter capitalised
-// ("live4zz" becomes "Live4zz" — there is no real name to show
-// until one is stored on the account).
+// Display name + initials for a signed-in user (staff, admin or
+// customer), used by the header menu (components/HamburgerMenu.tsx),
+// /profile and /my-account. Profiles store no display name (see
+// supabase/auth-schema.sql: id, email, role, is_active, created_at
+// only), so the name is derived: the full_name in the auth user's
+// metadata when one was set (the customer sign-up form collects it),
+// otherwise the part of the email before the "@", with separators
+// turned into spaces and the first letter capitalised ("live4zz"
+// becomes "Live4zz" — there is no real name to show until one is
+// stored on the account).
 import type { User } from "@supabase/supabase-js";
 
 export function getDisplayName(user: User): string {

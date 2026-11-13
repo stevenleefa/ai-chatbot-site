@@ -12,12 +12,13 @@ import { useId, useRef } from "react";
 // clicking the backdrop also cancels. Uses only useId/useRef —
 // React 18.3.1 (no React 19 hooks).
 //
-// The salon has no public signup page (invite-only; /signup was
-// deleted), so there is no "sign up" page to confirm on — this
-// button is the sign-out control, used in the hamburger menu
-// (components/HamburgerMenu.tsx) and on /profile. The label, the
-// dialog copy and where the sign-out lands are props: "Log out"
-// goes to "/" (the signout route's default), while "Switch user"
+// There is no public staff signup page (staff join by invite only;
+// /signup was deleted), so there is no "sign up" page to confirm on
+// — this button is the sign-out control, used in the hamburger menu
+// (components/HamburgerMenu.tsx) and on /profile and /my-account.
+// The label, the dialog copy and where the sign-out lands are props:
+// "Log out" goes to "/" (the signout route's default), while "Switch
+// user"
 // posts to /auth/signout?next=/login so a different staff member
 // can sign in. The dialog title id comes from useId() because the
 // menu renders this button twice on one page (Log out + Switch

@@ -4,31 +4,49 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 import SignOutButton from "./SignOutButton";
+import DemoPopover from "./DemoPopover";
 
-// The signed-in staff member, as passed from the server component
+// The signed-in user, as passed from the server component
 // components/SiteNav.tsx (which reads the session the same way
 // OwnerNav used to). Null when signed out. The name/initials are
 // derived from the account email — profiles store no display name
-// (see lib/user-display.ts).
+// (see lib/user-display.ts). Staff and admin see the owner links;
+// customers see only their own account rows (My account, Log out)
+// and never the owner section.
 export type MenuUser = {
   initials: string;
   name: string;
   email: string;
-  role: "admin" | "staff";
+  role: "admin" | "staff" | "customer";
 };
 
 // Hamburger menu at the far right of the fixed header. One button
 // opens a dropdown panel with the account rows (initials, profile,
 // switch user, log out), the dark-mode toggle, the site links and,
 // for signed-in staff, the owner links that used to sit in the
-// header as OwnerNav pills. The panel is a plain nav of links and
-// buttons (Tab reaches everything); Escape closes it and returns
-// focus to the button, and a click outside closes it. The sign-out
-// dialog inside the menu owns Escape itself while it is open, so
-// the menu's Escape handler leaves it alone (otherwise focus would
+// header as OwnerNav pills. A signed-in customer sees only their own
+// account rows (My account, Log out) and never the owner links (see
+// CUSTOMER_ACCOUNTS.md). A signed-out visitor sees "Test Admin Mode"
+// under the sign-in rows: it sets the demo cookie and takes them to
+// the owner area with sample data only (see DEMO_MODE.md). While demo
+// mode is on, the menu shows a "Test Admin Mode" identity block, an
+// "Exit Test Admin Mode" row, and the owner links — so a recruiter
+// can browse the whole owner area from the menu. The panel is a plain
+// nav of links and buttons (Tab reaches everything); Escape closes it
+// and returns focus to the button, and a click outside closes it. The
+// sign-out dialog inside the menu owns Escape itself while it is open,
+// so the menu's Escape handler leaves it alone (otherwise focus would
 // be lost when the dialog tries to return it to its trigger).
 // React 18: useState/useEffect/useRef only — no React 19 hooks.
-export default function HamburgerMenu({ user }: { user: MenuUser | null }) {
+export default function HamburgerMenu({
+  user,
+  demo = false,
+}: {
+  user: MenuUser | null;
+  // Test Admin Mode is on (demo cookie set, no session). SiteNav
+  // computes it — it is false whenever a real session exists.
+  demo?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -59,6 +77,7 @@ export default function HamburgerMenu({ user }: { user: MenuUser | null }) {
     };
   }, [open ]);
 
+  const isCustomer = user?.role === "customer";
   return (
     <div className="menu-wrap" ref={wrapRef}>
       <button
@@ -86,17 +105,95 @@ export default function HamburgerMenu({ user }: { user: MenuUser | null }) {
                 <span className="menu-user-name">{user.name}</span>
                 <span className="menu-user-email">{user.email}</span>
                 <span className="menu-user-role">
-                  {user.role === "admin" ? "Admin" : "Staff"}
+                  {user.role === "admin"
+                    ? "Admin"
+                    : user.role === "staff"
+                      ? "Staff"
+                      : "Customer"}
                 </span>
               </span>
             </div>
+          ) : demo ? (
+            <div className="menu-user">
+              <span className="menu-avatar" aria-hidden="true">
+                TA
+              </span>
+              <span className="menu-user-text">
+                <span className="menu-user-name">Test Admin Mode</span>
+                <span className="menu-user-email">
+                  Sample data — no real account
+                </span>
+                <span className="menu-user-role">Demo</span>
+              </span>
+            </div>
           ) : (
-            <Link href="/login" className="menu-row" onClick={closeMenu}>
-              Sign in
-            </Link>
+            <>
+              <Link href="/login" className="menu-row" onClick={closeMenu}>
+                Sign in
+              </Link>
+              <Link
+                href="/my-account/sign-in"
+                className="menu-row"
+                onClick={closeMenu}
+              >
+                Customer sign in
+              </Link>
+              {/* The entry is a working link, so it is the tab stop
+                  itself (focusable={false}) — hovering or tabbing to
+                  it shows "For demo purposes only". block so the row
+                  stays full-width in the panel: an inline wrapper
+                  would shrink it to the text. */}
+              <DemoPopover focusable={false} block>
+                <Link
+                  href="/api/demo?on=1"
+                  className="menu-row menu-row-stacked"
+                  onClick={closeMenu}
+                >
+                  Test Admin Mode
+                  <span className="menu-row-sub">
+                    Sample data — for recruiters
+                  </span>
+                </Link>
+              </DemoPopover>
+            </>
           )}
           <div className="menu-divider" aria-hidden="true" />
-          {user && (
+          {demo && !user && (
+            <>
+              <Link
+                href="/api/demo?on=0"
+                className="menu-row"
+                onClick={closeMenu}
+              >
+                Exit Test Admin Mode
+              </Link>
+              <Link href="/login" className="menu-row" onClick={closeMenu}>
+                Sign in
+              </Link>
+              <Link
+                href="/my-account/sign-in"
+                className="menu-row"
+                onClick={closeMenu}
+              >
+                Customer sign in
+              </Link>
+              <div className="menu-divider" aria-hidden="true" />
+            </>
+          )}
+          {user && isCustomer && (
+            <>
+              <Link href="/my-account" className="menu-row" onClick={closeMenu}>
+                My account
+              </Link>
+              <SignOutButton
+                label="Log out"
+                dialogBody="You will need to sign in again to see your bookings and orders."
+                className="menu-row"
+              />
+              <div className="menu-divider" aria-hidden="true" />
+            </>
+          )}
+          {user && !isCustomer && (
             <>
               <Link href="/profile" className="menu-row" onClick={closeMenu}>
                 Profile
@@ -127,7 +224,7 @@ export default function HamburgerMenu({ user }: { user: MenuUser | null }) {
           <Link href="/deals" className="menu-row" onClick={closeMenu}>
             Deals
           </Link>
-          {user && (
+          {((user && !isCustomer) || demo) && (
             <>
               <div className="menu-divider" aria-hidden="true" />
               <div className="menu-section-label">Owner</div>
@@ -149,7 +246,7 @@ export default function HamburgerMenu({ user }: { user: MenuUser | null }) {
               <Link href="/orders" className="menu-row" onClick={closeMenu}>
                 Orders
               </Link>
-              {user.role === "admin" && (
+              {(user?.role === "admin" || demo) && (
                 <Link href="/admin" className="menu-row" onClick={closeMenu}>
                   Admin
                 </Link>

@@ -8,8 +8,16 @@ import { getAuthServerClient } from "./server";
 // If the auth tables were never set up (supabase/auth-schema.sql not run
 // yet), the profile lookup fails and the user is treated as unauthorized
 // instead of crashing.
+//
+// Roles: 'admin' and 'staff' are the owner side (staff join by admin
+// invite only); 'customer' is the public side (customers sign up
+// themselves from /my-account/sign-up, see CUSTOMER_ACCOUNTS.md). A customer
+// is authorized for their own area (/my-account) but must never reach
+// an owner route — the middleware enforces that with
+// lib/auth/guard.ts, and the owner pages repeat the check themselves
+// (requireStaff below) as defence in depth.
 
-export type UserRole = "admin" | "staff";
+export type UserRole = "admin" | "staff" | "customer";
 
 export type Profile = {
   id: string;
@@ -59,12 +67,30 @@ export async function requireAuth(): Promise<Session | null> {
 }
 
 // Same as requireAuth, plus a role check. "staff" means any active
-// staff/admin; "admin" means an active admin only.
+// staff/admin (never a customer); "admin" means an active admin only.
 export async function requireRole(
   role: UserRole
 ): Promise<Session | null> {
   const session = await getSession();
   if (!session) return null;
   if (role === "admin" && session.profile.role !== "admin") return null;
+  if (
+    role === "staff" &&
+    session.profile.role !== "admin" &&
+    session.profile.role !== "staff"
+  ) {
+    return null;
+  }
+  if (role === "customer" && session.profile.role !== "customer") {
+    return null;
+  }
   return session;
+}
+
+// The session when the caller is signed in with an active staff/admin
+// profile, otherwise null. Use in owner pages and API routes (defence
+// in depth behind the middleware): a customer session is a real
+// session, but it is not staff, so it must not pass an owner check.
+export async function requireStaff(): Promise<Session | null> {
+  return requireRole("staff");
 }

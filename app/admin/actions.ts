@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { getServerSupabase } from "@/lib/supabase";
 import { requireRole } from "@/lib/auth/session";
+import { assertNotDemo, getDemoOrSession } from "@/lib/auth/demo";
 import { getSiteSettings } from "@/lib/site-settings";
 
 // Admin-only server actions for /admin. Every action re-checks that the
@@ -11,6 +12,11 @@ import { getSiteSettings } from "@/lib/site-settings";
 // the page check), and writes with the service-role client. The last
 // remaining active admin can never be demoted or deactivated — otherwise
 // the site would have no admin left to fix it.
+// Test Admin Mode (demo mode, see DEMO_MODE.md): every action refuses
+// in demo mode before any Supabase call, so a demo visitor can never
+// change a role, invite anyone, save settings or moderate a review —
+// the buttons are disabled on the page, and this is the server-side
+// backstop for a forged POST.
 async function isLastActiveAdmin(userId: string): Promise<boolean> {
   const supabase = getServerSupabase();
   if (!supabase) return false;
@@ -24,12 +30,21 @@ async function isLastActiveAdmin(userId: string): Promise<boolean> {
 }
 
 export async function setUserRole(formData: FormData) {
+  await assertNotDemo();
   const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "");
-  if (!userId || (role !== "admin" && role !== "staff")) {
-    throw new Error("A user and a valid role (admin or staff) are required.");
+  // 'customer' is a valid target too: an admin can promote a customer
+  // to staff (or demote a staff member to a customer account). The
+  // last-admin guard below only applies to demoting an admin.
+  if (
+    !userId ||
+    (role !== "admin" && role !== "staff" && role !== "customer")
+  ) {
+    throw new Error(
+      "A user and a valid role (admin, staff or customer) are required."
+    );
   }
   if (role === "staff" && (await isLastActiveAdmin(userId))) {
     throw new Error("Cannot demote the last active admin.");
@@ -45,6 +60,7 @@ export async function setUserRole(formData: FormData) {
 }
 
 export async function setUserActive(formData: FormData) {
+  await assertNotDemo();
   const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const userId = String(formData.get("userId") ?? "");
@@ -63,7 +79,9 @@ export async function setUserActive(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function saveSiteSettings(formData: FormData) {  const session = await requireRole("admin");
+export async function saveSiteSettings(formData: FormData) {
+  await assertNotDemo();
+  const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const fields = {
     business_name: String(formData.get("business_name") ?? "").trim(),
@@ -103,6 +121,15 @@ export async function inviteUser(
   _prevState: { ok: boolean; message: string },
   formData: FormData
 ): Promise<{ ok: boolean; message: string }> {
+  // Demo mode refuses with a result object (not a throw), so the form
+  // shows the reason inline like any other invite outcome.
+  const { demo } = await getDemoOrSession();
+  if (demo) {
+    return {
+      ok: false,
+      message: "Demo mode — inviting staff is disabled. Nothing was sent.",
+    };
+  }
   const session = await requireRole("admin");
   if (!session) return { ok: false, message: "Admins only." };
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -170,6 +197,7 @@ export async function inviteUser(
 // every action re-checks the caller is an active admin and writes
 // with the service-role client.
 export async function approveReview(formData: FormData) {
+  await assertNotDemo();
   const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const reviewId = String(formData.get("reviewId") ?? "");
@@ -186,6 +214,7 @@ export async function approveReview(formData: FormData) {
 }
 
 export async function deleteReview(formData: FormData) {
+  await assertNotDemo();
   const session = await requireRole("admin");
   if (!session) throw new Error("Admins only.");
   const reviewId = String(formData.get("reviewId") ?? "");
