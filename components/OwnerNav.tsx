@@ -16,7 +16,11 @@ import SignOutButton from "./SignOutButton";
 export default async function OwnerNav() {
   const session = await getSession();
   if (!session) {
-    return <Link href="/login">Owner sign in</Link>;
+    return (
+      <Link href="/login" className="site-nav-owner-link">
+        Owner sign in
+      </Link>
+    );
   }
   return (
     <nav className="owner-nav" aria-label="Owner">

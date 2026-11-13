@@ -79,7 +79,22 @@
      that could only grow, and the wrapped rows stretched apart
      into a huge cream gap at the top of the page. */
   --nav-height: 64px;
+  /* Header colour (components/HeaderColorSwitcher.tsx): the fixed
+     top nav's background + foreground. Default plum; the switcher
+     sets data-header on <html> (rose/gold override below). The
+     values are identical in light and dark mode — plum #3d2433 is
+     lighter than the dark page #221820, so it still reads as a band
+     there. Text pairs, computed with a relative-luminance script:
+     plum 13.26:1, rose 5.06:1, gold 6.20:1 (see ACCESSIBILITY.md). */
+  --nav-bg: #3d2433;
+  --nav-fg: #fdf8f1;
 }
+
+/* Header colour overrides (components/HeaderColorSwitcher.tsx):
+   the three swatches. Same values in light and dark mode. */
+:root[data-header="plum"] { --nav-bg: #3d2433; --nav-fg: #fdf8f1; }
+:root[data-header="rose"] { --nav-bg: #a05a66; --nav-fg: #ffffff; }
+:root[data-header="gold"] { --nav-bg: #c9a86a; --nav-fg: #3d2433; }
 
 @media (max-width: 640px) {
   :root {
@@ -178,7 +193,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
    viewport on every page; the links wrap on a narrow screen
    instead of overflowing. The skip link (z-index 100) still sits
    above it when focused. */
-.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--cream); border-bottom: 1px solid var(--border); }
+.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--nav-bg); border-bottom: 1px solid var(--border); }
 /* The header's height comes from its content alone — it must NOT
    read --nav-height (no min-height here). NavHeight.tsx writes the
    measured header height into --nav-height, so a min-height on
@@ -192,12 +207,24 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
    top: the default (stretch) spreads them across the container
    height, which turned any extra height into a wide cream gap
    between the brand row and the owner buttons. */
-.site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 24px; }
-.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; color: var(--rose-text); text-decoration: none; margin-right: 8px; }
+/* The 12px top/bottom padding (was 0) gives the theme toggle and
+   the header-colour swatches breathing room — with no vertical
+   padding the toggle icon touched the bar's top and bottom edges.
+   NavHeight.tsx measures the taller header, so body padding-top
+   follows automatically; no min-height here (see above). */
+.site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 24px; }
+.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; color: var(--nav-fg); text-decoration: none; margin-right: 8px; }
 .site-nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
-.site-nav-links a { color: var(--plum); text-decoration: none; font-weight: 600; }
-.site-nav-links a:hover { color: var(--rose-deep); text-decoration: underline; }
+.site-nav-links a { color: var(--nav-fg); text-decoration: none; font-weight: 600; }
+/* Hover keeps the underline only: the old rose-deep hover colour
+   would fail contrast on the rose header and vanish on plum. */
+.site-nav-links a:hover { text-decoration: underline; }
 .site-nav-owner { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+/* Signed-out "Owner sign in" link (components/OwnerNav.tsx): a
+   plain link in the nav, so it uses the header foreground like the
+   brand and the nav links. Hover is the underline only, as above. */
+.site-nav-owner-link { color: var(--nav-fg); text-decoration: none; font-weight: 600; }
+.site-nav-owner-link:hover { text-decoration: underline; }
 
 .hero { position: relative; overflow: hidden; border-radius: 28px; margin: 20px 0 8px; min-height: 420px; display: flex; align-items: flex-end; color: white; box-shadow: 0 20px 50px rgba(61, 36, 51, 0.25); }
 .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: heroZoom 14s ease-out forwards; }
@@ -541,6 +568,28 @@ button:disabled { opacity: 0.6; cursor: default; }
 .theme-toggle { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
 .theme-toggle:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .theme-toggle svg { width: 20px; height: 20px; }
+
+/* Header colour switcher (components/HeaderColorSwitcher.tsx):
+   TEMPORARY — three swatches in the fixed nav, next to the theme
+   toggle, so the owner can try the plum/rose/gold header live.
+   Delete with the component once a winner is picked and hardcoded.
+   The pill uses the surface/border like the theme toggle (a utility
+   control, not a brand button). Each dot carries its colour; the
+   1px border in --border keeps the plum dot readable on the dark
+   pill (plum on dark surface is nearly invisible without it).
+   The selected swatch gets a double ring — surface inside,
+   header-foreground outside — mirroring the :focus-visible double
+   ring: one colour cannot read on every header, but the outer ring
+   always contrasts with the header behind it, because --nav-fg on
+   --nav-bg is >= 4.5:1 by construction for all three colours. */
+.header-color-switcher { display: inline-flex; align-items: center; gap: 4px; padding: 3px; background: var(--surface); border: 2px solid var(--border); border-radius: 999px; }
+.header-color-switcher button { width: 28px; height: 28px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 2px solid transparent; border-radius: 50%; cursor: pointer; line-height: 1; }
+.header-color-switcher button:hover { background: var(--pill-bg); }
+.header-color-switcher button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--nav-fg); }
+.header-color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); }
+.header-color-switcher button[data-color="plum"] .header-color-dot { background: #3d2433; }
+.header-color-switcher button[data-color="rose"] .header-color-dot { background: #a05a66; }
+.header-color-switcher button[data-color="gold"] .header-color-dot { background: #c9a86a; }
 
 /* Alert banners that used to be inline styles (background #fff3cd, or
    rose error text) in the auth/admin/leads/orders pages. Same colours

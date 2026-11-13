@@ -107,6 +107,41 @@ so the visual proof — toggle, system-default behaviour, charts,
 pop-ups and chat in dark, and no light-mode regressions — still needs
 a signed-in clone.
 
+### Header colour switcher (temporary, 2026-11-12)
+
+The fixed top nav used to be the page colour (`--cream`) with no
+vertical padding, so it did not read as a bar and the theme-toggle
+icon touched its top and bottom edges. A temporary segmented control
+(`components/HeaderColorSwitcher.tsx`, three swatches next to the
+theme toggle) switches the header between deep plum, rose and gold
+live, so the owner can pick a winner; it saves the choice in
+localStorage (`lumen-header`, default plum) and a pre-paint script in
+`app/layout.tsx` applies it before first paint, mirroring the theme
+script. Once a winner is picked, the switcher is deleted, the winner
+is hardcoded as `--nav-bg`/`--nav-fg`, and the `data-header`
+attribute + script go away. The nav inner also gained 12px of
+top/bottom padding (was `0 24px`); the height is measured by
+`NavHeight.tsx`, so body padding-top follows automatically, and no
+min-height was added to the header. The brand, nav links and the
+signed-out "Owner sign in" link all use `--nav-fg`; link hover keeps
+the underline and does not change colour.
+
+| Pair | Foreground on background | Ratio | Bar |
+|---|---|---|---|
+| Cream on plum header | `#fdf8f1` on `#3d2433` | 13.26:1 | 4.5:1 |
+| White on rose header | `#ffffff` on `#a05a66` | 5.06:1 | 4.5:1 |
+| Plum on gold header | `#3d2433` on `#c9a86a` | 6.20:1 | 4.5:1 |
+
+The three pairs are identical in light and dark mode (the same
+`--nav-bg`/`--nav-fg` values in both) and were computed with a
+relative-luminance script. The header also reads as a band against
+the page in both modes, though the dark-mode plum band is subtle
+(plum on the dark page is 1.23:1 — it reads through the hue
+difference plus the border below the header; rose is 3.40:1 and gold
+7.62:1 there). The switcher itself is three real `<button>`s with
+`aria-pressed` and an `aria-label` naming the colour, in a
+`role="group"` labelled "Header colour".
+
 ## What was changed (2026-11-10)
 
 ### Contrast — colours darkened just enough to pass
