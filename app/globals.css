@@ -323,9 +323,15 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
    ring above is untouched and stays distinct from hover: hover is a
    black border at the button edge, focus is a navy ring outside it
    with a white gap. */
-button { padding: 12px 20px; font-size: 16px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
+button { padding: 12px 20px; font-size: 14px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
 button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
 button:disabled { opacity: 0.6; cursor: default; }
+/* Admin table Actions column: the buttons are right-justified and all
+   the same length, so the column reads as a uniform block instead of
+   ragged buttons sized by their labels. 160px fits the longest label
+   ("Demote to staff") at the 14px button size. */
+.actions-cell { text-align: right; }
+.actions-cell button { min-width: 160px; }
 /* Sign-out confirmation dialog (components/SignOutButton.tsx).
    Native <dialog> shown with showModal(), so the browser centres
    it on the top layer, traps Tab inside it, and closes it on
@@ -577,7 +583,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .dash-table .total-row td { font-weight: 800; background: var(--surface-3); }
 .dash-table .negative { color: var(--negative); }
 .dash-table .sub { color: var(--muted); font-size: 13px; }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: capitalize; }
+.badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: capitalize; text-align: center; white-space: nowrap; }
 .badge-paid { background: var(--badge-paid-bg); color: var(--badge-paid-text); }
 /* Unpaid text darkened from #8a6d00 (4.35:1 on #fdf0d3, just under
    AA) to #7a6100 (5.25:1). */

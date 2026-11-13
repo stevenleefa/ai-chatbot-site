@@ -146,7 +146,7 @@ export default async function AdminPage() {
                   <th>Role</th>
                   <th>Active</th>
                   <th>Joined</th>
-                  <th>Actions</th>
+                  <th className="actions-cell">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,7 +158,7 @@ export default async function AdminPage() {
                     <td>
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>
-                    <td>
+                    <td className="actions-cell">
                       <form action={setUserRole} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="userId" value={p.id} />
                         <input
@@ -252,7 +252,7 @@ export default async function AdminPage() {
                   <th>Rating</th>
                   <th>Service</th>
                   <th>Review</th>
-                  <th>Actions</th>
+                  <th className="actions-cell">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,7 +266,7 @@ export default async function AdminPage() {
                     </td>
                     <td>{r.service ?? "—"}</td>
                     <td>{r.text}</td>
-                    <td>
+                    <td className="actions-cell">
                       <form action={approveReview} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="reviewId" value={r.id} />
                         <DemoPopover enabled={demo}>
