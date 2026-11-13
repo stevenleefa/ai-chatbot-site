@@ -1,7 +1,6 @@
 import Link from "next/link";
 import OwnerNav from "./OwnerNav";
 import ThemeToggle from "./ThemeToggle";
-import HeaderColorSwitcher from "./HeaderColorSwitcher";
 import { getSiteSettings } from "@/lib/site-settings";
 
 // Fixed top navigation, rendered from app/layout.tsx so it is on
@@ -29,11 +28,6 @@ export default async function SiteNav() {
         </nav>
         <OwnerNav />
         <ThemeToggle />
-        {/* TEMPORARY header-colour switcher (plum/rose/gold) so the
-            owner can try each header live and pick a winner; see
-            components/HeaderColorSwitcher.tsx. Delete with it once
-            a winner is picked and hardcoded. */}
-        <HeaderColorSwitcher />
       </div>
     </header>
   );
