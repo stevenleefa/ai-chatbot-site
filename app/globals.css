@@ -332,6 +332,11 @@ button:disabled { opacity: 0.6; cursor: default; }
    ("Demote to staff") at the 14px button size. */
 .actions-cell { text-align: right; }
 .actions-cell button { min-width: 160px; }
+/* The "Actions" header label is a 160px box — the same width as the
+   action buttons — centred on its own text and right-aligned in the
+   column, so the word sits over the centre of the rightmost button
+   instead of flush against the column's right edge. */
+.actions-header-label { display: inline-block; width: 160px; text-align: center; }
 /* Sign-out confirmation dialog (components/SignOutButton.tsx).
    Native <dialog> shown with showModal(), so the browser centres
    it on the top layer, traps Tab inside it, and closes it on
@@ -724,7 +729,7 @@ button:disabled { opacity: 0.6; cursor: default; }
    The input is a surface pill on the coloured header, like the
    theme toggle circle. */
 .header-search { position: relative; flex: 0 1 220px; min-width: 140px; }
-.header-search-input { width: 100%; box-sizing: border-box; padding: 8px 14px; font-size: 15px; font-family: inherit; color: var(--plum); background: var(--surface); border: 2px solid var(--border); border-radius: 999px; }
+.header-search-input { width: 100%; box-sizing: border-box; padding: 8px 14px; font-size: 15px; font-family: inherit; color: var(--plum); background: var(--surface); border: 2px solid var(--border); border-radius: 999px; text-overflow: ellipsis; }
 .header-search-input::placeholder { color: var(--muted); }
 .header-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; min-width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.2); padding: 6px; z-index: 70; }
 .header-search-dropdown ul { list-style: none; margin: 0; padding: 0; }

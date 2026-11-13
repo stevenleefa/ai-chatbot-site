@@ -146,7 +146,7 @@ export default async function AdminPage() {
                   <th>Role</th>
                   <th>Active</th>
                   <th>Joined</th>
-                  <th className="actions-cell">Actions</th>
+                  <th className="actions-cell"><span className="actions-header-label">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -252,7 +252,7 @@ export default async function AdminPage() {
                   <th>Rating</th>
                   <th>Service</th>
                   <th>Review</th>
-                  <th className="actions-cell">Actions</th>
+                  <th className="actions-cell"><span className="actions-header-label">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
