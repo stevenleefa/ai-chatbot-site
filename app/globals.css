@@ -210,7 +210,13 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
    NavHeight.tsx measures the taller header, so body padding-top
    follows automatically; no min-height here (see above). */
 .site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 24px; }
-.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; color: var(--nav-fg); text-decoration: none; margin-right: 8px; }
+/* The brand inherits the body's 1.6 line-height, so its line box
+   (~35px at 22px) was taller than the nav links' and its text sat a
+   few pixels low relative to them. A tight 1.1 line-height (with
+   inline-flex centring) brings it optically level with the links,
+   the "Owner sign in" link and the owner pills. Size and weight
+   unchanged. */
+.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.1; display: inline-flex; align-items: center; color: var(--nav-fg); text-decoration: none; margin-right: 8px; }
 .site-nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
 .site-nav-links a { color: var(--nav-fg); text-decoration: none; font-weight: 600; }
 /* Hover keeps the underline only: the old rose-deep hover colour
@@ -567,6 +573,10 @@ button:disabled { opacity: 0.6; cursor: default; }
 .review-popup-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .review-popup-close { margin-left: auto; background: none; border: none; font-size: 18px; line-height: 1; padding: 4px 8px; cursor: pointer; color: var(--plum); }
 .review-popup p { margin: 4px 0; }
+/* The pop-up body is a link to the Reviews section: it fills the
+   card so the whole body is clickable, inherits the text colour,
+   and carries no underline (it is a card, not inline text). */
+.review-popup-link { display: block; color: inherit; text-decoration: none; }
 
 /* --- Reviews section (homepage #reviews) -------------------------------- */
 .review-list { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 16px; }
@@ -587,6 +597,18 @@ button:disabled { opacity: 0.6; cursor: default; }
 .star-row label { font-size: 28px; line-height: 1; cursor: pointer; color: var(--star-idle); padding: 2px; }
 .star-row input:checked ~ label, .star-row label:hover, .star-row label:hover ~ label { color: var(--stars); }
 .star-row input:focus-visible + label { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+/* Star rating picker, compact single line (components/ReviewForm.tsx):
+   the stars and the "Choose a rating" hint sit side by side in one
+   input-like box, so the row is the same height as the booking
+   form's "Phone or email" input (~52px: 16px text at 1.6 line-height
+   + 24px padding + 2px border). The stars are 28px with 2px padding
+   (32px), so the box uses 9px vertical padding to land on the same
+   52px. The fieldset itself carries no border or padding — the
+   legend reads as the field label, like the other labels. */
+.star-picker { border: 0; padding: 0; margin: 0; }
+.star-picker legend { padding: 0; }
+.star-line { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); box-sizing: border-box; }
+.star-value { margin: 0; }
 
 /* --- Theme toggle + alert classes (dark mode) ----------------------------- */
 /* Theme toggle (components/ThemeToggle.tsx): a plain circular button in

@@ -71,36 +71,6 @@ export default function ReviewForm() {
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <fieldset className="star-picker">
-            <legend>Your rating</legend>
-            {/* DOM order 5 → 1 with row-reverse CSS: visually 1 → 5 left
-                to right, and input:checked ~ label fills the checked star
-                and every star to its left. */}
-            <div className="star-row">
-              {[5, 4, 3, 2, 1].map((n) => (
-                <Fragment key={n}>
-                  <input
-                    type="radio"
-                    id={`rating-${n}`}
-                    name="rating"
-                    value={n}
-                    required
-                    checked={rating === n}
-                    onChange={() => setRating(n)}
-                    className="visually-hidden"
-                  />
-                  <label htmlFor={`rating-${n}`} aria-label={`${n} star${n > 1 ? "s" : ""}`}>
-                    ★
-                  </label>
-                </Fragment>
-              ))}
-            </div>
-            <p className="star-value" aria-live="polite">
-              {rating === null
-                ? "Choose a rating"
-                : `${rating} out of 5 stars`}
-            </p>
-          </fieldset>
           <label>
             Service (optional)
             <select value={service} onChange={(e) => setService(e.target.value)}>
@@ -117,10 +87,46 @@ export default function ReviewForm() {
             <textarea
               placeholder="Tell us how your visit went…"
               required
+              rows={3}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
           </label>
+          <fieldset className="star-picker">
+            <legend>Your rating</legend>
+            {/* One line: stars plus the hint, in an input-like box so
+                the row is the same height as the booking form's
+                "Phone or email" input — see .star-line in globals.css.
+                DOM order 5 → 1 with row-reverse CSS: visually 1 → 5
+                left to right, and input:checked ~ label fills the
+                checked star and every star to its left. */}
+            <div className="star-line">
+              <div className="star-row">
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <Fragment key={n}>
+                    <input
+                      type="radio"
+                      id={`rating-${n}`}
+                      name="rating"
+                      value={n}
+                      required
+                      checked={rating === n}
+                      onChange={() => setRating(n)}
+                      className="visually-hidden"
+                    />
+                    <label htmlFor={`rating-${n}`} aria-label={`${n} star${n > 1 ? "s" : ""}`}>
+                      ★
+                    </label>
+                  </Fragment>
+                ))}
+              </div>
+              <p className="star-value" aria-live="polite">
+                {rating === null
+                  ? "Choose a rating"
+                  : `${rating} out of 5 stars`}
+              </p>
+            </div>
+          </fieldset>
           <button type="submit" disabled={submitting}>
             {submitting ? "Sending…" : "Submit review"}
           </button>

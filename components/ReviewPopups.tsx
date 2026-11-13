@@ -21,7 +21,10 @@ import Stars from "./Stars";
 // pop-ups for this page load only — a refresh (or navigating to
 // another page) brings them back. It used to remember the dismiss
 // in localStorage, so once closed the pop-ups never came back; the
-// owner asked for them to return on refresh.
+// owner asked for them to return on refresh. Clicking the pop-up
+// body follows a link to the Reviews section (/#reviews, like the
+// nav "Reviews" link, so it works from /products too); the dismiss
+// X is a separate button, not inside the link.
 const ROTATE_MS = 8000;
 const FADE_MS = 500;
 
@@ -83,19 +86,22 @@ export default function ReviewPopups() {
         pausedRef.current = false;
       }}
     >
-      {/* aria-hidden: the same reviews are in full in the Reviews
-          section — this rotating copy must not interrupt screen
-          readers. The dismiss button below is outside this div so
-          it stays reachable. */}
-      <div aria-hidden="true">
-        <div className="review-popup-head">
-          <ReviewAvatar name={review.name} />
-          <strong>{review.name}</strong>
-          <Stars rating={review.rating} />
+      {/* The pop-up body is a link to the Reviews section: clicking
+          it scrolls down to the full list. The rotating text is a
+          visual duplicate of that section, so it stays aria-hidden
+          and the link carries its own label; the dismiss button
+          below is outside the link so it stays reachable. */}
+      <a href="/#reviews" className="review-popup-link" aria-label="Read all customer reviews">
+        <div aria-hidden="true">
+          <div className="review-popup-head">
+            <ReviewAvatar name={review.name} />
+            <strong>{review.name}</strong>
+            <Stars rating={review.rating} />
+          </div>
+          <p className="review-popup-text">&ldquo;{review.text}&rdquo;</p>
+          <p className="review-popup-service">{review.service}</p>
         </div>
-        <p className="review-popup-text">&ldquo;{review.text}&rdquo;</p>
-        <p className="review-popup-service">{review.service}</p>
-      </div>
+      </a>
       <button
         type="button"
         className="review-popup-close"
