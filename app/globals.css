@@ -222,6 +222,14 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 /* Hover keeps the underline only: the old rose-deep hover colour
    would fail contrast on the rose header and vanish on plum. */
 .site-nav-links a:hover { text-decoration: underline; }
+/* "Assistant" is a button, not a link (components/AssistantNavLink.tsx):
+   it opens the chat instead of navigating. It inherits the links'
+   look exactly — same colour, weight and hover underline — so it
+   reads as one of the nav links. The reset strips the global rose
+   button style; :not(:disabled) lifts both rules above the global
+   button:hover, which sits later in this file. */
+.site-nav-links button:not(:disabled) { background: none; border: 0; padding: 0; font: inherit; color: var(--nav-fg); font-weight: 600; cursor: pointer; }
+.site-nav-links button:hover:not(:disabled) { background: none; text-decoration: underline; }
 /* Right side of the header (components/SiteNav.tsx): the search box
    and the hamburger menu. margin-left: auto pushes them to the far
    right; they wrap below the nav links on a narrow screen. */
@@ -324,6 +332,25 @@ button:disabled { opacity: 0.6; cursor: default; }
 .signout-dialog::backdrop { background: rgba(61, 36, 51, 0.45); }
 .signout-dialog h2 { margin: 0 0 8px; font-size: 24px; }
 .signout-dialog p { margin: 0 0 20px; }
+
+/* --- Deals coupons (/deals) ------------------------------------------------- */
+/* Coupon dialog (components/CouponDialog.tsx): the same native <dialog>
+   pattern as the sign-out dialog above — same width, backdrop, and
+   Close button (it reuses .signout-cancel and .coupon-actions).
+   The code is big and monospaced so it reads clearly at the till.
+   The QR code on each deal card sits on a white pad so it scans in
+   either theme (the dark page would swallow a bare QR); the pad
+   stays white on hover instead of taking the rose button hover. */
+.coupon-dialog { border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 380px; max-width: 90vw; background: var(--surface); color: var(--plum); box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); }
+.coupon-dialog::backdrop { background: rgba(61, 36, 51, 0.45); }
+.coupon-dialog h2 { margin: 0 0 8px; font-size: 24px; }
+.coupon-dialog p { margin: 0 0 12px; }
+.coupon-code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 28px; font-weight: 700; letter-spacing: 0.08em; text-align: center; background: var(--pill-bg); border: 2px dashed var(--border); border-radius: 12px; padding: 12px; margin: 0 0 12px; }
+.coupon-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
+.deal-qr { display: block; margin: 12px auto 4px; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.deal-qr:hover:not(:disabled) { background: #fff; border-color: var(--hover-border); }
+.deal-qr svg { display: block; }
+.deal-coupon-btn { margin-top: 8px; }
 .signout-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
 .signout-actions form { display: inline; margin: 0; }
 .signout-cancel { background: var(--surface); color: var(--plum); border: 2px solid var(--border); }
@@ -600,10 +627,14 @@ button:disabled { opacity: 0.6; cursor: default; }
    and border like the other nav pills. The sun/moon icon is an
    inline SVG (aria-hidden); the button's aria-label names the
    action ("Switch to dark mode" / "Switch to light mode"). The
-   hamburger shows a ☰ glyph instead of an icon. */
+   hamburger shows a three-bar SVG icon (22px, a little larger
+   than the 20px theme icon) instead of a text glyph, so it is
+   centred by the button's flex layout rather than by font
+   metrics. */
 .theme-toggle, .hamburger-button { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
 .theme-toggle:hover:not(:disabled), .hamburger-button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .theme-toggle svg { width: 20px; height: 20px; }
+.hamburger-button svg { width: 22px; height: 22px; }
 
 /* Alert banners that used to be inline styles (background #fff3cd, or
    rose error text) in the auth/admin/leads/orders pages. Same colours
@@ -622,7 +653,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 [data-theme="dark"] .back-to-top:hover { background: #55404a; }
 
 /* --- Hamburger menu + header search --------------------------------------- */
-/* Hamburger menu (components/HamburgerMenu.tsx): a ☰ button at the far
+/* Hamburger menu (components/HamburgerMenu.tsx): a three-bar button at the far
    right of the header opens a dropdown panel with the account rows,
    the dark-mode toggle, the site links and the owner links. The
    panel is absolutely positioned against its wrapper, so it hangs

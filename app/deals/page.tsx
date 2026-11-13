@@ -1,8 +1,12 @@
-import { DEALS } from "@/lib/deals";
+import { Suspense } from "react";
+import DealsClient from "@/components/DealsClient";
 
 // Deals page: the current offers from lib/deals.ts, rendered as
 // cards. The offers themselves are demo content — edit
-// lib/deals.ts to change them.
+// lib/deals.ts to change them. The cards (with their QR codes and
+// the coupon dialog) are a client component because they read the
+// ?coupon= param a scanned QR code lands on; useSearchParams needs
+// the Suspense boundary below.
 export default function DealsPage() {
   return (
     <main id="main-content">
@@ -12,16 +16,9 @@ export default function DealsPage() {
         Demo offers for the sample salon — a real client replaces
         these with their own current promotions.
       </p>
-      <div className="grid">
-        {DEALS.map((deal) => (
-          <article key={deal.id} className="card">
-            <h2>{deal.title}</h2>
-            <p className="price">{deal.highlight}</p>
-            <p>{deal.description}</p>
-            <p className="dash-note">{deal.terms}</p>
-          </article>
-        ))}
-      </div>
+      <Suspense>
+        <DealsClient />
+      </Suspense>
     </main>
   );
 }

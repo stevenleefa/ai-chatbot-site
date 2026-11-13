@@ -42,20 +42,61 @@ export default function ChatWidget() {
   const stickToBottomRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const openButtonRef = useRef<HTMLButtonElement>(null);
+  // Set when the chat is closed by Escape or the ✕ button: focus
+  // must return to the "Ask Lumen" button, but that button only
+  // exists once the chat is closed, so the return has to wait for
+  // the re-render (see the [open] effect below). A nav-link close
+  // (Task D) does NOT set this — focus stays where the user clicked.
+  const returnFocusRef = useRef(false);
+
+  // Header nav control (components/AssistantNavLink.tsx +
+  // components/SiteNav.tsx): the "Assistant" nav item dispatches
+  // "lumen:open-assistant" and the chat opens — from any page, since
+  // the widget is mounted in app/layout.tsx. Clicking any other
+  // header nav link (brand, Services, Products, Reviews, Booking,
+  // a search result, or a hamburger-menu link — all anchors inside
+  // .site-nav) closes the chat. The Assistant control is a <button>,
+  // not an anchor, so it never triggers the close; clicks inside
+  // the chat itself are outside .site-nav, so typing and sending
+  // never close it either.
+  useEffect(() => {
+    function onOpenAssistant() {
+      setOpen(true);
+    }
+    function onNavClick(e: MouseEvent) {
+      const anchor = (e.target as HTMLElement).closest?.("a[href]");
+      if (anchor && anchor.closest(".site-nav")) setOpen(false);
+    }
+    window.addEventListener("lumen:open-assistant", onOpenAssistant);
+    document.addEventListener("click", onNavClick);
+    return () => {
+      window.removeEventListener("lumen:open-assistant", onOpenAssistant);
+      document.removeEventListener("click", onNavClick);
+    };
+  }, []);
 
   // When the widget opens, put focus in the question box so keyboard
-  // users can type straight away. Escape closes it and returns focus
-  // to the button that opened it.
+  // users can type straight away. When it closes after Escape or the
+  // ✕ button, return focus to the "Ask Lumen" button — which only
+  // renders once the chat is closed, so this has to happen here,
+  // after the re-render, not in the key/click handler (the ref is
+  // still null there, and the old direct focus() call was a no-op
+  // that silently dropped focus to <body>).
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) {
+      inputRef.current?.focus();
+    } else if (returnFocusRef.current) {
+      returnFocusRef.current = false;
+      openButtonRef.current?.focus();
+    }
   }, [open ]);
 
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        returnFocusRef.current = true;
         setOpen(false);
-        openButtonRef.current?.focus();
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -119,7 +160,15 @@ export default function ChatWidget() {
         <div className="chat-box" id="chat-box">
           <div className="chat-head">
             <strong>Lumen assistant</strong>
-            <button onClick={() => setOpen(false)} aria-label="Close chat">✕</button>
+            <button
+              onClick={() => {
+                returnFocusRef.current = true;
+                setOpen(false);
+              }}
+              aria-label="Close chat"
+            >
+              ✕
+            </button>
           </div>
           <div
             className="chat-messages"

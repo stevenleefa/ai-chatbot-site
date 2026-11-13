@@ -2,6 +2,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
 import SiteNav from "@/components/SiteNav";
+import ChatWidget from "@/components/ChatWidget";
 import NavHeight from "@/components/NavHeight";
 import BackToTop from "@/components/BackToTop";
 import { business } from "@/lib/business";
@@ -35,6 +36,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SiteNav />
         <NavHeight />
         {children}
+        {/* The "Ask Lumen" chat widget lives here, not on the
+            homepage, so the header's "Assistant" item can open it
+            from any page (components/AssistantNavLink.tsx). It is
+            position: fixed bottom-right, so moving it out of <main>
+            changes nothing visually. */}
+        <ChatWidget />
         <BackToTop />
       </body>
     </html>

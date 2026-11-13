@@ -1,4 +1,4 @@
-// components/HamburgerMenu.tsx — the ☰ menu at the far right of
+// components/HamburgerMenu.tsx — the hamburger menu at the far right of
 // the fixed header. Tests the behaviour only: what the panel shows
 // signed out vs signed in (staff vs admin), and that Escape closes
 // it and returns focus to the button. The sign-out dialog is NOT
@@ -122,6 +122,12 @@ describe("HamburgerMenu", () => {
     ).not.toBeInTheDocument();
     expect(document.activeElement).toBe(button);
     expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("the menu button shows a three-bar icon", () => {
+    render(<HamburgerMenu user={null} />);
+    const button = screen.getByRole("button", { name: "Open menu" });
+    expect(button.querySelector("svg")).not.toBeNull();
   });
 
   it("clicking outside closes the panel", () => {

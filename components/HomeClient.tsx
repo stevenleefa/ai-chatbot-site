@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import ChatWidget from "@/components/ChatWidget";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewPopups from "@/components/ReviewPopups";
 import ReviewAvatar from "@/components/ReviewAvatar";
@@ -174,7 +173,6 @@ export default function HomeClient({
         </ul>
       </section>
 
-      <ChatWidget />
       <ReviewPopups />
     </main>
   );

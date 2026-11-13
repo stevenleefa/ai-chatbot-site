@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HamburgerMenu, { type MenuUser } from "./HamburgerMenu";
 import SearchBox, { type SearchItem } from "./SearchBox";
+import AssistantNavLink from "./AssistantNavLink";
 import { getSession } from "@/lib/auth/session";
 import { getDisplayName, getInitials } from "@/lib/user-display";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -12,7 +13,11 @@ import { PRODUCTS, formatPrice } from "@/lib/products";
 // scrolling (position: fixed); the body padding-top in globals.css
 // reserves its height so it never covers content. Anchor links use
 // the /#section form so they work from any page, not just the
-// homepage. The right side holds the search box and the hamburger
+// homepage. "Assistant" is not an anchor: it is a button
+// (components/AssistantNavLink.tsx) that opens the Lumen Assistant
+// chat window instead of scrolling to the #assistant section, and
+// clicking any other nav link closes the chat (see
+// components/ChatWidget.tsx). The right side holds the search box and the hamburger
 // menu (components/HamburgerMenu.tsx): the menu carries the account
 // rows, the dark-mode toggle, the site links and the owner links
 // that used to sit in the header as OwnerNav pills. There is no
@@ -54,7 +59,7 @@ export default async function SiteNav() {
           <Link href="/products">Products</Link>
           <Link href="/#reviews">Reviews</Link>
           <Link href="/#booking">Booking</Link>
-          <Link href="/#assistant">Assistant</Link>
+          <AssistantNavLink />
         </nav>
         <div className="site-nav-tools">
           <SearchBox items={searchItems} />
