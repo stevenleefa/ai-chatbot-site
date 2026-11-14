@@ -25,6 +25,14 @@ import Stars from "./Stars";
 // body follows a link to the Reviews section (/#reviews, like the
 // nav "Reviews" link, so it works from /products too); the dismiss
 // X is a separate button, not inside the link.
+//
+// While the guided tour is showing, the pop-ups hide entirely:
+// components/GuidedTour.tsx sets data-tour-active on <body>, and
+// this component watches that attribute (MutationObserver) and
+// renders nothing while it is present. The rotation pauses too, so
+// the pop-ups resume exactly where they left off when the tour
+// closes. The tour tooltip sits at the bottom of the screen, so
+// the pop-ups would otherwise cover it / fight it for attention.
 const ROTATE_MS = 8000;
 const FADE_MS = 500;
 
@@ -33,6 +41,8 @@ export default function ReviewPopups() {
   const [fading, setFading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // True while the guided tour is showing (see above).
+  const [tourActive, setTourActive] = useState(false);
   const pausedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,8 +53,24 @@ export default function ReviewPopups() {
     );
   }, []);
 
+  // Watch the tour flag on <body>: the tour sets it when it opens
+  // and removes it when it closes, so the pop-ups hide for exactly
+  // the tour's lifetime and resume when it ends.
   useEffect(() => {
-    if (dismissed || reducedMotion) return;
+    function sync() {
+      setTourActive(document.body.hasAttribute("data-tour-active"));
+    }
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-tour-active"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (dismissed || reducedMotion || tourActive) return;
     function schedule() {
       timerRef.current = setTimeout(() => {
         if (pausedRef.current) {
@@ -65,9 +91,9 @@ export default function ReviewPopups() {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (swapRef.current) clearTimeout(swapRef.current);
     };
-  }, [dismissed, reducedMotion]);
+  }, [dismissed, reducedMotion, tourActive]);
 
-  if (dismissed) return null;
+  if (dismissed || tourActive) return null;
   const review = SEED_REVIEWS[index];
 
   function dismiss() {

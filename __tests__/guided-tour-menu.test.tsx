@@ -56,9 +56,9 @@ describe("HamburgerMenu guided tour rows", () => {
     render(<HamburgerMenu user={null} />);
     openMenu();
     expect(
-      screen.getByRole("button", { name: "Resume tour (step 3 of 5)" })
+      screen.getByRole("button", { name: "Resume tour (step 3 of 6)" })
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Resume tour (step 3 of 5)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Resume tour (step 3 of 6)" }));
     expect(steps).toEqual([2]);
   });
 

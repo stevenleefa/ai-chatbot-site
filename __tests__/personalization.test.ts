@@ -8,6 +8,8 @@ import {
   contrastRatio,
   parsePreferences,
   readStoredPreferences,
+  syncThemeColorMeta,
+  themeColorFor,
   validatePreferencesStrict,
   writeStoredPreferences,
   STORAGE_KEY,
@@ -172,5 +174,110 @@ describe("localStorage read/write helpers", () => {
     expect(el.getAttribute("data-high-contrast")).toBe("true");
     expect(el.getAttribute("data-reduce-motion")).toBe("true");
     expect(el.getAttribute("data-larger-text")).toBe("false");
+  });
+});
+
+describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome colour is the theme's header background, so the
+  // browser tab/address bar matches the header the customer sees.
+  it("themeColorFor is the header background for each theme and mode", () => {
+    expect(themeColorFor("plum", false)).toBe("#3d2433");
+    expect(themeColorFor("plum", true)).toBe("#a05a66");
+    expect(themeColorFor("rose", false)).toBe("#4a1524");
+    expect(themeColorFor("rose", true)).toBe("#9c3d54");
+    expect(themeColorFor("teal", false)).toBe("#0b3d3a");
+    expect(themeColorFor("teal", true)).toBe("#0f766e");
+    expect(themeColorFor("forest", false)).toBe("#0f2e1d");
+    expect(themeColorFor("forest", true)).toBe("#166534");
+    expect(themeColorFor("navy", false)).toBe("#101f33");
+    expect(themeColorFor("navy", true)).toBe("#1e3a5f");
+  });
+
+  it("themeColorFor agrees with the theme's nav-bg fields", () => {
+    for (const t of Object.values(THEMES)) {
+      expect(themeColorFor(t.id, false)).toBe(t.navBgLight);
+      expect(themeColorFor(t.id, true)).toBe(t.navBgDark);
+    }
+  });
+
+  function metaTag(): HTMLMetaElement {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    return meta;
+  }
+
+  it("syncThemeColorMeta writes the tag from the theme + mode on <html>", () => {
+    const el = document.documentElement;
+    el.setAttribute("data-personalization-theme", "navy");
+    el.setAttribute("data-theme", "dark");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#1e3a5f");
+    el.setAttribute("data-theme", "light");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#101f33");
+  });
+
+  it("applyPreferences syncs the theme-color tag as well as the data attributes", () => {
+    document.documentElement.setAttribute("data-theme", "light");
+    applyPreferences({ ...DEFAULT_PREFERENCES, theme: "teal" });
+    expect(metaTag().getAttribute("content")).toBe("#0b3d3a");
+  });
+
+  it("syncThemeColorMeta creates the tag when it is missing", () => {
+    document.querySelector('meta[name="theme-color"]')?.remove();
+    document.documentElement.setAttribute("data-personalization-theme", "rose");
+    document.documentElement.setAttribute("data-theme", "light");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#4a1524");
+  });
+});
+
+describe("font-size scaling (rem, root font-size)", () => {
+  // The size choice sets the root font-size on <html> and every
+  // text size in app/globals.css is in rem, so the whole site
+  // scales — body, headings, buttons, inputs, tables, the brand,
+  // hero text, chat messages, review stars, badges, the small
+  // muted notes, the hamburger menu and the nav. jsdom does not
+  // apply the stylesheet, so this guards the CSS itself: the root
+  // rules exist with the right px values, and no other font-size
+  // is in px (a px font-size would not scale with the root).
+  function globalsCss(): string {
+    const fs = require("fs");
+    const path = require("path");
+    return fs.readFileSync(
+      path.join(__dirname, "..", "app", "globals.css"),
+      "utf8"
+    ) as string;
+  }
+
+  it("the root font-size rules exist for small, large and larger-text", () => {
+    const css = globalsCss();
+    expect(css).toContain('html[data-font-size="small"] { font-size: 15px; }');
+    expect(css).toContain('html[data-font-size="large"] { font-size: 18px; }');
+    expect(css).toContain('html[data-larger-text="true"] { font-size: 19px; }');
+  });
+
+  it("no font-size outside the root rules is in px", () => {
+    const css = globalsCss();
+    const pxSizes = [...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(
+      (m) => m[0]
+    );
+    // Only the three root rules above may use px.
+    expect(pxSizes).toHaveLength(3);
+    expect(pxSizes).toEqual([
+      "font-size: 15px",
+      "font-size: 18px",
+      "font-size: 19px",
+    ]);
+  });
+
+  it("the hero h1 clamp uses rem, so it scales with the root", () => {
+    const css = globalsCss();
+    const h1 = css.match(/\.hero-content h1 \{[^}]*\}/);
+    expect(h1).not.toBeNull();
+    expect(h1![0]).toContain("clamp(2.5rem, 6vw, 4rem)");
   });
 });

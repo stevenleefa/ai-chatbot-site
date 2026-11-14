@@ -1,7 +1,7 @@
-// Guided-tour helper tests (lib/tour.ts). The five steps, the
+// Guided-tour helper tests (lib/tour.ts). The six steps, the
 // step navigation, and the localStorage progress (resume /
 // restart / never-started). The component's DOM work (scrolling,
-// focus) is tested in GuidedTour.test.tsx.
+// focus, highlight) is tested in GuidedTour.test.tsx.
 import {
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
@@ -15,11 +15,12 @@ import {
 } from "@/lib/tour";
 
 describe("TOUR_STEPS", () => {
-  it("has five steps in order: services, booking, shop, account, referral", () => {
+  it("has six steps in order: services, booking, shop, featured, account, referral", () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual([
       "services",
       "booking",
       "shop",
+      "featured",
       "account",
       "referral",
     ]);
@@ -33,8 +34,14 @@ describe("TOUR_STEPS", () => {
     }
   });
 
+  it("the featured step targets the Featured section on /products", () => {
+    const featured = TOUR_STEPS[3];
+    expect(featured.href).toBe("/products");
+    expect(featured.selector).toBe(".featured-section");
+  });
+
   it("the referral step targets the account page and its referral heading", () => {
-    const referral = TOUR_STEPS[4];
+    const referral = TOUR_STEPS[5];
     expect(referral.href).toBe("/my-account");
     expect(referral.heading).toBe("Refer");
   });
@@ -43,7 +50,8 @@ describe("TOUR_STEPS", () => {
 describe("nextStepIndex / prevStepIndex", () => {
   it("advances and retreats, returning null at the ends", () => {
     expect(nextStepIndex(0)).toBe(1);
-    expect(nextStepIndex(4)).toBeNull();
+    expect(nextStepIndex(4)).toBe(5);
+    expect(nextStepIndex(5)).toBeNull();
     expect(prevStepIndex(1)).toBe(0);
     expect(prevStepIndex(0)).toBeNull();
   });
@@ -66,7 +74,7 @@ describe("tour progress", () => {
   });
 
   it("does not offer a resume when finished (the menu offers Restart instead)", () => {
-    saveTourProgress({ completed: 5, finished: true });
+    saveTourProgress({ completed: 6, finished: true });
     expect(resumeStepIndex(getTourProgress())).toBeNull();
   });
 

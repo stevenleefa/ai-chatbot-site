@@ -306,6 +306,48 @@ export function validatePreferencesStrict(input: unknown): {
   return { ok: errors.length === 0, errors, preferences: parsePreferences(obj) };
 }
 
+// --- Browser chrome colour (theme-color) ----------------------------------
+// The <meta name="theme-color"> tag is the hint Safari and Chrome
+// use to tint the browser chrome (Safari tab bar, mobile
+// Safari/Chrome address bar). It is a hint, not a command: browsers
+// may tint the chrome but desktop behaviour varies, and it never
+// recolours the whole browser window. The value here is the theme's
+// header background (--nav-bg) for the current light/dark mode, so
+// the chrome matches the header the customer sees. It is updated
+// whenever the theme or the light/dark mode changes (see
+// applyPreferences + syncThemeColorMeta + the MutationObserver in
+// components/PersonalizationProvider.tsx) and before first paint by
+// the pre-paint script below, so the chrome never shows the wrong
+// colour on load.
+
+/** Header background for a theme + mode — the theme-color value. */
+export function themeColorFor(theme: ThemeId, dark: boolean): string {
+  const def = THEMES[theme] ?? THEMES.plum;
+  return dark ? def.navBgDark : def.navBgLight;
+}
+
+/**
+ * Write the theme-color meta tag to match the theme and light/dark
+ * mode currently on <html>. Creates the tag if it is missing (the
+ * layout renders it, so this is only a fallback). No-op when there
+ * is no document (server render).
+ */
+export function syncThemeColorMeta(): void {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  const themeAttr = el.getAttribute("data-personalization-theme");
+  const theme: ThemeId = isThemeId(themeAttr) ? themeAttr : "plum";
+  const dark = el.getAttribute("data-theme") === "dark";
+  const color = themeColorFor(theme, dark);
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", color);
+}
+
 // --- Storage + application ------------------------------------------------
 
 /** Read the saved preferences from localStorage (defaults on any failure). */
@@ -336,7 +378,11 @@ export function writeStoredPreferences(prefs: PersonalizationPreferences): void 
  * Apply preferences to <html> as data attributes. The CSS in
  * app/globals.css reads these; the pre-paint script
  * (PERSONALIZATION_PREPAINT_SCRIPT) sets the same attributes before
- * first paint so there is no flash of the default theme.
+ * first paint so there is no flash of the default theme. The
+ * browser chrome colour (theme-color meta tag) is synced here too,
+ * so it follows the theme — and the light/dark mode, which the
+ * MutationObserver in components/PersonalizationProvider.tsx
+ * watches for (toggling dark mode does not call this function).
  */
 export function applyPreferences(prefs: PersonalizationPreferences): void {
   if (typeof document === "undefined") return;
@@ -347,6 +393,7 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
   el.setAttribute("data-high-contrast", String(prefs.highContrast));
   el.setAttribute("data-reduce-motion", String(prefs.reduceMotion));
   el.setAttribute("data-larger-text", String(prefs.largerText));
+  syncThemeColorMeta();
 }
 
 // Pre-paint script (mirrors the dark-mode THEME_SCRIPT in
@@ -356,4 +403,4 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
 // value against the allowlists inline (never trust stored input) and
 // falls back to the defaults on any failure. The coordinator renders
 // it via <PersonalizationScript /> — see PERSONALIZATION.md.
-export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));}catch(e){}})();`;
+export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;

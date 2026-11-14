@@ -223,3 +223,23 @@ describe("HamburgerMenu", () => {
     );
   });
 });
+
+describe("menu panel scrolling", () => {
+  // The panel is a CSS-only behaviour (jsdom does not apply the
+  // stylesheet), so this guards the rule in app/globals.css: the
+  // panel has a max-height below the viewport and scrolls
+  // (overflow-y: auto) when its rows are taller than the screen,
+  // so the bottom owner rows are reachable on small viewports.
+  it("the .menu-panel rule caps its height and scrolls", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const css = fs.readFileSync(
+      path.join(__dirname, "..", "app", "globals.css"),
+      "utf8"
+    ) as string;
+    const rule = css.match(/\.menu-panel \{[^}]*\}/);
+    expect(rule).not.toBeNull();
+    expect(rule![0]).toContain("max-height:");
+    expect(rule![0]).toContain("overflow-y: auto");
+  });
+});

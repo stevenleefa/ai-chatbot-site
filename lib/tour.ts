@@ -1,12 +1,18 @@
 // Guided tour — steps and progress helpers.
 //
 // The tour (components/GuidedTour.tsx) walks a customer through
-// the site in five steps. Each step names the page to go to and
+// the site in six steps. Each step names the page to go to and
 // the element to scroll to; the component does the navigating.
 // Progress lives in localStorage under TOUR_STORAGE_KEY so a
 // mid-tour close can be resumed: `completed` counts finished
-// steps (0–5) and `finished` is set only by reaching the end.
+// steps (0–6) and `finished` is set only by reaching the end.
 // Closing mid-tour saves the count but never marks it finished.
+//
+// While a step is showing, the tour also highlights its target
+// element (components/GuidedTour.tsx adds the "tour-highlight"
+// class) and hides the bottom-left review pop-ups
+// (components/ReviewPopups.tsx watches the "data-tour-active"
+// attribute the tour sets on <body>).
 //
 // Pure helpers are unit-tested (see __tests__/tour.test.ts); the
 // component itself owns the DOM work (scrolling, focus).
@@ -49,6 +55,13 @@ export const TOUR_STEPS: TourStep[] = [
     selector: ".product-grid",
   },
   {
+    id: "featured",
+    title: "Featured product",
+    text: "Each week one product is featured — right now it is the Colour-care mask ($32), a weekly deep mask for coloured hair. The featured product changes from time to time.",
+    href: "/products",
+    selector: ".featured-section",
+  },
+  {
     id: "account",
     title: "Your account",
     text: "Your account shows your bookings and orders, matched to your email. Sign in from the menu to see yours.",
@@ -67,7 +80,7 @@ export const TOUR_STEPS: TourStep[] = [
 export const TOUR_STORAGE_KEY = "lumen-tour";
 
 export type TourProgress = {
-  completed: number; // steps finished, 0–5
+  completed: number; // steps finished, 0–6
   finished: boolean; // true only when the last step was completed
 };
 

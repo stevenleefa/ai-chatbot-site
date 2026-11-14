@@ -49,18 +49,29 @@ text in dark mode.
   - *Clean*: Inter for headings and body.
   - *Readable*: Georgia serif headings, system sans body.
 - **Text size** — Small / Medium / Large. Medium is the site as it
-  is (16px body, 34px section headings, 14px buttons). Small is
-  ~0.9× (15px / 30px / 13px), Large ~1.15× (18px / 39px / 16px).
-  The site uses px in many places, so a root font-size change alone
-  would scale almost nothing — the sizes are targeted rules in
-  `app/globals.css` instead. **What scales:** body text, section
-  headings, buttons, form inputs, the brand, hero text and dashboard
-  tables. **What does not scale:** the hero h1 (`clamp()` px), chat
-  messages, review stars, badges and the small muted notes — they
-  keep their px sizes.
+  is (16px root, the browser default). Small is 15px root (~0.94×),
+  Large is 18px root (~1.13×). The size sets the root font-size on
+  `<html>` and every text size in `app/globals.css` is in `rem`, so
+  the size scales **everywhere** — body, headings, buttons, form
+  inputs, the brand, hero text (including the h1 `clamp()`),
+  dashboard tables, chat messages, review stars, badges, the small
+  muted notes, the hamburger menu and the nav. Because the sizes
+  are `rem`, the Medium rendering is unchanged (1rem is 16px).
+  The chart axis labels (`components/LineChart.tsx`, SVG
+  presentation attributes) are the only text that does not scale —
+  they are data labels, not body text.
+- **Browser chrome colour** — the `<meta name="theme-color">` tag
+  follows the theme: it is the theme's header background
+  (`--nav-bg`) for the current light/dark mode, so the browser's
+  tab/address bar tints to match the header (Safari tab bar,
+  mobile Safari/Chrome address bar). It updates whenever the theme
+  or the light/dark mode changes, and before first paint, so the
+  chrome never shows the wrong colour on load. It is a hint —
+  browsers may tint the chrome but desktop behaviour varies, and
+  it never recolours the whole browser window.
 - **Larger text** — a stronger boost on top of the size choice
-  (19px body, 40px headings, 1.7 line-height). When both are set,
-  the larger-text sizes win on the same elements.
+  (19px root, 1.7 line-height). When both are set, the larger-text
+  root wins.
 - **High contrast** — darker body text (`#1a0f16` light / white dark)
   and muted text, stronger borders and input borders, a thicker
   focus ring and 2px card borders, in both light and dark mode.
@@ -126,9 +137,10 @@ the existing dark-mode pre-paint script.
 
 | File | What it does |
 |---|---|
-| `lib/personalization.ts` | Themes + ratios, font/size options, validation (lenient parse + strict API check), localStorage helpers, `applyPreferences`, the pre-paint script string. Pure + client-safe. |
+| `lib/personalization.ts` | Themes + ratios, font/size options, validation (lenient parse + strict API check), localStorage helpers, `applyPreferences`, the pre-paint script string, and the browser chrome colour (`themeColorFor` + `syncThemeColorMeta`). Pure + client-safe. |
 | `components/PersonalizationSettings.tsx` | The settings panel (radios + checkboxes, immediate apply + save). |
-| `components/PersonalizationProvider.tsx` | Mount-time applier (no UI) + `PersonalizationScript` for `<head>`. |
+| `components/PersonalizationProvider.tsx` | Mount-time applier (no UI) + `PersonalizationScript` for `<head>`; watches `data-theme` so the chrome colour follows dark/light toggles too. |
+| `components/GuidedTour.tsx` | Six-step tour; highlights each step's target (`tour-highlight` outline) and sets `data-tour-active` on `<body>` while showing, which hides the review pop-ups. |
 | `app/api/preferences/route.ts` | GET / POST, session user id only, strict validation, rate-limited. |
 | `supabase/customer-preferences-schema.sql` | The table (run once — see above). |
 | `app/my-account/page.tsx` | "Display settings" section rendering the panel. |
@@ -142,8 +154,12 @@ the existing dark-mode pre-paint script.
   buttons and accent text change at once, in both light and dark
   mode; reload and the choice is still there.
 - Fonts: Clean makes headings Inter; Readable makes them Georgia.
-  Sizes: Small shrinks and Large grows body text, headings, buttons
-  and inputs (hero h1 and chat text stay put — see above).
+  Sizes: Small shrinks and Large grows **all** text on the site —
+  body, headings, buttons, inputs, chat messages, badges, the
+  menu and the nav (the hero h1 and chat text scale now too).
+- Browser chrome: the tab/address bar tints to the theme's header
+  colour in light and dark mode; switching theme or dark mode
+  re-tints it at once.
 - Accessibility: Larger text grows text further; High contrast
   darkens text and strengthens borders; Reduce motion stops the hero
   zoom and card transitions even with the OS set to full motion.
