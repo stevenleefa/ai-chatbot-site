@@ -54,10 +54,18 @@ text in dark mode.
   Large is 18px root (~1.13×). The size sets the root font-size on
   `<html>` and every text size in `app/globals.css` is in `rem`, so
   the size scales **everywhere** — body, headings, buttons, form
-  inputs, the brand, hero text (including the h1 `clamp()`),
-  dashboard tables, chat messages, review stars, badges, the small
-  muted notes, the hamburger menu and the nav. Because the sizes
-  are `rem`, the Medium rendering is unchanged (1rem is 16px).
+  inputs, select dropdowns, the brand, hero text (including the h1
+  `clamp()`), dashboard tables, chat messages, review stars, badges,
+  the small muted notes, the hamburger menu and the nav. Because the
+  sizes are `rem`, the Medium rendering is unchanged (1rem is 16px).
+  Selects needed their own rule (`select { font-size: 1rem }` in
+  `app/globals.css`): Safari's UA stylesheet gives a `<select>` a
+  fixed size (`font: -webkit-small-control`) that ignores the root
+  font-size, so the settings-panel dropdowns (voice, speed, pitch,
+  stylist), the reschedule time picker and the owner selects stayed
+  the same size when the font size changed. The rule covers every
+  select on the site and agrees with the lead-form controls, which
+  already used `1rem`.
   The chart axis labels (`components/LineChart.tsx`, SVG
   presentation attributes) are the only text that does not scale —
   they are data labels, not body text.
@@ -67,12 +75,27 @@ text in dark mode.
   tab/address bar tints to match the header (Safari tab bar,
   mobile Safari/Chrome address bar). It updates whenever the theme
   or the light/dark mode changes, and before first paint, so the
-  chrome never shows the wrong colour on load. It is a hint —
-  browsers may tint the chrome but desktop behaviour varies, and
-  it never recolours the whole browser window.
+  chrome never shows the wrong colour on load. The update replaces
+  the tag with a fresh node instead of changing its `content` in
+  place: Safari on macOS does not reliably re-tint when the
+  attribute is mutated, so the old code only showed the new colour
+  after a reload. The fresh node makes Safari re-read it, so the
+  tint follows a theme change immediately, without a reload. Live
+  re-tinting on desktop Safari is untested in the workspace (no
+  Safari here) — confirm by eye on a Mac: pick a theme in
+  `/settings` and watch the tab bar tint change without reloading.
+  It is a hint — browsers may tint the chrome but desktop
+  behaviour varies, and it never recolours the whole browser
+  window.
 - **Larger text** — a stronger boost on top of the size choice
   (19px root, 1.7 line-height). When both are set, the larger-text
-  root wins.
+  root wins — so while Larger text is on, the Small and Medium
+  text sizes have no visible effect. They are disabled instead of
+  left clickable: each shows a popover ("Larger text is on" /
+  "Turn off Larger text to choose Small or Medium.") on hover and
+  on keyboard focus (the disabled radio cannot take focus, so the
+  popover wrapper takes the tab stop). Turn Larger text off and
+  Small and Medium work again. Large is unchanged.
 - **High contrast** — darker body text (`#1a0f16` light / white dark)
   and muted text, stronger borders and input borders, a thicker
   focus ring and 2px card borders, in both light and dark mode.

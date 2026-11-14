@@ -49,9 +49,15 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
   highContrast: false,
   reduceMotion: false,
   largerText: false,
-  voiceURI: null,
+  // The default voice is Samantha, a macOS system voice, stored by
+  // name so findVoiceByUri (lib/speech.ts) resolves it on a Mac.
+  // Where no voice by that name exists it falls back gracefully
+  // to the first English voice / browser default, exactly as a
+  // saved voice from another device does. Null (browser default)
+  // is still what "Default voice" in the picker stores.
+  voiceURI: "Samantha",
   voiceRate: 1,
-  voicePitch: 1,
+  voicePitch: 1.25,
   preferredStylist: null,
   emailNotifications: true,
 };
@@ -453,7 +459,14 @@ export function validatePreferencesStrict(input: unknown): {
 // applyPreferences + syncThemeColorMeta + the MutationObserver in
 // components/PersonalizationProvider.tsx) and before first paint by
 // the pre-paint script below, so the chrome never shows the wrong
-// colour on load.
+// colour on load. The update REPLACES the tag with a fresh node
+// rather than changing its content attribute in place: Safari on
+// macOS does not reliably re-tint the tab bar when the attribute
+// is mutated — it only picks the new colour up on reload — while
+// inserting a fresh tag forces Safari to re-read it, so the chrome
+// follows a theme change immediately, without a reload. Live
+// re-tinting on desktop Safari cannot be verified in the workspace
+// (no Safari here); confirm by eye on a Mac.
 
 /** Header background for a theme + mode — the theme-color value. */
 export function themeColorFor(theme: ThemeId, dark: boolean): string {
@@ -466,6 +479,16 @@ export function themeColorFor(theme: ThemeId, dark: boolean): string {
  * mode currently on <html>. Creates the tag if it is missing (the
  * layout renders it, so this is only a fallback). No-op when there
  * is no document (server render).
+ *
+ * The tag is REPLACED with a fresh node on every sync, not mutated
+ * in place: Safari on macOS does not reliably re-tint the tab bar
+ * when the meta tag's content attribute changes — it only picks
+ * the new colour up on reload. Removing the old tag and inserting
+ * a new one forces Safari to re-read it, so the chrome follows a
+ * theme change immediately, without a reload. (Live re-tinting
+ * cannot be verified in the workspace — no Safari here; confirm
+ * by eye on a Mac: pick a theme in /settings and watch the tab
+ * bar tint change without reloading.)
  */
 export function syncThemeColorMeta(): void {
   if (typeof document === "undefined") return;
@@ -474,13 +497,15 @@ export function syncThemeColorMeta(): void {
   const theme: ThemeId = isThemeId(themeAttr) ? themeAttr : "plum";
   const dark = el.getAttribute("data-theme") === "dark";
   const color = themeColorFor(theme, dark);
-  let meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) {
-    meta = document.createElement("meta");
-    meta.setAttribute("name", "theme-color");
+  const meta = document.createElement("meta");
+  meta.setAttribute("name", "theme-color");
+  meta.setAttribute("content", color);
+  const old = document.querySelector('meta[name="theme-color"]');
+  if (old) {
+    old.replaceWith(meta);
+  } else {
     document.head.appendChild(meta);
   }
-  meta.setAttribute("content", color);
 }
 
 // --- Storage + application ------------------------------------------------

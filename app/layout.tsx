@@ -43,11 +43,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* Browser chrome colour (theme-color): the hint Safari and
             Chrome use to tint the tab/address bar. The default here
             is the plum light header (#3d2433); the personalization
-            pre-paint script and applyPreferences update it to the
-            customer's theme + light/dark mode (see
-            lib/personalization.ts themeColorFor). It is a hint —
-            browsers may tint the chrome but desktop behaviour
-            varies; it never recolours the whole browser window. */}
+            pre-paint script sets it before first paint, and
+            applyPreferences replaces the tag with a fresh node on
+            a theme change, so Safari re-reads it immediately
+            (see lib/personalization.ts themeColorFor +
+            syncThemeColorMeta). It is a hint — browsers may tint
+            the chrome but desktop behaviour varies; it never
+            recolours the whole browser window. */}
         <meta name="theme-color" content="#3d2433" />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <PersonalizationScript />
