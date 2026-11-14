@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { saveLead } from "@/lib/leads";
+import { recordReferralBooking, redeemReferralCredit } from "@/lib/referrals";
 import { emitEvent } from "@/lib/events";
 import {
   clientIp,
@@ -110,6 +112,46 @@ export async function POST(req: Request) {
   // request is both a new lead (CRM) and a new appointment (diary),
   // so both events fire. Fire-and-forget — the response does not
   // wait for n8n.
+  //
+  // Referral attribution: when the lead was actually saved AND the
+  // visitor arrived on a referral link (the `lumen-ref` cookie the
+  // ReferralBanner stored) AND the contact looks like an email,
+  // credit the referrer — the friend's booking completes the
+  // referral and earns the referrer 50% off their next haircut.
+  // recordReferralBooking never throws, and this is wrapped too, so
+  // a referral failure can never fail the booking response. The
+  // duplicate branch above returns early on purpose: the original
+  // submit already attributed the booking.
+  if (result.saved && typeof contact === "string" && contact.includes("@")) {
+    try {
+      const refCode = cookies().get("lumen-ref")?.value;
+      if (refCode) {
+        await recordReferralBooking(refCode, contact);
+      }
+    } catch {
+      // Referral attribution is best-effort — never fail a booking.
+    }
+  }
+  // Referral redemption: the credit is real, not just a claim. When
+  // the referrer themself books a Haircut with an email contact and
+  // holds a completed referral credit, spend it — the oldest
+  // completed referral becomes 'redeemed', so the 50% off applies
+  // to this haircut only, once. Best-effort and wrapped, like the
+  // attribution above: a redemption failure never fails the booking.
+  // (The duplicate branch returns early above on purpose, so a
+  // double-submit cannot redeem the same credit twice.)
+  if (
+    result.saved &&
+    typeof contact === "string" &&
+    contact.includes("@") &&
+    /haircut/i.test(service)
+  ) {
+    try {
+      await redeemReferralCredit(contact);
+    } catch {
+      // Redemption is best-effort — never fail a booking.
+    }
+  }
   const event = { saved: result.saved, name, contact, service, message: message ?? undefined };
   void emitEvent("lead.created", event);
   void emitEvent("appointment.booked", event);

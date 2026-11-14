@@ -12,10 +12,11 @@ what was fixed, and what is still only provable on a signed-in clone.
 
 ## Dark mode (2026-11-11)
 
-A light/dark switch sits in the fixed top nav on every page. Files:
-`components/ThemeToggle.tsx` (the button, a client component),
-`app/layout.tsx` (the pre-paint script), `app/globals.css` (all colours),
-`components/LineChart.tsx` (chart series colours).
+A light/dark switch sits in the hamburger menu on every page (the
+Dark mode row). Files: `components/ThemeToggle.tsx` (the row button,
+a client component), `app/layout.tsx` (the pre-paint script),
+`app/globals.css` (all colours), `components/LineChart.tsx` (chart
+series colours).
 
 ### How the toggle works
 
@@ -29,12 +30,17 @@ A light/dark switch sits in the fixed top nav on every page. Files:
   only keeps the attribute, localStorage and the icon in sync after
   that. `<html>` carries `suppressHydrationWarning` for this one
   attribute, which the script sets before React hydrates.
-- The toggle is a real `<button>` (40×40px circle, sun icon in dark
-  mode, moon icon in light mode), keyboard-reachable, with an
-  `aria-label` that names the action ("Switch to dark mode" /
-  "Switch to light mode") and `aria-pressed`. It uses the standard
+- The toggle is the Dark mode row in the hamburger menu: one real
+  `<button>` for the whole row (label on the left, the 40×40px icon
+  circle on the right), keyboard-reachable, with the standard
   `:focus-visible` double ring — the white inner ring is what reads
-  against dark surfaces.
+  against dark surfaces. The label names the mode the row switches
+  TO ("Dark mode" in light mode, "Light mode" in dark mode) and the
+  icon matches (moon when offering dark, sun when offering light).
+  The accessible name is the same action ("Switch to dark mode" /
+  "Switch to light mode") with `aria-pressed`, so a screen reader
+  hears the same thing the label says. There is no nested button
+  inside the row.
 - Every colour goes through CSS variables in `app/globals.css`: the
   light values are the exact colours the site already used, so light
   mode is unchanged, and `:root[data-theme="dark"]` overrides them.
@@ -107,6 +113,31 @@ so the visual proof — toggle, system-default behaviour, charts,
 pop-ups and chat in dark, and no light-mode regressions — still needs
 a signed-in clone.
 
+### Header colour (2026-11-12)
+
+The fixed top nav used to be the page colour (`--cream`) with no
+vertical padding, so it did not read as a bar and the theme-toggle
+icon touched its top and bottom edges. The header is now plum in
+light mode and rose in dark mode, chosen by the owner after trying
+all three colours live on a temporary switcher (since removed). The
+nav inner has 12px of top/bottom padding (was `0 24px`); the height
+is measured by `NavHeight.tsx`, so body padding-top follows
+automatically, and no min-height was added to the header. The brand,
+nav links and the signed-out "Owner sign in" link all use
+`--nav-fg`; link hover keeps the underline and does not change
+colour. The signed-in owner pills in the header use `--nav-fg` as a
+solid pill with `--nav-bg` text, because the rose gradient would
+disappear on the rose dark-mode header.
+
+| Pair | Foreground on background | Ratio | Bar |
+|---|---|---|---|
+| Cream on plum header (light mode) | `#fdf8f1` on `#3d2433` | 13.26:1 | 4.5:1 |
+| White on rose header (dark mode) | `#ffffff` on `#a05a66` | 5.06:1 | 4.5:1 |
+
+Both pairs were computed with a relative-luminance script. The
+header also reads as a band against the page in both modes (plum on
+the cream page in light mode; rose on the dark page is 3.40:1).
+
 ## What was changed (2026-11-10)
 
 ### Contrast — colours darkened just enough to pass
@@ -151,6 +182,73 @@ deeper, which is what makes the white button text pass.
 - Placeholder text in inputs now meets contrast too
   (`::placeholder` `#6b5560`).
 
+### Header focus order (2026-11-13)
+
+Audited after a report that Tab started in the search bar instead of
+on the "Lumen Hair Studio" brand. The site's order was already
+correct — the cause is Safari, not the site (see below). Verified
+in code:
+
+- DOM order in the fixed header is brand → nav links (Services,
+  Products, Reviews, Booking, Assistant) → search box → hamburger
+  button. The skip link comes first (see above). Tab then continues
+  into the page content, and the chat widget ("Ask Lumen") is one of
+  the last stops on every page (it is mounted in `app/layout.tsx`).
+- When the hamburger menu is open, its panel renders directly after
+  the button, so Tab goes down through the menu rows in order; when
+  it is closed the panel is not in the DOM at all, so its links are
+  never tab stops. Escape closes it and returns focus to the button.
+- No `autofocus` anywhere except the Cancel button inside a modal
+  dialog (the safe choice there — see the sign-out and coupon
+  dialogs). No positive `tabindex` anywhere; the only `tabIndex={0}`
+  stops are scrollable regions (chat log, table wrappers) — plus, in
+  Test Admin Mode only, the demo-popover wrappers around disabled
+  controls (see below).
+- The `:focus-visible` double ring (white outline + navy shadow)
+  applies to every focusable element, including the header links,
+  the search input and dropdown, the menu rows, and the chat.
+- **Why Safari seemed to start in the search bar:** Safari by
+  default only Tabs to text fields and skips links and buttons, so
+  the first Tab lands on the search input (the first text field)
+  and the brand and nav links are skipped entirely. That is a
+  browser setting, not something the site can change: Safari >
+  Settings > Advanced > Accessibility > tick "Press Tab to
+  highlight each item on a webpage". With it on, Tab starts on the
+  brand as above. (WCAG 2.4.3 — the site's focus order is
+  meaningful and sequential; 2.1.1 — every control is keyboard
+  reachable; 2.4.7 — focus is always visible.)
+- **Bug found and fixed in this audit:** closing the chat with
+  Escape or the ✕ button dropped focus to `<body>` — the Escape
+  handler tried to focus the "Ask Lumen" button while the chat was
+  still open (the button only renders once the chat is closed, so
+  the ref was null and the focus call was a no-op), and the ✕
+  button returned focus nowhere. Closing now returns focus to the
+  "Ask Lumen" button after the re-render. The earlier claim in this
+  doc that Escape returned focus was wrong until this fix.
+- Known limit: the search combobox has no arrow-key navigation
+  (Tab reaches the results, so every result is keyboard reachable
+  under 2.1.1, but the ARIA combobox pattern expects arrow keys).
+
+### Demo popover (2026-11-13)
+
+In Test Admin Mode, every disabled control carries a "For demo
+purposes only" popover (`components/DemoPopover.tsx`). A disabled
+element cannot take focus or fire pointer events, so the popover's
+wrapper is the tab stop (`tabIndex={0}`) and takes the site's usual
+`:focus-visible` double ring; it carries the description
+(`aria-describedby`, `role="tooltip"`) so a screen reader announces
+it on focus. The Test Admin Mode menu entry is a working link, so
+the link itself is the tab stop and carries the description. The
+popover shows on hover and on focus, hides on mouse-leave, blur and
+Escape, and appears instantly (no fade) under
+`prefers-reduced-motion`. White on plum-deep is 13.26:1 in light
+mode and about 10:1 in dark mode. It only ever exists in demo mode
+— a signed-in admin's buttons render with no popover at all.
+(WCAG 2.1.1 — every disabled control's reason is keyboard
+reachable; 2.4.7 — focus is always visible; 1.4.13 — the popover
+content is available on hover and focus, and dismissible with
+Escape.)
+
 ### Landmarks, labels and live regions
 
 - The homepage nav is `<nav aria-label="Main">`; the owner nav is
@@ -165,7 +263,10 @@ deeper, which is what makes the white button text pass.
   keyboard-focusable (`tabIndex={0}`) so a keyboard user can scroll
   back through the conversation. Opening the chat moves focus into
   the question box; Escape closes it and returns focus to the
-  "Ask Lumen" button. The chat open button now has
+  "Ask Lumen" button. Clicking anywhere outside the chat panel also
+  closes it (clicks inside the panel, the "Ask Lumen" button and the
+  Assistant nav button are excluded — the Assistant click is what
+  opens it). The chat open button now has
   `aria-expanded` / `aria-controls`.
 - Decorative emoji and arrows (✂️, 💬, →) are `aria-hidden="true"`.
 - Scrollable regions are keyboard-focusable: the sortable-table wrapper
@@ -240,18 +341,27 @@ deeper, which is what makes the white button text pass.
 
 ## Keyboard walkthrough (checked in code — see limits)
 
-Tab from the top of the homepage: skip link → main nav (Services,
-Book, AI assistant, owner sign-in) → hero "Book an appointment" →
-services → booking form (name → phone/email → service → message →
-Request booking) → chat open button → (open) question box, send,
-close, Escape returns focus. On owner pages: owner nav buttons
-(Dashboard, Leads, Customers, Appointments, Employees, Admin for
-admins, Sign out) → dashboard tabs (one Tab stop, arrows move
-between sections) → sortable headers (Enter/Space sorts, ▲/▼
-announced) → appointments view tabs (arrows) → stylist checkboxes
-(Tab, Space toggles) → calendar appointment links (Tab, Enter opens the
-customer page) → diary links. No keyboard traps: every stop is a
-native button, link, input, or checkbox; nothing captures Tab.
+Tab from the top of the homepage: skip link → brand ("Lumen Hair
+Studio") → nav links (Services, Products, Reviews, Booking,
+Assistant — Assistant opens the chat instead of navigating) →
+search box (typing opens the results; Tab reaches them) → hamburger
+button → (menu open) menu rows in order, Escape returns focus →
+hero "Book an appointment" → services → booking form (name →
+service → message → phone/email → Request booking) → review form
+(name → service → review → rating → Submit review) → assistant
+section → reviews → review pop-up link (and its dismiss button) →
+chat open button ("Ask Lumen") → (open) question box, suggested
+questions, send, close; Escape or ✕ closes and returns focus to
+"Ask Lumen". Clicking another header nav link while the chat is
+open closes it. On owner pages: the owner links live in the
+hamburger menu (Dashboard, Leads, Customers, Appointments,
+Employees, Orders, Admin for admins, Sign out) → dashboard tabs
+(one Tab stop, arrows move between sections) → sortable headers
+(Enter/Space sorts, ▲/▼ announced) → appointments view tabs
+(arrows) → stylist checkboxes (Tab, Space toggles) → calendar
+appointment links (Tab, Enter opens the customer page) → diary
+links. No keyboard traps: every stop is a native button, link,
+input, or checkbox; nothing captures Tab.
 
 ## Known limits — what could NOT be verified here
 
@@ -340,3 +450,16 @@ native button, link, input, or checkbox; nothing captures Tab.
   straight there under `prefers-reduced-motion`. It sits at the
   bottom centre so it never covers the chat widget (bottom-right)
   or the review pop-ups (bottom-left).
+- **Hamburger menu and Assistant (2026-11-13):** the menu button is
+  a three-bar SVG icon (22px) in the same 40px circle as the theme
+  toggle; the panel is a plain `<nav>` of links and buttons (see
+  "Header focus order" above for the Tab order). "Assistant" in the
+  header is a `<button>` styled exactly like the other nav links —
+  it opens the chat window instead of navigating, so it is a real
+  button in the Tab order rather than a link to `#assistant`.
+- **Coupon dialog** (`/deals`, `components/CouponDialog.tsx`,
+  2026-11-13): a native `<dialog>` like the sign-out one — Escape
+  and backdrop click close it, the Close button is focused on open,
+  and closing returns focus to the QR code or "Show coupon" button
+  that opened it. The QR code itself is a button (labelled "Show
+  coupon for …"), so it is in the Tab order and announces itself.

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import ChatWidget from "@/components/ChatWidget";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewPopups from "@/components/ReviewPopups";
 import ReviewAvatar from "@/components/ReviewAvatar";
@@ -92,11 +91,57 @@ export default function HomeClient({
         </div>
       </section>
 
+      {/* Booking (left) and Leave a review (right) side by side;
+          they stack vertically on narrow screens — see
+          .booking-review-row in globals.css. */}
+      <div className="booking-review-row">
+        <section id="booking" className="reveal">
+          <h2>Book an appointment</h2>
+          <div className="booking-card">
+            <form className="lead-form" onSubmit={submitLead}>
+              <label>
+                Your name
+                <input placeholder="Your name" required value={lead.name}
+                  onChange={(e) => setLead({ ...lead, name: e.target.value })} />
+              </label>
+              <label>
+                Service
+                <select value={lead.service}
+                  onChange={(e) => setLead({ ...lead, service: e.target.value })}>
+                  {services.map((s) => <option key={s.name}>{s.name}</option>)}
+                </select>
+              </label>
+              <label>
+                Anything we should know? (optional)
+                <textarea placeholder="Anything we should know? (optional)" rows={3} value={lead.message}
+                  onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+              </label>
+              <label>
+                Phone or email
+                <input placeholder="Phone or email" required value={lead.contact}
+                  onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
+              </label>
+              <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
+            </form>
+            {leadResult && <p>{leadResult}</p>}
+            <p className="form-note"><small>Cancellations need at least 24 hours notice.</small></p>
+          </div>
+        </section>
+        <ReviewForm />
+      </div>
+
+      <section id="assistant" className="reveal">
+        <h2>Try the AI assistant</h2>
+        <div className="assistant-card">
+          <p>Click “Ask Lumen” at the bottom right. It answers only from the studio’s own details — try asking about a price it does not list, and watch it refuse to guess.</p>
+        </div>
+      </section>
+
       <section id="reviews" className="reveal">
         <h2>What our customers say</h2>
         <p>
           {count === 0 ? (
-            "No reviews yet — be the first to leave one below."
+            "No reviews yet — be the first to leave one above."
           ) : (
             <>
               <Stars rating={Math.round(average)} />{" "}
@@ -128,53 +173,6 @@ export default function HomeClient({
         </ul>
       </section>
 
-      {/* Booking (left) and Leave a review (right) side by side;
-          they stack vertically on narrow screens — see
-          .booking-review-row in globals.css. */}
-      <div className="booking-review-row">
-        <section id="booking" className="reveal">
-          <h2>Book an appointment</h2>
-          <div className="booking-card">
-            <form className="lead-form" onSubmit={submitLead}>
-              <label>
-                Your name
-                <input placeholder="Your name" required value={lead.name}
-                  onChange={(e) => setLead({ ...lead, name: e.target.value })} />
-              </label>
-              <label>
-                Phone or email
-                <input placeholder="Phone or email" required value={lead.contact}
-                  onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
-              </label>
-              <label>
-                Service
-                <select value={lead.service}
-                  onChange={(e) => setLead({ ...lead, service: e.target.value })}>
-                  {services.map((s) => <option key={s.name}>{s.name}</option>)}
-                </select>
-              </label>
-              <label>
-                Anything we should know? (optional)
-                <textarea placeholder="Anything we should know? (optional)" value={lead.message}
-                  onChange={(e) => setLead({ ...lead, message: e.target.value })} />
-              </label>
-              <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
-            </form>
-            {leadResult && <p>{leadResult}</p>}
-            <p><small>Cancellations need at least 24 hours notice.</small></p>
-          </div>
-        </section>
-        <ReviewForm />
-      </div>
-
-      <section id="assistant" className="reveal">
-        <h2>Try the AI assistant</h2>
-        <div className="assistant-card">
-          <p>Click “Ask Lumen” at the bottom right. It answers only from the studio’s own details — try asking about a price it does not list, and watch it refuse to guess.</p>
-        </div>
-      </section>
-
-      <ChatWidget />
       <ReviewPopups />
     </main>
   );

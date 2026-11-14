@@ -7,15 +7,15 @@ Supabase Auth account with an active profile. The public site
 (homepage, chatbot, booking form, shop, reviews) stays public and works with no login
 at all.
 
-**Invite-only, like a real business website.** There is no public
-signup: nobody can create an account from the site. Staff join only
-when an admin invites them from `/admin`, and the single owner admin
-is seeded once by the site owner (see Setup below). Admin is a role an
-existing admin grants — never something a visitor claims by signing up
-first. (Customer-facing accounts, where customers can create accounts
-of their own, are a separate later step and are NOT part of this
-design: profiles are admin/staff only, and the booking flow is
-unchanged.)
+**Invite-only for staff, like a real business website.** There is
+no public staff signup: nobody can create a staff account from the
+site. Staff join only when an admin invites them from `/admin`, and
+the single owner admin is seeded once by the site owner (see Setup
+below). Admin is a role an existing admin grants — never something
+a visitor claims by signing up first. (Customer-facing accounts,
+where customers can create accounts of their own, are now built too
+— see CUSTOMER_ACCOUNTS.md. They are a separate role, `customer`,
+and can never reach the owner pages.)
 
 ## Architecture
 
@@ -37,18 +37,23 @@ unchanged.)
   redirected to `/login?next=<path>` (pages) or get 401 JSON (API
   routes). A session
   alone is not enough: the middleware also checks the user has an
-  active `profiles` row. When Supabase auth is not configured, the
-  middleware passes every request through and the protected pages show
-  their own "Auth not configured" notice.
+  active `profiles` row, and that their role is staff or admin —
+  a customer asking for an owner route is sent to `/my-account`
+  (pages) or gets a 401 (API routes). See CUSTOMER_ACCOUNTS.md.
+  When Supabase auth is not configured, the middleware passes every
+  request through and the protected pages show their own "Auth not
+  configured" notice.
 - **Defense in depth** — the pages and API routes check the session
   themselves too (`lib/auth/session.ts`: `getSession()`,
   `requireAuth()`, `requireRole()`), so a request that somehow gets
   past the middleware is still stopped.
 - **Profiles & roles (`supabase/auth-schema.sql`)** — `public.profiles`
-  has one row per auth user: `role` (`admin` / `staff`) and `is_active`.
-  A trigger on `auth.users` creates the row for every new user, always
-  as `staff`. Admins manage users on `/admin` (promote/demote,
-  deactivate/reactivate, invite).
+  has one row per auth user: `role` (`admin` / `staff` / `customer`)
+  and `is_active`. A trigger on `auth.users` creates the row for
+  every new user: invited users become `staff`, public sign-ups
+  become `customer`, and admin is never granted by the trigger (see
+  CUSTOMER_ACCOUNTS.md for why). Admins manage users on `/admin`
+  (promote/demote, deactivate/reactivate, invite).
 - **Staff invites (`app/admin/actions.ts` `inviteUser`)** — an
   admin-only server action. It verifies the caller is an admin with
   `requireRole("admin")`, then calls
@@ -100,9 +105,16 @@ unchanged.)
 |---|---|
 | `lib/auth/browser.ts` | Browser client (`createBrowserClient`, anon key). Null when unconfigured. |
 | `lib/auth/server.ts` | Server client (`createServerClient`, anon key + cookies). Null when unconfigured. |
-| `lib/auth/session.ts` | `getSession()` / `getAuthUser()` / `getUserProfile()` / `requireAuth()` / `requireRole()` — authorized = session + active profile. |
+| `lib/auth/session.ts` | `getSession()` / `getAuthUser()` / `getUserProfile()` / `requireAuth()` / `requireRole()` / `requireStaff()` — authorized = session + active profile. `requireRole("staff")` means staff/admin only (never a customer). |
+| `lib/auth/guard.ts` | Pure owner-route gating (`decideOwnerAccess`) used by the middleware — unit-tested, no Supabase. |
+| `lib/customer-account.ts` | Customer-area data: a customer's own bookings and orders, by session email. |
 | `middleware.ts` | Session refresh + route guard (see above). |
-| `app/login/page.tsx` | Sign-in form. No signup link — staff join by invite. |
+| `app/login/page.tsx` | Sign-in form. No staff signup link — staff join by invite. Links to the customer pages instead. |
+| `app/my-account/page.tsx` | Customer area: profile, my bookings, my orders. |
+| `app/my-account/sign-up/page.tsx` | Public customer sign-up (email confirmation). |
+| `app/my-account/sign-in/page.tsx` | Customer sign-in (lands on /my-account, never /dashboard). |
+| `supabase/customer-accounts.sql` | One-time migration: role check gains 'customer', trigger gives staff only to invited users. |
+| `CUSTOMER_ACCOUNTS.md` | Customer accounts: the role fix, the routes, the gating, the setup and the tests. |
 | `app/auth/callback/route.ts` | Exchanges `?code=` from a Supabase email link for a session, then redirects to `?next=` or `/dashboard`. Kept as a fallback route: password resets now land straight on `/auth/update-password`, and invites never used it (hash tokens). |
 | `app/auth/signout/route.ts` | POST sign-out, redirects to `/`. |
 | `app/auth/reset-password/page.tsx` | Request a password-reset email. |
@@ -112,7 +124,7 @@ unchanged.)
 | `components/AuthNav.tsx` | Server component in the site nav: "Owner sign in" when logged out, "Dashboard" + "Sign out" when logged in. |
 | `components/HomeClient.tsx` | The homepage's client part (hero, services, booking form). |
 | `lib/site-settings.ts` | `getSiteSettings()` — DB row merged over `lib/business.ts` defaults. |
-| `supabase/auth-schema.sql` | Profiles, site_settings, trigger (everyone starts as staff), helpers, RLS policies. |
+| `supabase/auth-schema.sql` | Profiles, site_settings, trigger (invited users start as staff, public sign-ups as customer), helpers, RLS policies. |
 
 ## Setup (user steps)
 
@@ -123,7 +135,13 @@ user's machine / Supabase dashboard, in order:
    `supabase/auth-schema.sql` -> Run. (Run `supabase/schema.sql` first
    if the `leads` table does not exist yet.) It is safe to run twice —
    re-running is what replaces the old trigger (first profile = admin)
-   with the new one (everyone starts as staff).
+   with the new one (invited users = staff, public sign-ups =
+   customer). **If this project already ran an older auth-schema.sql,
+   also run `supabase/customer-accounts.sql` once** (SQL Editor -> New
+   query -> paste -> Run) — that is the migration that adds the
+   'customer' role to the check and replaces the trigger. Do not let
+   anyone sign up as a customer before it has run, or the old trigger
+   will make them staff. See CUSTOMER_ACCOUNTS.md.
 2. **Anon key.** `NEXT_PUBLIC_SUPABASE_ANON_KEY` should already be in
    this project's `.env.local` (publishable/anon key from Supabase:
    Project Settings -> API Keys -> Publishable key). Restart the dev
@@ -141,7 +159,8 @@ user's machine / Supabase dashboard, in order:
 4. **Create the owner account.** Supabase dashboard -> Authentication
    -> Users -> Add user: enter the owner's email and a password, tick
    **Auto Confirm User**, and save. This creates the auth user; the
-   trigger creates their profile as `staff`.
+   trigger creates their profile as `customer` (a dashboard-created
+   user is not an invite), and step 5 promotes them to admin.
 5. **Promote the owner to admin.** In Supabase: SQL Editor -> New
    query -> run this one line, with the owner's real email address:
    `update public.profiles set role = 'admin' where email = 'owner@example.com';`
@@ -165,8 +184,10 @@ user's machine / Supabase dashboard, in order:
 - **Logged-out redirect:** open `/leads`, `/dashboard`, `/customers`,
   `/appointments`, `/employees`, `/admin` while signed out — each redirects to
   `/login?next=<path>`.
-- **No public signup:** open `/signup` — 404. `/login` has no "Create
-  an account" link.
+- **No public staff signup:** open `/signup` — 404. `/login` has no
+  "Create an account" link for staff. (There IS a public customer
+  sign-up now, at `/my-account/sign-up` — see CUSTOMER_ACCOUNTS.md.
+  It creates a `customer` profile, never staff.)
 - **Wrong password:** sign in with a wrong password — "Wrong email or
   password" shows, and you stay on `/login`.
 - **Invite a staff member:** as the admin, invite a second email
@@ -198,17 +219,26 @@ user's machine / Supabase dashboard, in order:
 
 ## What changed vs the old design
 
-- **Public signup is gone.** `app/signup/page.tsx` is deleted; `/login`
-  has no "Create an account" link; `/signup` is a 404.
+- **Public staff signup is gone.** `app/signup/page.tsx` is deleted;
+  `/login` has no "Create an account" link for staff; `/signup` is a
+  404. (There IS a public customer sign-up now, at
+  `/my-account/sign-up` — it creates a `customer` profile, never
+  staff. See CUSTOMER_ACCOUNTS.md.)
 - **The first-admin trigger is gone.** `handle_new_user()` in
-  `supabase/auth-schema.sql` now creates every profile as `staff`.
-  The owner is seeded once with the one-line SQL in Setup step 5.
+  `supabase/auth-schema.sql` creates invited users as `staff` and
+  public sign-ups as `customer`; admin is never granted by the
+  trigger. The owner is seeded once with the one-line SQL in Setup
+  step 5.
 - **Staff join by invite.** New: `inviteUser` in `app/admin/actions.ts`
   and `components/InviteStaffForm.tsx` on `/admin`. The invite email
   comes from Supabase's default sender unless the project configures
   its own SMTP.
-- **Customer accounts are NOT built.** Profiles stay admin/staff only.
-  That is a separate later step, decided by the user.
+- **Customer accounts are built.** Profiles are `admin` / `staff` /
+  `customer`: customers sign up themselves from
+  `/my-account/sign-up`, get a `customer` profile from the trigger,
+  and see their own bookings and orders on `/my-account`. They can
+  never reach an owner page (middleware + page checks). See
+  CUSTOMER_ACCOUNTS.md.
 
 ## What changed vs the token
 

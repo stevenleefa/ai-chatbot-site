@@ -7,6 +7,10 @@ the middleware guards them and the pages check the session themselves,
 exactly like `/leads` and `/dashboard` (see AUTH.md). There is no
 shared token any more.
 
+(This file is about the owner's view of customers — demo data. Real
+customer accounts that sign in themselves live on `/my-account` and
+are documented in CUSTOMER_ACCOUNTS.md.)
+
 Staff names are links everywhere too — see **EMPLOYEES.md** for the
 employees area (`/employees`, per-employee sales / products /
 customers / appointments / payroll) and the standard colour coding

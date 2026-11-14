@@ -55,4 +55,25 @@ describe("ReviewForm star picker", () => {
     const radios = screen.getAllByRole("radio");
     for (const r of radios) expect(r).toBeRequired();
   });
+
+  it("orders the fields name, service, review, rating", () => {
+    render(<ReviewForm />);
+    const name = screen.getByLabelText("Your name");
+    const service = screen.getByLabelText("Service (optional)");
+    const review = screen.getByLabelText("Your review");
+    const rating = screen.getByRole("group", { name: "Your rating" });
+    // Each field comes after the previous one in the document.
+    expect(
+      name.compareDocumentPosition(service) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      service.compareDocumentPosition(review) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      review.compareDocumentPosition(rating) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
 });
