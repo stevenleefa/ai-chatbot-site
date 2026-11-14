@@ -47,6 +47,17 @@ export const LARGER_TEXT_POPOVER_TITLE = "Larger text is on";
 export const LARGER_TEXT_POPOVER_DETAIL =
   "Turn off Larger text to choose Small or Medium.";
 
+// The disabled placeholder options that tell the user which
+// dropdown holds the current voice. The Common dropdown shows
+// one when the current voice lives in the Other dropdown, and
+// vice versa. The value is synthetic — it is not a real voice and
+// can never be picked (the option is disabled), so it never
+// reaches the update handler. The exact strings, so the component
+// and the tests can never drift apart.
+export const OTHER_VOICE_PLACEHOLDER_VALUE = "__other__";
+export const OTHER_VOICE_PLACEHOLDER_TEXT = "Other voice selected";
+export const COMMON_VOICE_PLACEHOLDER_TEXT = "Common voice selected";
+
 type SyncState = "unknown" | "account" | "device-only";
 
 export default function PersonalizationSettings() {
@@ -167,24 +178,52 @@ export default function PersonalizationSettings() {
     synth.speak(utterance);
   }
 
+  // The voices split into two dropdowns: the five most common in
+  // one ("Common voices"), everything else in the other ("Other
+  // voices"). A popular voice that is not installed on this device
+  // is simply skipped. Nothing is filtered out — every voice the
+  // browser reports appears in exactly one of the two dropdowns.
+  const { popular: popularVoices, rest: otherVoices } =
+    splitPopularVoices(voices);
+
   // The saved voice may not exist on this device (it was picked
-  // somewhere else). When it does not, the select shows the default
-  // voice — which is what will actually speak — and this note says so.
+  // somewhere else). When it does not, the dropdowns show the
+  // default voice — which is what will actually speak — and this
+  // note says so.
   const savedVoiceAvailable =
     prefs.voiceURI !== null &&
     voices.some(
       (v) => v.voiceURI === prefs.voiceURI || v.name === prefs.voiceURI,
     );
-  const voiceSelectValue = savedVoiceAvailable ? prefs.voiceURI : "";
+  // The voice object for the saved choice, so each dropdown's value
+  // is the option value that voice carries (its voiceURI, or its
+  // name when it has none) — a stored name would not match a
+  // voiceURI option value.
+  const currentVoice = savedVoiceAvailable
+    ? (voices.find(
+        (v) => v.voiceURI === prefs.voiceURI || v.name === prefs.voiceURI,
+      ) ?? null)
+    : null;
+  const currentVoiceValue = currentVoice
+    ? currentVoice.voiceURI || currentVoice.name
+    : "";
+  // Whether the current voice is one of the five common ones.
+  // splitPopularVoices returns the same voice objects, so identity
+  // decides.
+  const currentVoiceIsPopular =
+    currentVoice !== null && popularVoices.includes(currentVoice);
 
-  // The dropdown groups the voices: the five most common first
-  // ("Popular voices"), everything else underneath ("All voices").
-  // A popular voice that is not installed on this device is simply
-  // skipped; when none of the five is installed there is no Popular
-  // group at all. Nothing is filtered out — every voice the browser
-  // reports appears in one of the two groups.
-  const { popular: popularVoices, rest: otherVoices } =
-    splitPopularVoices(voices);
+  // The value each dropdown shows. Both control the same voiceURI
+  // preference. The dropdown that does NOT hold the current voice
+  // shows a disabled placeholder instead, so the user can always
+  // tell which dropdown the current voice is in.
+  const commonSelectValue = currentVoice
+    ? currentVoiceIsPopular
+      ? currentVoiceValue
+      : OTHER_VOICE_PLACEHOLDER_VALUE
+    : "";
+  const otherSelectValue =
+    currentVoice && !currentVoiceIsPopular ? currentVoiceValue : "";
 
   return (
     <div className="personalization-settings">
@@ -331,19 +370,38 @@ export default function PersonalizationSettings() {
           </p>
         ) : (
           <div className="settings-options">
-            <label htmlFor="voice-choice">
-              <strong>Voice</strong>
-            </label>
-            <select
-              id="voice-choice"
-              value={voiceSelectValue ?? ""}
-              onChange={(e) =>
-                update("voiceURI", e.target.value === "" ? null : e.target.value)
-              }
-            >
-              <option value="">Default voice</option>
-              {popularVoices.length > 0 && (
-                <optgroup label="Popular voices">
+            {/* A native <select> opens scrolled to the selected
+               option, and that cannot be forced to the top — so a
+               single long dropdown hides the popular voices when
+               the current voice sits mid-list (Zarvox). Two
+               dropdowns are the fix: the Common one has only ~6
+               options, so it never scrolls and always opens
+               showing all of them from the top, and the Other one
+               opens at the top whenever the current voice is
+               common or the default (its placeholder, the first
+               option, is selected). When the current voice IS an
+               other voice, the browser opens the Other dropdown
+               scrolled to that voice — that is the browser
+               showing the current selection, and it cannot be
+               overridden for a native select. Do not try to
+               force it (no temporary value-swapping on open, no
+               custom dropdown). */}
+            <div className="voice-select-row">
+              <div>
+                <label htmlFor="voice-choice-common">
+                  <strong>Common voices</strong>
+                </label>
+                <select
+                  id="voice-choice-common"
+                  value={commonSelectValue}
+                  onChange={(e) =>
+                    update(
+                      "voiceURI",
+                      e.target.value === "" ? null : e.target.value,
+                    )
+                  }
+                >
+                  <option value="">Default voice</option>
                   {popularVoices.map((voice) => (
                     <option
                       key={voice.voiceURI || voice.name}
@@ -352,10 +410,32 @@ export default function PersonalizationSettings() {
                       {voice.name} — {voice.lang}
                     </option>
                   ))}
-                </optgroup>
-              )}
-              {otherVoices.length > 0 && (
-                <optgroup label="All voices">
+                  {currentVoice && !currentVoiceIsPopular && (
+                    <option value={OTHER_VOICE_PLACEHOLDER_VALUE} disabled>
+                      {OTHER_VOICE_PLACEHOLDER_TEXT}
+                    </option>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="voice-choice-other">
+                  <strong>Other voices</strong>
+                </label>
+                <select
+                  id="voice-choice-other"
+                  value={otherSelectValue}
+                  onChange={(e) =>
+                    update(
+                      "voiceURI",
+                      e.target.value === "" ? null : e.target.value,
+                    )
+                  }
+                >
+                  {(!currentVoice || currentVoiceIsPopular) && (
+                    <option value="" disabled>
+                      {COMMON_VOICE_PLACEHOLDER_TEXT}
+                    </option>
+                  )}
                   {otherVoices.map((voice) => (
                     <option
                       key={voice.voiceURI || voice.name}
@@ -364,9 +444,9 @@ export default function PersonalizationSettings() {
                       {voice.name} — {voice.lang}
                     </option>
                   ))}
-                </optgroup>
-              )}
-            </select>
+                </select>
+              </div>
+            </div>
             {prefs.voiceURI !== null && !savedVoiceAvailable && (
               <p>
                 <small>
