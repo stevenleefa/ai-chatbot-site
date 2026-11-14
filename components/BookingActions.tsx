@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatTime } from "@/lib/format";
+import Calendar from "@/components/Calendar";
+import { fmtDate, formatTime } from "@/lib/format";
+import { isBookableDate } from "@/lib/calendar";
 import { rescheduleTimeOptions } from "@/lib/reschedule";
 
 // Reschedule / Cancel actions for one of the customer's own bookings
@@ -30,8 +32,14 @@ export default function BookingActions({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<"none" | "reschedule" | "cancel">("none");
+  // Today's date (UTC, matching the server validation). The
+  // starting date is the booking's current date, but only if it is
+  // still bookable (future, not a Sunday) — otherwise the customer
+  // must pick a new one on the calendar.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const initialDate = appointmentAt ? appointmentAt.slice(0, 10) : "";
   const [date, setDate] = useState(
-    appointmentAt ? appointmentAt.slice(0, 10) : ""
+    initialDate && isBookableDate(initialDate, todayStr) ? initialDate : ""
   );
   const [time, setTime] = useState(
     appointmentAt ? appointmentAt.slice(11, 16) : "10:00"
@@ -134,18 +142,29 @@ export default function BookingActions({
       )}
       {mode === "reschedule" && (
         <form onSubmit={rescheduleBooking}>
-          <p>
-            <label>
-              New date
-              <input
-                type="date"
-                value={date}
-                min={tomorrow}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </label>
-          </p>
+          <div>
+            <p>
+              <strong>New date</strong>
+            </p>
+            {/* Month calendar (components/Calendar.tsx) instead of
+                a plain date input: Sundays are closed and past
+                dates cannot be picked; the server re-validates the
+                same rules. The calendar opens on the booking's
+                current month when a date is already set. */}
+            <Calendar
+              selected={date || null}
+              onSelect={setDate}
+              minDate={tomorrow}
+              disableSundays
+              initialMonth={date ? date.slice(0, 7) : undefined}
+              ariaLabel="Pick a new date"
+            />
+            {date ? (
+              <p>New date: {fmtDate(date)}</p>
+            ) : (
+              <p>Pick a date on the calendar above.</p>
+            )}
+          </div>
           <p>
             <label>
               New time
@@ -168,7 +187,10 @@ export default function BookingActions({
             </small>
           </p>
           <p>
-            <button type="submit" disabled={busy}>
+            <button
+              type="submit"
+              disabled={busy || !date || !isBookableDate(date, todayStr)}
+            >
               {busy ? "Moving…" : "Move booking"}
             </button>{" "}
             <button

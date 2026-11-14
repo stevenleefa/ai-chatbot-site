@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Calendar from "@/components/Calendar";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewPopups from "@/components/ReviewPopups";
 import ReviewAvatar from "@/components/ReviewAvatar";
@@ -35,6 +36,16 @@ export default function HomeClient({
   const [lead, setLead] = useState(initialLead);
   const [leadResult, setLeadResult] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Preferred date (optional): picked on the month calendar below.
+  // It is not a separate lead field — the original booking date
+  // lives in the message text (the same convention the chat
+  // booking uses), so the picked date is appended to the message
+  // on submit. Sundays are closed and past dates cannot be picked.
+  const [preferredDate, setPreferredDate] = useState("");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
   const { average, count } = averageRating(reviews);
 
   async function submitLead(e: React.FormEvent) {
@@ -43,17 +54,27 @@ export default function HomeClient({
     if (submitting) return;
     setSubmitting(true);
     setLeadResult("Sending…");
+    // The picked date travels in the message (see above) so the
+    // salon sees it; the typed message itself is left untouched.
+    const submittedMessage = preferredDate
+      ? [lead.message, `Preferred date: ${fmtDate(preferredDate)}.`]
+          .filter(Boolean)
+          .join(" ")
+      : lead.message;
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead),
+        body: JSON.stringify({ ...lead, message: submittedMessage }),
       });
       const data = await res.json();
       setLeadResult(data.message ?? data.error ?? "Something went wrong.");
       // Clear the fields only on a successful submit, so a failed
       // submit keeps what the user typed and they can retry.
-      if (res.ok && data.ok) setLead(initialLead);
+      if (res.ok && data.ok) {
+        setLead(initialLead);
+        setPreferredDate("");
+      }
     } catch {
       setLeadResult("Something went wrong. Please try again.");
     } finally {
@@ -121,6 +142,27 @@ export default function HomeClient({
                 <input placeholder="Phone or email" required value={lead.contact}
                   onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
               </label>
+              <div>
+                <p>
+                  <strong>Preferred date (optional)</strong>
+                </p>
+                {/* Month calendar (components/Calendar.tsx): tap a
+                    day to pick it. Sundays are closed and past
+                    dates cannot be picked. The picked date is added
+                    to the booking request (see submitLead above). */}
+                <Calendar
+                  selected={preferredDate || null}
+                  onSelect={setPreferredDate}
+                  minDate={tomorrow}
+                  disableSundays
+                  ariaLabel="Pick a preferred date"
+                />
+                {preferredDate ? (
+                  <p>Preferred date: {fmtDate(preferredDate)}</p>
+                ) : (
+                  <p>No date picked yet — optional.</p>
+                )}
+              </div>
               <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
             </form>
             {leadResult && <p>{leadResult}</p>}

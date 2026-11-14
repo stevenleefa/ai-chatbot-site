@@ -47,29 +47,63 @@ so there is nothing to sort.
 
 ## The November calendar
 
-`/appointments` has a calendar above the diary table
-(`components/AppointmentCalendar.tsx`), driven by the Month / Week /
-Day switcher in `components/AppointmentsView.tsx` (a client
-component — the view and the stylist filter are state). November
-2026, Sunday-start weeks: Nov 1 is a Sunday and the month has 30
-days, so the month grid is 5 rows — Nov 1–30 plus Dec 1–5 filling
-the last row, muted. Week is a 7-day strip for the chosen week
+`/appointments` has a calendar above the diary table, driven by
+the Month / Week / Day switcher in `components/AppointmentsView.tsx`
+(a client component — the view and the stylist filter are state).
+November 2026, Sunday-start weeks: Nov 1 is a Sunday and the month
+has 30 days, so the month grid is 5 rows — Nov 1–30 plus blank cells
+filling the last row (the reusable calendar shows blanks, not the
+next month's days). Week is a 7-day strip for the chosen week
 (prev/next-week buttons, clamped to the weeks overlapping
 November); Day is the chosen day as a timed list (prev/next-day
 buttons, clamped to Nov 1–30). Week and day default to the week/day
 of the first appointment. The diary covers November 2026 only: all
 booked appointments are in November and there is no data for other
-months, so there is no month navigation.
+months, so the Week and Day views stay in November.
 
-Each day cell shows that day's appointments as small blocks coloured
-BY STYLIST (one colour per stylist — see "Stylist colours" in
-EMPLOYEES.md): time in 12-hour clock + customer name (a link to
-`/customers/<id>`) and the stylist name (a link to
-`/employees/<id>`). Cells are tall enough for several appointments
-and the blocks are small, with ellipsis so a long name never breaks
-the cell. Sundays are closed — those cells are greyed out and
-labelled Closed. The salon is open Monday to Saturday from November
-(see "Opening hours" below).
+The Month view is the reusable month calendar
+(`components/Calendar.tsx`, month math in `lib/calendar.ts`): a
+full month grid with Prev / Next month buttons and a Today button.
+It navigates one year back and one year forward from the current
+month (if today is November 2026, the earliest month is November
+2025 and the latest is November 2027); Prev is disabled at the
+earliest month and Next at the latest. A number on a day is how
+many appointments it has (for the stylists currently selected),
+and tapping a day lists that day's appointments below the
+calendar, in time order, with the same customer / stylist links
+and Confirmed / Requested badge as the diary. Sundays are closed
+— those days are greyed out and labelled Closed, and are not
+tappable for a booking (see below). Today is highlighted, the
+selected day is clearly marked, and every day is a real
+`<button>` with a full aria-label ("Tuesday, November 18, 2026",
+plus "Closed" / "Selected" / "N appointments" where they apply);
+the month heading is announced (`aria-live="polite"`).
+
+The same calendar is the date picker in two customer flows. The
+homepage booking form (`components/HomeClient.tsx`) has an
+optional "Preferred date" calendar under the contact field: tap a
+day to pick it, and the picked date is added to the booking
+request ("Preferred date: …") — the booking date still travels
+in the message text, the same convention the chat booking uses,
+and the 60s duplicate protection and the lead validation are
+unchanged. The reschedule control in `components/BookingActions.tsx`
+(`/my-account`, "My bookings") replaces its old date input with
+the same calendar: Sundays and past dates are disabled, the
+starting date is the booking's current date when it is still
+bookable, and the "Move booking" button stays disabled until a
+valid date is picked. In both pickers the calendar opens on the
+current month and only lets the customer pick a future Mon–Sat
+day (min tomorrow); the server re-validates the same rules.
+
+Each day cell in the Week and Day views shows that day's
+appointments as small blocks coloured BY STYLIST (one colour per
+stylist — see "Stylist colours" in EMPLOYEES.md): time in 12-hour
+clock + customer name (a link to `/customers/<id>`) and the
+stylist name (a link to `/employees/<id>`). Cells are tall enough
+for several appointments and the blocks are small, with ellipsis
+so a long name never breaks the cell. Sundays are closed — those
+cells are greyed out and labelled Closed. The salon is open
+Monday to Saturday from November (see "Opening hours" below).
 
 Directly above the calendar, under the Month / Week / Day tabs, a
 row of filter checkboxes — All plus one per stylist — picks which
@@ -247,7 +281,9 @@ before changing them:
 | `app/customers/loading.tsx`, `app/customers/[id]/loading.tsx` | Loading states |
 | `app/appointments/page.tsx` | November diary + due-for-a-booking (owner-gated), plus the calendar, views and stylist filter |
 | `app/appointments/loading.tsx` | Loading state |
-| `components/AppointmentCalendar.tsx` | Month / Week / Day calendar (client component — view is state) |
+| `components/AppointmentCalendar.tsx` | Week / Day calendar (client component — view is state) |
+| `components/Calendar.tsx` + `components/Calendar.css` | Reusable month calendar: owner Month view, booking "Preferred date" picker, reschedule picker (client component; month math in `lib/calendar.ts`) |
+| `lib/calendar.ts` | Month math: grid, month window (±12 months), bookable-date rule (pure, UTC-based) |
 | `components/AppointmentsView.tsx` | Stylist filter buttons, Month/Week/Day switcher, calendar + diary (client component) |
 | `lib/format.ts` | `formatTime` (12-hour clock) and `fmtDate` — no data imports, safe for client components |
 | `components/SortableTable.tsx` | Shared sortable table used by every owner-area table |
