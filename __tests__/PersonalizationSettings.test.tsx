@@ -240,3 +240,60 @@ describe("Voice section", () => {
     expect(select.value).toBe("");
   });
 });
+
+describe("Settings page fields", () => {
+  it("lists the five stylists plus No preference, and saves the chosen one", async () => {
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText(
+      "Preferred stylist",
+    ) as HTMLSelectElement;
+    expect(
+      screen.getByRole("option", { name: "No preference" }),
+    ).toBeInTheDocument();
+    for (const name of [
+      "Amelia Brooks",
+      "Sofia Reyes",
+      "Maya Chen",
+      "Jordan Lee",
+      "Priya Nair",
+    ]) {
+      expect(screen.getByRole("option", { name })).toBeInTheDocument();
+    }
+    fireEvent.change(select, { target: { value: "Maya Chen" } });
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.preferredStylist).toBe("Maya Chen");
+    fireEvent.change(select, { target: { value: "" } });
+    const cleared = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(cleared.preferredStylist).toBeNull();
+  });
+
+  it("starts from the saved stylist, and the notifications checkbox is on by default", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ preferredStylist: "Sofia Reyes" }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText(
+      "Preferred stylist",
+    ) as HTMLSelectElement;
+    expect(select.value).toBe("Sofia Reyes");
+    const toggle = screen.getByRole("checkbox", {
+      name: /Email me about appointments and offers/,
+    });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(toggle).not.toBeChecked();
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.emailNotifications).toBe(false);
+  });
+});

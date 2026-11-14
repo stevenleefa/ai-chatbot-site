@@ -165,3 +165,91 @@ describe("sales in the shop and cart", () => {
     expect(screen.getAllByText("$72.00")).toHaveLength(2);
   });
 });
+
+describe("favorite hearts", () => {
+  function mockFetchQueue(responses: { status: number; body: unknown }[]) {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const queue = [...responses];
+    global.fetch = jest.fn((url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      const next = queue.shift() ?? { status: 200, body: {} };
+      return Promise.resolve({
+        ok: next.status >= 200 && next.status < 300,
+        status: next.status,
+        json: async () => next.body,
+      } as unknown as Response);
+    }) as jest.Mock;
+    return calls;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("shows a filled heart for a favorited product and removes it on click", async () => {
+    const calls = mockFetchQueue([
+      { status: 200, body: { configured: true, favorites: ["shampoo-1l"] } },
+      { status: 200, body: { ok: true, favorites: [] } },
+    ]);
+    render(<ShopClient products={PRODUCTS} checkoutEnabled={false} />);
+    const heart = await screen.findByRole("button", {
+      name: "Remove Shampoo (1L) from favorites",
+    });
+    expect(heart).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(heart);
+    expect(
+      await screen.findByRole("button", {
+        name: "Add Shampoo (1L) to favorites",
+      }),
+    ).toBeInTheDocument();
+    expect(calls[1].url).toBe("/api/favorites");
+    expect(calls[1].init?.method).toBe("DELETE");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Removed Shampoo (1L) from your favorites.",
+    );
+  });
+
+  it("adds a favorite on click when signed in", async () => {
+    const calls = mockFetchQueue([
+      { status: 200, body: { configured: true, favorites: [] } },
+      { status: 200, body: { ok: true, favorites: ["beard-oil"] } },
+    ]);
+    render(<ShopClient products={PRODUCTS} checkoutEnabled={false} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Add Beard oil to favorites",
+      }),
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: "Remove Beard oil from favorites",
+      }),
+    ).toBeInTheDocument();
+    expect(calls[1].init?.method).toBe("POST");
+    expect(calls[1].init?.body).toBe(
+      JSON.stringify({ productId: "beard-oil" }),
+    );
+  });
+
+  it("signed out: tapping a heart prompts to sign in instead of failing silently", async () => {
+    mockFetchQueue([{ status: 401, body: { error: "Sign in required." } }]);
+    render(<ShopClient products={PRODUCTS} checkoutEnabled={false} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Add Beard oil to favorites",
+      }),
+    );
+    const prompt = await screen.findByText(/Sign in to save favorites/);
+    expect(prompt).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Customer sign in" }),
+    ).toHaveAttribute("href", "/my-account/sign-in");
+    // No write was attempted.
+    expect(
+      (global.fetch as jest.Mock).mock.calls.filter(
+        ([, init]: [string, RequestInit | undefined]) =>
+          init?.method === "POST" || init?.method === "DELETE",
+      ),
+    ).toHaveLength(0);
+  });
+});

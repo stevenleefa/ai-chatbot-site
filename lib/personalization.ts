@@ -31,6 +31,15 @@ export interface PersonalizationPreferences {
   voiceRate: number;
   /** Spoken-reply pitch (0.75 low, 1 normal, 1.25 high). */
   voicePitch: number;
+  /** The stylist the customer prefers (one of STYLIST_NAMES).
+   * Null = no preference. Saved, not yet used by booking — the
+   * booking form will offer them first in a later step. */
+  preferredStylist: string | null;
+  /** Email notifications: appointment reminders and offers. This
+   * is a preference only — the site does not yet send reminder or
+   * marketing emails (only Supabase Auth invites/resets go out,
+   * via Yahoo SMTP). Default true. */
+  emailNotifications: boolean;
 }
 
 export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
@@ -43,6 +52,8 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
   voiceURI: null,
   voiceRate: 1,
   voicePitch: 1,
+  preferredStylist: null,
+  emailNotifications: true,
 };
 
 export const STORAGE_KEY = "lumen-preferences";
@@ -276,6 +287,21 @@ export const VOICE_RATE_MAX = 2;
 export const VOICE_PITCH_MIN = 0.5;
 export const VOICE_PITCH_MAX = 2;
 
+// --- Preferred stylist ----------------------------------------------------
+// The five stylists, by full name. The source of truth is EMPLOYEES in
+// lib/dashboard.ts — these names are duplicated here deliberately so
+// this client-safe file does not import the dashboard module (which
+// carries the 1,377-row SALES array into the client bundle).
+// __tests__/personalization.test.ts asserts the two lists agree, so
+// a rename in one place fails the test instead of silently drifting.
+export const STYLIST_NAMES: string[] = [
+  "Amelia Brooks",
+  "Sofia Reyes",
+  "Maya Chen",
+  "Jordan Lee",
+  "Priya Nair",
+];
+
 // --- Validation -----------------------------------------------------------
 // Never trust stored input: localStorage and the API body can hold
 // anything. Unknown values fall back to the default for that field
@@ -322,6 +348,11 @@ export function isVoicePitch(value: unknown): value is number {
   );
 }
 
+/** A preferred stylist: null (no preference) or one of the five names. */
+export function isPreferredStylist(value: unknown): value is string | null {
+  return value === null || (typeof value === "string" && STYLIST_NAMES.includes(value));
+}
+
 /** Lenient parse: unknown/missing fields become the default. */
 export function parsePreferences(input: unknown): PersonalizationPreferences {
   const obj =
@@ -352,6 +383,12 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
     voicePitch: isVoicePitch(obj.voicePitch)
       ? obj.voicePitch
       : DEFAULT_PREFERENCES.voicePitch,
+    preferredStylist: isPreferredStylist(obj.preferredStylist)
+      ? obj.preferredStylist
+      : DEFAULT_PREFERENCES.preferredStylist,
+    emailNotifications: isBoolean(obj.emailNotifications)
+      ? obj.emailNotifications
+      : DEFAULT_PREFERENCES.emailNotifications,
   };
 }
 
@@ -392,6 +429,14 @@ export function validatePreferencesStrict(input: unknown): {
     errors.push(
       `voicePitch must be a number between ${VOICE_PITCH_MIN} and ${VOICE_PITCH_MAX}`,
     );
+  }
+  if (obj.preferredStylist !== undefined && !isPreferredStylist(obj.preferredStylist)) {
+    errors.push(
+      `preferredStylist must be one of: ${STYLIST_NAMES.join(", ")} (or null for no preference)`,
+    );
+  }
+  if (obj.emailNotifications !== undefined && !isBoolean(obj.emailNotifications)) {
+    errors.push(`emailNotifications must be true or false`);
   }
   return { ok: errors.length === 0, errors, preferences: parsePreferences(obj) };
 }

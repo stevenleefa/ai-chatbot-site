@@ -1,8 +1,10 @@
-// Personalisation settings for the customer area (/my-account).
+// Personalisation settings for the Settings page (/settings).
 // A colour-theme picker (5 swatches), a font-pairing choice, a
-// font-size choice and three accessibility toggles. Every control is
-// a real radio input or checkbox with a label, so the whole panel
-// works by keyboard alone and the selected option is announced.
+// font-size choice, three accessibility toggles, the assistant
+// voice, a preferred stylist and an email-notifications toggle.
+// Every control is a real radio input, select or checkbox with a
+// label, so the whole panel works by keyboard alone and the
+// selected option is announced.
 //
 // Behaviour: on mount it reads localStorage, applies it at once,
 // then asks GET /api/preferences. When the account has saved
@@ -21,6 +23,7 @@ import {
   FONT_PAIRING_IDS,
   FONT_SIZES,
   FONT_SIZE_IDS,
+  STYLIST_NAMES,
   THEMES,
   THEME_IDS,
   VOICE_PITCH_OPTIONS,
@@ -346,6 +349,57 @@ export default function PersonalizationSettings() {
             </button>
           </div>
         )}
+      </fieldset>
+
+      <fieldset>
+        <legend>Preferred stylist</legend>
+        <p>
+          <small>
+            The stylist you&apos;d like to book with. This is saved
+            for next time — booking will offer them first in a later
+            step; it doesn&apos;t change any booking you already have.
+          </small>
+        </p>
+        <div className="settings-options">
+          <label htmlFor="preferred-stylist">
+            <strong>Preferred stylist</strong>
+          </label>
+          <select
+            id="preferred-stylist"
+            value={prefs.preferredStylist ?? ""}
+            onChange={(e) =>
+              update(
+                "preferredStylist",
+                e.target.value === "" ? null : e.target.value,
+              )
+            }
+          >
+            <option value="">No preference</option>
+            {STYLIST_NAMES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Email notifications</legend>
+        <div className="settings-options">
+          <label>
+            <input
+              type="checkbox"
+              checked={prefs.emailNotifications}
+              onChange={(e) => update("emailNotifications", e.target.checked)}
+            />
+            <strong>Email me about appointments and offers</strong> —
+            reminders before your appointments, and the studio&apos;s
+            offers. Turn it off and we won&apos;t email you about
+            either. This only saves the preference — the studio
+            doesn&apos;t send reminder or marketing emails yet.
+          </label>
+        </div>
       </fieldset>
 
       {sync === "device-only" && (

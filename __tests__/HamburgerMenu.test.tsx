@@ -136,6 +136,9 @@ describe("HamburgerMenu", () => {
       screen.getByRole("link", { name: "My account" })
     ).toHaveAttribute("href", "/my-account");
     expect(
+      screen.getByRole("link", { name: "Settings" })
+    ).toHaveAttribute("href", "/settings");
+    expect(
       screen.getByRole("button", { name: "Log out" })
     ).toBeInTheDocument();
     expect(
@@ -159,6 +162,22 @@ describe("HamburgerMenu", () => {
     expect(screen.getByRole("link", { name: "Contact us" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Deals" })).toBeInTheDocument();
     expect(screen.getByText("Dark mode")).toBeInTheDocument();
+  });
+
+  it("signed in as staff: shows Profile and Settings, but no My account", () => {
+    render(<HamburgerMenu user={staffUser} />);
+    openMenu();
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings"
+    );
+    expect(
+      screen.queryByRole("link", { name: "My account" })
+    ).not.toBeInTheDocument();
   });
 
   it("Escape closes the panel and returns focus to the button", () => {

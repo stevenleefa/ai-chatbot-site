@@ -208,6 +208,9 @@ export default function HamburgerMenu({
               <Link href="/my-account" className="menu-row" onClick={closeMenu}>
                 My account
               </Link>
+              <Link href="/settings" className="menu-row" onClick={closeMenu}>
+                Settings
+              </Link>
               <SignOutButton
                 label="Log out"
                 dialogBody="You will need to sign in again to see your bookings and orders."
@@ -220,6 +223,9 @@ export default function HamburgerMenu({
             <>
               <Link href="/profile" className="menu-row" onClick={closeMenu}>
                 Profile
+              </Link>
+              <Link href="/settings" className="menu-row" onClick={closeMenu}>
+                Settings
               </Link>
               <SignOutButton
                 label="Switch user"

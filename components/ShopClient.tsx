@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CART_STORAGE_KEY,
   formatPrice,
@@ -69,6 +70,99 @@ export default function ShopClient({
   const [saveCartName, setSaveCartName] = useState("Saved cart");
   const [saveCartState, setSaveCartState] = useState("");
   const [savingCart, setSavingCart] = useState(false);
+  // Favorites (see lib/favorites.ts + /api/favorites): the signed-in
+  // customer's favorite product ids, loaded once on mount. Signed
+  // out, the route answers 401 and the heart just prompts to sign
+  // in instead of failing silently. The fetch is guarded — jsdom
+  // has no fetch in some test setups, and the shop must render
+  // without it.
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoritesSignedOut, setFavoritesSignedOut] = useState(false);
+  const [favoriteMessage, setFavoriteMessage] = useState("");
+  const [favoriteSignIn, setFavoriteSignIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof fetch !== "function") return;
+    let cancelled = false;
+    fetch("/api/favorites")
+      .then((res) => {
+        if (cancelled) return null;
+        if (res.status === 401) {
+          setFavoritesSignedOut(true);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data: unknown) => {
+        if (cancelled || !data) return;
+        const obj = data as Record<string, unknown>;
+        if (Array.isArray(obj.favorites)) {
+          setFavorites(
+            (obj.favorites as unknown[]).filter(
+              (id): id is string => typeof id === "string",
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        // Favorites unavailable — the shop still works; the heart
+        // says so when tapped.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Favorite / unfavorite one product. Signed out, the heart
+  // prompts to sign in (with a link) instead of silently doing
+  // nothing. Signed in, the route answers with the updated list,
+  // so the hearts stay in sync with the account.
+  async function toggleFavorite(id: string) {
+    const product = byId.get(id);
+    if (!product) return;
+    if (favoritesSignedOut) {
+      setFavoriteSignIn(true);
+      setFavoriteMessage("");
+      return;
+    }
+    const isFav = favorites.includes(id);
+    setFavoriteSignIn(false);
+    setFavoriteMessage("Saving…");
+    try {
+      const res = await fetch("/api/favorites", {
+        method: isFav ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setFavoritesSignedOut(true);
+        setFavoriteSignIn(true);
+        setFavoriteMessage("");
+        return;
+      }
+      if (!res.ok || !Array.isArray(data.favorites)) {
+        setFavoriteMessage(
+          data.error ?? "Could not save this favorite — please try again.",
+        );
+        return;
+      }
+      setFavorites(
+        (data.favorites as unknown[]).filter(
+          (f): f is string => typeof f === "string",
+        ),
+      );
+      setFavoriteMessage(
+        isFav
+          ? `Removed ${product.name} from your favorites.`
+          : `Added ${product.name} to your favorites.`,
+      );
+    } catch {
+      setFavoriteMessage(
+        "Could not save this favorite — please try again.",
+      );
+    }
+  }
 
   // The catalogue as passed in — the one lookup for everything
   // below, so a product that is not in this list (unknown id, or
@@ -296,6 +390,7 @@ export default function ShopClient({
   // are real `disabled` controls, not just styled ones.
   function productCard(p: Product, featuredCard: boolean) {
     const label = getDiscountLabel(p);
+    const isFav = favorites.includes(p.id);
     return (
       <article
         key={p.id}
@@ -323,6 +418,21 @@ export default function ShopClient({
         )}
         <p>{p.description}</p>
         {priceLine(p)}
+        <p>
+          <button
+            type="button"
+            className="favorite-toggle"
+            aria-pressed={isFav}
+            aria-label={
+              isFav
+                ? `Remove ${p.name} from favorites`
+                : `Add ${p.name} to favorites`
+            }
+            onClick={() => toggleFavorite(p.id)}
+          >
+            {isFav ? "♥ Favorited" : "♡ Favorite"}
+          </button>
+        </p>
         {!p.inStock && (
           <p className="out-of-stock-note">
             Out of stock — check back soon, or ask in the studio.
@@ -375,6 +485,14 @@ export default function ShopClient({
       <div className="product-grid">
         {products.map((p) => productCard(p, false))}
       </div>
+
+      {favoriteSignIn && (
+        <p role="status">
+          Sign in to save favorites —{" "}
+          <Link href="/my-account/sign-in">Customer sign in</Link>.
+        </p>
+      )}
+      {favoriteMessage && <p role="status">{favoriteMessage}</p>}
 
       <section className="cart-section" aria-label="Your cart">
         <h2>Your cart</h2>

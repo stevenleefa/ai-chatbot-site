@@ -3,9 +3,11 @@
 import {
   DEFAULT_PREFERENCES,
   FONT_SIZES,
+  STYLIST_NAMES,
   THEMES,
   applyPreferences,
   contrastRatio,
+  isPreferredStylist,
   parsePreferences,
   readStoredPreferences,
   syncThemeColorMeta,
@@ -14,6 +16,7 @@ import {
   writeStoredPreferences,
   STORAGE_KEY,
 } from "@/lib/personalization";
+import { EMPLOYEES } from "@/lib/dashboard";
 
 describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
   it.each(Object.values(THEMES))(
@@ -333,5 +336,63 @@ describe("font-size scaling (rem, root font-size)", () => {
     const h1 = css.match(/\.hero-content h1 \{[^}]*\}/);
     expect(h1).not.toBeNull();
     expect(h1![0]).toContain("clamp(2.5rem, 6vw, 4rem)");
+  });
+});
+
+describe("settings page fields (preferred stylist + email notifications)", () => {
+  it("defaults are no preferred stylist and email notifications on", () => {
+    expect(DEFAULT_PREFERENCES.preferredStylist).toBeNull();
+    expect(DEFAULT_PREFERENCES.emailNotifications).toBe(true);
+    expect(parsePreferences({})).toEqual(DEFAULT_PREFERENCES);
+  });
+
+  it("parsePreferences keeps a valid stylist and a false notifications flag", () => {
+    const parsed = parsePreferences({
+      preferredStylist: "Maya Chen",
+      emailNotifications: false,
+    });
+    expect(parsed.preferredStylist).toBe("Maya Chen");
+    expect(parsed.emailNotifications).toBe(false);
+  });
+
+  it("parsePreferences replaces an unknown stylist and a non-boolean flag with defaults", () => {
+    const parsed = parsePreferences({
+      preferredStylist: "Someone Else",
+      emailNotifications: "yes",
+    });
+    expect(parsed.preferredStylist).toBeNull();
+    expect(parsed.emailNotifications).toBe(true);
+  });
+
+  it("validatePreferencesStrict rejects an unknown stylist and a non-boolean flag", () => {
+    const bad = validatePreferencesStrict({
+      preferredStylist: "Someone Else",
+      emailNotifications: "yes",
+    });
+    expect(bad.ok).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/preferredStylist/);
+    expect(bad.errors.join(" ")).toMatch(/emailNotifications/);
+  });
+
+  it("validatePreferencesStrict accepts null (no preference) and a valid stylist", () => {
+    expect(validatePreferencesStrict({ preferredStylist: null }).ok).toBe(true);
+    expect(
+      validatePreferencesStrict({
+        preferredStylist: "Amelia Brooks",
+        emailNotifications: false,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("STYLIST_NAMES is the five stylists from the dashboard, in the same set", () => {
+    // The source of truth is EMPLOYEES in lib/dashboard.ts; the
+    // list here is a deliberate duplicate (so this client-safe file
+    // does not import the 1,377-row SALES data). A rename in either
+    // place must fail here, not drift silently.
+    expect([...STYLIST_NAMES].sort()).toEqual(
+      EMPLOYEES.map((e) => e.name).sort(),
+    );
+    expect(isPreferredStylist("Jordan Lee")).toBe(true);
+    expect(isPreferredStylist("Nobody")).toBe(false);
   });
 });

@@ -37,7 +37,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("customer_preferences")
     .select(
-      "theme, font_pairing, font_size, high_contrast, reduce_motion, larger_text, voice_uri, voice_rate, voice_pitch",
+      "theme, font_pairing, font_size, high_contrast, reduce_motion, larger_text, voice_uri, voice_rate, voice_pitch, preferred_stylist, email_notifications",
     )
     .eq("user_id", session.user.id)
     .maybeSingle();
@@ -59,6 +59,8 @@ export async function GET() {
       voiceURI: data.voice_uri,
       voiceRate: data.voice_rate,
       voicePitch: data.voice_pitch,
+      preferredStylist: data.preferred_stylist,
+      emailNotifications: data.email_notifications,
     }),
   });
 }
@@ -125,6 +127,8 @@ export async function POST(req: Request) {
       voice_uri: prefs.voiceURI,
       voice_rate: prefs.voiceRate,
       voice_pitch: prefs.voicePitch,
+      preferred_stylist: prefs.preferredStylist,
+      email_notifications: prefs.emailNotifications,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
