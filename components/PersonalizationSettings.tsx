@@ -36,6 +36,7 @@ import {
 import {
   applyVoiceSettings,
   isSpeechSynthesisSupported,
+  splitPopularVoices,
 } from "@/lib/speech";
 import DemoPopover from "@/components/DemoPopover";
 
@@ -175,6 +176,15 @@ export default function PersonalizationSettings() {
       (v) => v.voiceURI === prefs.voiceURI || v.name === prefs.voiceURI,
     );
   const voiceSelectValue = savedVoiceAvailable ? prefs.voiceURI : "";
+
+  // The dropdown groups the voices: the five most common first
+  // ("Popular voices"), everything else underneath ("All voices").
+  // A popular voice that is not installed on this device is simply
+  // skipped; when none of the five is installed there is no Popular
+  // group at all. Nothing is filtered out — every voice the browser
+  // reports appears in one of the two groups.
+  const { popular: popularVoices, rest: otherVoices } =
+    splitPopularVoices(voices);
 
   return (
     <div className="personalization-settings">
@@ -332,14 +342,30 @@ export default function PersonalizationSettings() {
               }
             >
               <option value="">Default voice</option>
-              {voices.map((voice) => (
-                <option
-                  key={voice.voiceURI || voice.name}
-                  value={voice.voiceURI || voice.name}
-                >
-                  {voice.name} — {voice.lang}
-                </option>
-              ))}
+              {popularVoices.length > 0 && (
+                <optgroup label="Popular voices">
+                  {popularVoices.map((voice) => (
+                    <option
+                      key={voice.voiceURI || voice.name}
+                      value={voice.voiceURI || voice.name}
+                    >
+                      {voice.name} — {voice.lang}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {otherVoices.length > 0 && (
+                <optgroup label="All voices">
+                  {otherVoices.map((voice) => (
+                    <option
+                      key={voice.voiceURI || voice.name}
+                      value={voice.voiceURI || voice.name}
+                    >
+                      {voice.name} — {voice.lang}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             {prefs.voiceURI !== null && !savedVoiceAvailable && (
               <p>

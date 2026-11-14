@@ -4,6 +4,7 @@
 // The live SpeechRecognition / speechSynthesis objects are never
 // tested here — there is no microphone in this workspace.
 import {
+  POPULAR_VOICE_NAMES,
   VOICE_UNAVAILABLE_MESSAGE,
   applyVoiceSettings,
   clampVoiceValue,
@@ -11,6 +12,7 @@ import {
   getSpeechRecognitionConstructor,
   isSpeechRecognitionSupported,
   isSpeechSynthesisSupported,
+  splitPopularVoices,
   stripMarkdownForSpeech,
 } from "@/lib/speech";
 
@@ -160,5 +162,75 @@ describe("applyVoiceSettings", () => {
     applyVoiceSettings(u, null, 0.1, 9, voices);
     expect(u.rate).toBe(0.5);
     expect(u.pitch).toBe(2);
+  });
+});
+
+describe("splitPopularVoices", () => {
+  // A Mac-like list: the popular names arrive in browser order
+  // (not curated order), mixed in with novelty and other voices.
+  const voices = [
+    makeVoice({ voiceURI: "zarvox", name: "Zarvox", lang: "en-US" }),
+    makeVoice({ voiceURI: "grandma-us", name: "Grandma", lang: "en-US" }),
+    makeVoice({ voiceURI: "samantha", name: "Samantha", lang: "en-US" }),
+    makeVoice({ voiceURI: "bubbles", name: "Bubbles", lang: "en-US" }),
+    makeVoice({ voiceURI: "flo", name: "Flo", lang: "en-GB" }),
+    makeVoice({ voiceURI: "moira", name: "Moira", lang: "en-IE" }),
+    makeVoice({ voiceURI: "daniel", name: "Daniel", lang: "en-GB" }),
+    makeVoice({ voiceURI: "shelley-es", name: "Shelley", lang: "es-ES" }),
+  ];
+
+  it("names exactly the five popular voices, Samantha first", () => {
+    expect([...POPULAR_VOICE_NAMES]).toEqual([
+      "Samantha",
+      "Daniel",
+      "Moira",
+      "Flo",
+      "Grandma",
+    ]);
+  });
+
+  it("returns the installed popular voices in curated order, not browser order", () => {
+    const { popular } = splitPopularVoices(voices);
+    expect(popular.map((v) => v.name)).toEqual([
+      "Samantha",
+      "Daniel",
+      "Moira",
+      "Flo",
+      "Grandma",
+    ]);
+  });
+
+  it("puts every other voice in rest, in browser order, with no duplicates", () => {
+    const { popular, rest } = splitPopularVoices(voices);
+    expect(rest.map((v) => v.name)).toEqual([
+      "Zarvox",
+      "Bubbles",
+      "Shelley",
+    ]);
+    const all = [...popular, ...rest];
+    expect(all).toHaveLength(voices.length);
+    expect(new Set(all).size).toBe(voices.length);
+  });
+
+  it("skips popular voices that are not installed", () => {
+    const { popular, rest } = splitPopularVoices([
+      makeVoice({ voiceURI: "samantha", name: "Samantha", lang: "en-US" }),
+      makeVoice({ voiceURI: "zarvox", name: "Zarvox", lang: "en-US" }),
+    ]);
+    expect(popular.map((v) => v.name)).toEqual(["Samantha"]);
+    expect(rest.map((v) => v.name)).toEqual(["Zarvox"]);
+  });
+
+  it("returns an empty popular list when none of the five is installed", () => {
+    const { popular, rest } = splitPopularVoices([
+      makeVoice({ voiceURI: "zarvox", name: "Zarvox", lang: "en-US" }),
+      makeVoice({ voiceURI: "bubbles", name: "Bubbles", lang: "en-US" }),
+    ]);
+    expect(popular).toEqual([]);
+    expect(rest.map((v) => v.name)).toEqual(["Zarvox", "Bubbles"]);
+  });
+
+  it("returns two empty lists for an empty voice list", () => {
+    expect(splitPopularVoices([])).toEqual({ popular: [], rest: [] });
   });
 });

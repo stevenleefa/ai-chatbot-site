@@ -5,7 +5,7 @@
 // persists to localStorage. The account sync (fetch /api/preferences)
 // is stubbed to the signed-out shape here — the component must work
 // localStorage-only and never error when the route says no.
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import PersonalizationSettings, {
   LARGER_TEXT_POPOVER_DETAIL,
   LARGER_TEXT_POPOVER_TITLE,
@@ -122,9 +122,9 @@ describe("Voice section", () => {
   // jsdom has no Web Speech API at all, so both speechSynthesis and
   // the utterance constructor are mocked here. The mock voices are
   // plain objects — the panel only reads voiceURI, name and lang.
-  function mockSpeechSynthesis() {
+  function mockSpeechSynthesis(voices = mockVoices) {
     const mock = {
-      getVoices: jest.fn(() => mockVoices),
+      getVoices: jest.fn(() => voices),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       cancel: jest.fn(),
@@ -242,6 +242,96 @@ describe("Voice section", () => {
     ).toBeInTheDocument();
     const select = screen.getByLabelText("Voice") as HTMLSelectElement;
     expect(select.value).toBe("");
+  });
+
+  it("groups the voices: the popular five first, the rest underneath", async () => {
+    // Browser order is scrambled and the novelty voices sit mixed
+    // in with the natural ones — the dropdown must still lead with
+    // the five popular voices in curated order.
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "grandma-us", name: "Grandma", lang: "en-US" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+      { voiceURI: "bubbles", name: "Bubbles", lang: "en-US" },
+      { voiceURI: "flo", name: "Flo", lang: "en-GB" },
+      { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
+      { voiceURI: "moira", name: "Moira", lang: "en-IE" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
+    // "Default voice" is still the first option in the select.
+    expect(select.options[0].value).toBe("");
+    expect(select.options[0].text).toBe("Default voice");
+
+    const popular = screen.getByRole("group", { name: "Popular voices" });
+    expect(
+      within(popular)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      "Samantha — en-US",
+      "Daniel — en-GB",
+      "Moira — en-IE",
+      "Flo — en-GB",
+      "Grandma — en-US",
+    ]);
+
+    const all = screen.getByRole("group", { name: "All voices" });
+    expect(
+      within(all)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      "Zarvox — en-US",
+      "Bubbles — en-US",
+      "Google US English — en-US",
+    ]);
+
+    // No voice appears twice across the two groups.
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it("omits the Popular group when none of the five is installed", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    expect(
+      screen.queryByRole("group", { name: "Popular voices" }),
+    ).not.toBeInTheDocument();
+    const all = screen.getByRole("group", { name: "All voices" });
+    expect(
+      within(all)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Zarvox — en-US", "Google US English — en-US"]);
+    expect(
+      screen.getByRole("option", { name: "Default voice" }),
+    ).toBeInTheDocument();
+  });
+
+  it("saves a voice picked from the Popular group", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "daniel" } });
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.voiceURI).toBe("daniel");
   });
 });
 
