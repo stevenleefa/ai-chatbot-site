@@ -25,6 +25,11 @@ export const DEMO_POPOVER_DETAIL = "Nothing changes in demo mode.";
 // note says why the control does nothing: the visitor is browsing
 // sample data, and nothing here changes anything.
 //
+// The heading is a prop (title, default "For demo purposes only")
+// so the same wrapper can explain a different disabled control:
+// the Settings panel reuses it for the Small/Medium text sizes
+// when Larger text is on, with its own title and detail.
+//
 // Why a wrapper at all: a disabled element fires no pointer events
 // and cannot take focus, so it can never show a tooltip by itself.
 // The wrapper is what receives hover and focus, and it carries the
@@ -48,6 +53,7 @@ export default function DemoPopover({
   enabled = true,
   focusable = true,
   block = false,
+  title = DEMO_POPOVER_TITLE,
   detail = DEMO_POPOVER_DETAIL,
 }: {
   children: ReactNode;
@@ -63,6 +69,10 @@ export default function DemoPopover({
   // — for the settings form and the invite note, which are block
   // content (a <form> or <p> inside a <span> would be invalid HTML).
   block?: boolean;
+  // The heading shown in the popover. Defaults to the demo-mode
+  // heading; pass a different one when the popover explains
+  // another disabled control (e.g. the text-size radios).
+  title?: string;
   // The line under the heading.
   detail?: string;
 }) {
@@ -158,7 +168,7 @@ export default function DemoPopover({
       className={`demo-popover${open && pos ? " demo-popover-visible" : ""}`}
       style={pos ? { top: pos.top, left: pos.left } : undefined}
     >
-      <strong>{DEMO_POPOVER_TITLE}</strong>
+      <strong>{title}</strong>
       <span>{detail}</span>
     </span>
   );

@@ -110,10 +110,10 @@ describe("preference validation", () => {
 });
 
 describe("voice options", () => {
-  it("defaults are the browser default voice, normal speed and pitch", () => {
-    expect(DEFAULT_PREFERENCES.voiceURI).toBeNull();
+  it("defaults are Samantha, normal speed and a high pitch", () => {
+    expect(DEFAULT_PREFERENCES.voiceURI).toBe("Samantha");
     expect(DEFAULT_PREFERENCES.voiceRate).toBe(1);
-    expect(DEFAULT_PREFERENCES.voicePitch).toBe(1);
+    expect(DEFAULT_PREFERENCES.voicePitch).toBe(1.25);
   });
 
   it("parsePreferences keeps valid voice values and defaults the rest", () => {
@@ -130,9 +130,18 @@ describe("voice options", () => {
       voiceRate: 5,
       voicePitch: "high",
     });
-    expect(bad.voiceURI).toBeNull();
+    expect(bad.voiceURI).toBe("Samantha");
     expect(bad.voiceRate).toBe(1);
-    expect(bad.voicePitch).toBe(1);
+    expect(bad.voicePitch).toBe(1.25);
+  });
+
+  it("a stored preference with no voice fields parses to the voice defaults", () => {
+    const parsed = parsePreferences({ theme: "teal", fontSize: "large" });
+    expect(parsed.theme).toBe("teal");
+    expect(parsed.fontSize).toBe("large");
+    expect(parsed.voiceURI).toBe("Samantha");
+    expect(parsed.voiceRate).toBe(1);
+    expect(parsed.voicePitch).toBe(1.25);
   });
 
   it("validatePreferencesStrict rejects out-of-range rate/pitch and non-string voiceURI", () => {
@@ -159,7 +168,7 @@ describe("voice options", () => {
     const partial = validatePreferencesStrict({ voiceRate: 1.25 });
     expect(partial.ok).toBe(true);
     expect(partial.preferences.voiceRate).toBe(1.25);
-    expect(partial.preferences.voicePitch).toBe(1);
+    expect(partial.preferences.voicePitch).toBe(1.25);
   });
 });
 
@@ -290,6 +299,26 @@ describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome 
     syncThemeColorMeta();
     expect(metaTag().getAttribute("content")).toBe("#4a1524");
   });
+
+  it("syncThemeColorMeta replaces the tag with a fresh node, not a mutation in place", () => {
+    // Safari on macOS does not reliably re-tint the tab bar when
+    // the meta tag's content attribute is mutated — it only picks
+    // the new colour up on reload. Inserting a fresh tag forces
+    // Safari to re-read it, so the chrome follows a theme change
+    // immediately, without a reload.
+    document.documentElement.setAttribute("data-personalization-theme", "plum");
+    document.documentElement.setAttribute("data-theme", "light");
+    syncThemeColorMeta();
+    const first = metaTag();
+    expect(first.getAttribute("content")).toBe("#3d2433");
+    document.documentElement.setAttribute("data-personalization-theme", "teal");
+    syncThemeColorMeta();
+    const second = metaTag();
+    expect(second.getAttribute("content")).toBe("#0b3d3a");
+    expect(second).not.toBe(first);
+    expect(first.isConnected).toBe(false);
+    expect(document.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
+  });
 });
 
 describe("font-size scaling (rem, root font-size)", () => {
@@ -336,6 +365,20 @@ describe("font-size scaling (rem, root font-size)", () => {
     const h1 = css.match(/\.hero-content h1 \{[^}]*\}/);
     expect(h1).not.toBeNull();
     expect(h1![0]).toContain("clamp(2.5rem, 6vw, 4rem)");
+  });
+
+  it("selects scale with the root font-size (1rem), not the UA fixed size", () => {
+    // Safari's UA stylesheet gives <select> a fixed size
+    // (font: -webkit-small-control) that ignores the root
+    // font-size — without this rule the settings-panel dropdowns
+    // (voice, speed, pitch, stylist), the reschedule time picker
+    // and the owner selects stay the same size when the customer
+    // changes the font size. The lead-form selects already had
+    // 1rem; this rule agrees with them (same value).
+    const css = globalsCss();
+    const rule = css.match(/select\s*\{[^}]*\}/);
+    expect(rule).not.toBeNull();
+    expect(rule![0]).toContain("font-size: 1rem");
   });
 });
 

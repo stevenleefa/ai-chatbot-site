@@ -37,6 +37,14 @@ import {
   applyVoiceSettings,
   isSpeechSynthesisSupported,
 } from "@/lib/speech";
+import DemoPopover from "@/components/DemoPopover";
+
+// The popover shown on the Small and Medium text sizes while
+// Larger text is on. The exact strings, so the component and the
+// tests can never drift apart.
+export const LARGER_TEXT_POPOVER_TITLE = "Larger text is on";
+export const LARGER_TEXT_POPOVER_DETAIL =
+  "Turn off Larger text to choose Small or Medium.";
 
 type SyncState = "unknown" | "account" | "device-only";
 
@@ -221,18 +229,43 @@ export default function PersonalizationSettings() {
       <fieldset>
         <legend>Text size</legend>
         <div className="settings-options">
-          {FONT_SIZE_IDS.map((id) => (
-            <label key={id}>
-              <input
-                type="radio"
-                name="personalization-size"
-                value={id}
-                checked={prefs.fontSize === id}
-                onChange={() => update("fontSize", id)}
-              />
-              <strong>{FONT_SIZES[id].label}</strong>
-            </label>
-          ))}
+          {FONT_SIZE_IDS.map((id) => {
+            // Larger text wins over the size choice (the 19px root
+            // rule comes after the size rules in app/globals.css),
+            // so Small and Medium have no visible effect while it
+            // is on. Disable them and explain why with a popover,
+            // instead of leaving clickable radios that change
+            // nothing. Large is left alone — out of scope for this
+            // change. The disabled radio cannot take focus, so the
+            // popover wrapper takes the tab stop (its focusable
+            // default) and the popover shows on hover and on
+            // keyboard focus.
+            const blocked =
+              prefs.largerText && (id === "small" || id === "medium");
+            const option = (
+              <label key={id}>
+                <input
+                  type="radio"
+                  name="personalization-size"
+                  value={id}
+                  checked={prefs.fontSize === id}
+                  onChange={() => update("fontSize", id)}
+                  disabled={blocked}
+                />
+                <strong>{FONT_SIZES[id].label}</strong>
+              </label>
+            );
+            if (!blocked) return option;
+            return (
+              <DemoPopover
+                key={id}
+                title={LARGER_TEXT_POPOVER_TITLE}
+                detail={LARGER_TEXT_POPOVER_DETAIL}
+              >
+                {option}
+              </DemoPopover>
+            );
+          })}
         </div>
       </fieldset>
 
