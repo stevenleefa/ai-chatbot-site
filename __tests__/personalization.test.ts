@@ -3,15 +3,20 @@
 import {
   DEFAULT_PREFERENCES,
   FONT_SIZES,
+  STYLIST_NAMES,
   THEMES,
   applyPreferences,
   contrastRatio,
+  isPreferredStylist,
   parsePreferences,
   readStoredPreferences,
+  syncThemeColorMeta,
+  themeColorFor,
   validatePreferencesStrict,
   writeStoredPreferences,
   STORAGE_KEY,
 } from "@/lib/personalization";
+import { EMPLOYEES } from "@/lib/dashboard";
 
 describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
   it.each(Object.values(THEMES))(
@@ -104,6 +109,60 @@ describe("preference validation", () => {
   });
 });
 
+describe("voice options", () => {
+  it("defaults are the browser default voice, normal speed and pitch", () => {
+    expect(DEFAULT_PREFERENCES.voiceURI).toBeNull();
+    expect(DEFAULT_PREFERENCES.voiceRate).toBe(1);
+    expect(DEFAULT_PREFERENCES.voicePitch).toBe(1);
+  });
+
+  it("parsePreferences keeps valid voice values and defaults the rest", () => {
+    const parsed = parsePreferences({
+      voiceURI: "com.apple.speech.synthesis.voice.samantha",
+      voiceRate: 1.25,
+      voicePitch: 0.75,
+    });
+    expect(parsed.voiceURI).toBe("com.apple.speech.synthesis.voice.samantha");
+    expect(parsed.voiceRate).toBe(1.25);
+    expect(parsed.voicePitch).toBe(0.75);
+    const bad = parsePreferences({
+      voiceURI: 42,
+      voiceRate: 5,
+      voicePitch: "high",
+    });
+    expect(bad.voiceURI).toBeNull();
+    expect(bad.voiceRate).toBe(1);
+    expect(bad.voicePitch).toBe(1);
+  });
+
+  it("validatePreferencesStrict rejects out-of-range rate/pitch and non-string voiceURI", () => {
+    const bad = validatePreferencesStrict({
+      voiceURI: 42,
+      voiceRate: 0.1,
+      voicePitch: 3,
+    });
+    expect(bad.ok).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/voiceURI/);
+    expect(bad.errors.join(" ")).toMatch(/voiceRate/);
+    expect(bad.errors.join(" ")).toMatch(/voicePitch/);
+  });
+
+  it("validatePreferencesStrict accepts a full valid voice set and partial updates", () => {
+    expect(
+      validatePreferencesStrict({
+        voiceURI: "Google US English",
+        voiceRate: 0.75,
+        voicePitch: 1.25,
+      }).ok,
+    ).toBe(true);
+    expect(validatePreferencesStrict({ voiceURI: null }).ok).toBe(true);
+    const partial = validatePreferencesStrict({ voiceRate: 1.25 });
+    expect(partial.ok).toBe(true);
+    expect(partial.preferences.voiceRate).toBe(1.25);
+    expect(partial.preferences.voicePitch).toBe(1);
+  });
+});
+
 describe("font-size scaling values", () => {
   it("small < medium < large on body, heading and button sizes", () => {
     expect(FONT_SIZES.small.bodyPx).toBeLessThan(FONT_SIZES.medium.bodyPx);
@@ -172,5 +231,168 @@ describe("localStorage read/write helpers", () => {
     expect(el.getAttribute("data-high-contrast")).toBe("true");
     expect(el.getAttribute("data-reduce-motion")).toBe("true");
     expect(el.getAttribute("data-larger-text")).toBe("false");
+  });
+});
+
+describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome colour is the theme's header background, so the
+  // browser tab/address bar matches the header the customer sees.
+  it("themeColorFor is the header background for each theme and mode", () => {
+    expect(themeColorFor("plum", false)).toBe("#3d2433");
+    expect(themeColorFor("plum", true)).toBe("#a05a66");
+    expect(themeColorFor("rose", false)).toBe("#4a1524");
+    expect(themeColorFor("rose", true)).toBe("#9c3d54");
+    expect(themeColorFor("teal", false)).toBe("#0b3d3a");
+    expect(themeColorFor("teal", true)).toBe("#0f766e");
+    expect(themeColorFor("forest", false)).toBe("#0f2e1d");
+    expect(themeColorFor("forest", true)).toBe("#166534");
+    expect(themeColorFor("navy", false)).toBe("#101f33");
+    expect(themeColorFor("navy", true)).toBe("#1e3a5f");
+  });
+
+  it("themeColorFor agrees with the theme's nav-bg fields", () => {
+    for (const t of Object.values(THEMES)) {
+      expect(themeColorFor(t.id, false)).toBe(t.navBgLight);
+      expect(themeColorFor(t.id, true)).toBe(t.navBgDark);
+    }
+  });
+
+  function metaTag(): HTMLMetaElement {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    return meta;
+  }
+
+  it("syncThemeColorMeta writes the tag from the theme + mode on <html>", () => {
+    const el = document.documentElement;
+    el.setAttribute("data-personalization-theme", "navy");
+    el.setAttribute("data-theme", "dark");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#1e3a5f");
+    el.setAttribute("data-theme", "light");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#101f33");
+  });
+
+  it("applyPreferences syncs the theme-color tag as well as the data attributes", () => {
+    document.documentElement.setAttribute("data-theme", "light");
+    applyPreferences({ ...DEFAULT_PREFERENCES, theme: "teal" });
+    expect(metaTag().getAttribute("content")).toBe("#0b3d3a");
+  });
+
+  it("syncThemeColorMeta creates the tag when it is missing", () => {
+    document.querySelector('meta[name="theme-color"]')?.remove();
+    document.documentElement.setAttribute("data-personalization-theme", "rose");
+    document.documentElement.setAttribute("data-theme", "light");
+    syncThemeColorMeta();
+    expect(metaTag().getAttribute("content")).toBe("#4a1524");
+  });
+});
+
+describe("font-size scaling (rem, root font-size)", () => {
+  // The size choice sets the root font-size on <html> and every
+  // text size in app/globals.css is in rem, so the whole site
+  // scales — body, headings, buttons, inputs, tables, the brand,
+  // hero text, chat messages, review stars, badges, the small
+  // muted notes, the hamburger menu and the nav. jsdom does not
+  // apply the stylesheet, so this guards the CSS itself: the root
+  // rules exist with the right px values, and no other font-size
+  // is in px (a px font-size would not scale with the root).
+  function globalsCss(): string {
+    const fs = require("fs");
+    const path = require("path");
+    return fs.readFileSync(
+      path.join(__dirname, "..", "app", "globals.css"),
+      "utf8"
+    ) as string;
+  }
+
+  it("the root font-size rules exist for small, large and larger-text", () => {
+    const css = globalsCss();
+    expect(css).toContain('html[data-font-size="small"] { font-size: 15px; }');
+    expect(css).toContain('html[data-font-size="large"] { font-size: 18px; }');
+    expect(css).toContain('html[data-larger-text="true"] { font-size: 19px; }');
+  });
+
+  it("no font-size outside the root rules is in px", () => {
+    const css = globalsCss();
+    const pxSizes = [...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(
+      (m) => m[0]
+    );
+    // Only the three root rules above may use px.
+    expect(pxSizes).toHaveLength(3);
+    expect(pxSizes).toEqual([
+      "font-size: 15px",
+      "font-size: 18px",
+      "font-size: 19px",
+    ]);
+  });
+
+  it("the hero h1 clamp uses rem, so it scales with the root", () => {
+    const css = globalsCss();
+    const h1 = css.match(/\.hero-content h1 \{[^}]*\}/);
+    expect(h1).not.toBeNull();
+    expect(h1![0]).toContain("clamp(2.5rem, 6vw, 4rem)");
+  });
+});
+
+describe("settings page fields (preferred stylist + email notifications)", () => {
+  it("defaults are no preferred stylist and email notifications on", () => {
+    expect(DEFAULT_PREFERENCES.preferredStylist).toBeNull();
+    expect(DEFAULT_PREFERENCES.emailNotifications).toBe(true);
+    expect(parsePreferences({})).toEqual(DEFAULT_PREFERENCES);
+  });
+
+  it("parsePreferences keeps a valid stylist and a false notifications flag", () => {
+    const parsed = parsePreferences({
+      preferredStylist: "Maya Chen",
+      emailNotifications: false,
+    });
+    expect(parsed.preferredStylist).toBe("Maya Chen");
+    expect(parsed.emailNotifications).toBe(false);
+  });
+
+  it("parsePreferences replaces an unknown stylist and a non-boolean flag with defaults", () => {
+    const parsed = parsePreferences({
+      preferredStylist: "Someone Else",
+      emailNotifications: "yes",
+    });
+    expect(parsed.preferredStylist).toBeNull();
+    expect(parsed.emailNotifications).toBe(true);
+  });
+
+  it("validatePreferencesStrict rejects an unknown stylist and a non-boolean flag", () => {
+    const bad = validatePreferencesStrict({
+      preferredStylist: "Someone Else",
+      emailNotifications: "yes",
+    });
+    expect(bad.ok).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/preferredStylist/);
+    expect(bad.errors.join(" ")).toMatch(/emailNotifications/);
+  });
+
+  it("validatePreferencesStrict accepts null (no preference) and a valid stylist", () => {
+    expect(validatePreferencesStrict({ preferredStylist: null }).ok).toBe(true);
+    expect(
+      validatePreferencesStrict({
+        preferredStylist: "Amelia Brooks",
+        emailNotifications: false,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("STYLIST_NAMES is the five stylists from the dashboard, in the same set", () => {
+    // The source of truth is EMPLOYEES in lib/dashboard.ts; the
+    // list here is a deliberate duplicate (so this client-safe file
+    // does not import the 1,377-row SALES data). A rename in either
+    // place must fail here, not drift silently.
+    expect([...STYLIST_NAMES].sort()).toEqual(
+      EMPLOYEES.map((e) => e.name).sort(),
+    );
+    expect(isPreferredStylist("Jordan Lee")).toBe(true);
+    expect(isPreferredStylist("Nobody")).toBe(false);
   });
 });

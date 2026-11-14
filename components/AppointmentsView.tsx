@@ -33,11 +33,13 @@ import AppointmentCalendar, {
   type CalendarAppointment,
   type CalendarView,
 } from "@/components/AppointmentCalendar";
+import Calendar from "@/components/Calendar";
 import SortableTable, {
   type SortableColumn,
   type SortableRow,
 } from "@/components/SortableTable";
 import { formatTime, fmtDate } from "@/lib/format";
+import { formatDayLong } from "@/lib/calendar";
 
 export type StylistFilter = {
   name: string;
@@ -74,6 +76,9 @@ export default function AppointmentsView({
   const firstDate = appointments[0]?.date ?? NOV_START;
   const [view, setView] = useState<CalendarView>("month");
   const [anchorDate, setAnchorDate] = useState(firstDate);
+  // Month view: the day tapped on the month calendar, whose
+  // appointments list below it. Defaults to the first appointment.
+  const [selectedDay, setSelectedDay] = useState(firstDate);
   // Multi-select: the names of the selected stylists. Default is all
   // of them (the old "All"). "All" itself is derived — checked when
   // every stylist is selected, mixed while only some are.
@@ -129,6 +134,16 @@ export default function AppointmentsView({
   const filtered = appointments.filter((a) =>
     selected.includes(a.stylist)
   );
+  // Month view: how many (filtered) appointments each day has, for
+  // the count badge on the month calendar, and the selected day's
+  // appointments in time order for the list below it.
+  const appointmentCounts: Record<string, number> = {};
+  for (const a of filtered) {
+    appointmentCounts[a.date] = (appointmentCounts[a.date] ?? 0) + 1;
+  }
+  const selectedDayAppointments = filtered
+    .filter((a) => a.date === selectedDay)
+    .sort((a, b) => a.time.localeCompare(b.time));
   const selectedLabel = allSelected
     ? "All stylists"
     : noneSelected
@@ -218,15 +233,18 @@ export default function AppointmentsView({
     <>
       <section className="dash-section">
         <h2>
-          November 2026 calendar{" "}
+          Appointments calendar{" "}
           <span className="tag tag-appointments">Appointments</span>
         </h2>
         <p>
           Every booked appointment on the calendar — click a name to
-          open that customer or stylist. Each block is coloured for
-          its stylist (see the key below). Sundays are closed. The
-          diary covers November 2026 only, so there is no month
-          navigation.
+          open that customer or stylist. In the Month view, move a
+          year back or forward; the number on a day is how many
+          appointments it has, and tapping a day lists them below.
+          In the Week and Day views each block is coloured for its
+          stylist (see the key below). Sundays are closed. The diary
+          data covers November 2026 only, so the Week and Day views
+          stay in November.
         </p>
 
         <div
@@ -363,6 +381,55 @@ export default function AppointmentsView({
               No appointments in November for {selectedLabel}. Try
               other stylists, or All.
             </p>
+          ) : view === "month" ? (
+            <>
+              {/* Month view: the reusable month calendar
+                  (components/Calendar.tsx) with a year of
+                  navigation either way. A number on a day is how
+                  many appointments it has; tapping a day lists
+                  them below. The Week and Day views still use
+                  AppointmentCalendar (full blocks / timed list). */}
+              <Calendar
+                selected={selectedDay}
+                onSelect={setSelectedDay}
+                appointmentCounts={appointmentCounts}
+                initialMonth={selectedDay.slice(0, 7)}
+                ariaLabel="Appointments by month"
+              />
+              <h3>{formatDayLong(selectedDay)}</h3>
+              {selectedDayAppointments.length === 0 ? (
+                <p>No appointments on this day.</p>
+              ) : (
+                <ul className="day-list">
+                  {selectedDayAppointments.map((a) => (
+                    <li key={a.id}>
+                      <strong>{formatTime(a.time)}</strong> —{" "}
+                      <Link href={`/customers/${a.customerId}`}>
+                        {a.customerName}
+                      </Link>{" "}
+                      · {a.service} with{" "}
+                      <Link href={`/employees/${a.stylistId}`}>
+                        {a.stylist}
+                      </Link>{" "}
+                      <span
+                        className="stylist-dot"
+                        style={{ background: a.colour }}
+                        aria-hidden="true"
+                      />{" "}
+                      <span
+                        className={
+                          a.status === "confirmed"
+                            ? "badge badge-ok"
+                            : "badge badge-low"
+                        }
+                      >
+                        {a.status === "confirmed" ? "Confirmed" : "Requested"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           ) : (
             <AppointmentCalendar
               appointments={filtered}

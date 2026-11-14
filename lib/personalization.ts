@@ -23,6 +23,23 @@ export interface PersonalizationPreferences {
   highContrast: boolean;
   reduceMotion: boolean;
   largerText: boolean;
+  /** Voice the assistant speaks with (speechSynthesis voiceURI, or a
+   * voice name when the voice has no voiceURI). Null = the browser
+   * default voice (the first English voice, see lib/speech.ts). */
+  voiceURI: string | null;
+  /** Spoken-reply speed (0.75 slow, 1 normal, 1.25 fast). */
+  voiceRate: number;
+  /** Spoken-reply pitch (0.75 low, 1 normal, 1.25 high). */
+  voicePitch: number;
+  /** The stylist the customer prefers (one of STYLIST_NAMES).
+   * Null = no preference. Saved, not yet used by booking — the
+   * booking form will offer them first in a later step. */
+  preferredStylist: string | null;
+  /** Email notifications: appointment reminders and offers. This
+   * is a preference only — the site does not yet send reminder or
+   * marketing emails (only Supabase Auth invites/resets go out,
+   * via Yahoo SMTP). Default true. */
+  emailNotifications: boolean;
 }
 
 export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
@@ -32,6 +49,11 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
   highContrast: false,
   reduceMotion: false,
   largerText: false,
+  voiceURI: null,
+  voiceRate: 1,
+  voicePitch: 1,
+  preferredStylist: null,
+  emailNotifications: true,
 };
 
 export const STORAGE_KEY = "lumen-preferences";
@@ -232,6 +254,54 @@ export const FONT_SIZES: Record<FontSizeId, FontSizeOption> = {
   large: { id: "large", label: "Large", bodyPx: 18, headingPx: 39, buttonPx: 16 },
 };
 
+// --- Voice options --------------------------------------------------------
+// The assistant's spoken voice: which voice, how fast, how high.
+// The voice list itself comes from the browser (speechSynthesis
+// .getVoices()) — it differs by browser and OS (Safari on Mac has
+// its own set, Chrome has Google voices), so the picker lists
+// whatever this browser offers. Rate and pitch are the same three
+// steps for every voice. The valid range for both is 0.5–2; the
+// panel only offers the three steps below, but the API accepts any
+// number in range (see isVoiceRate / isVoicePitch).
+export interface VoiceOption {
+  /** SpeechSynthesisUtterance rate/pitch value. */
+  value: number;
+  label: string;
+}
+
+export const VOICE_RATE_OPTIONS: VoiceOption[] = [
+  { value: 0.75, label: "Slow" },
+  { value: 1, label: "Normal" },
+  { value: 1.25, label: "Fast" },
+];
+
+export const VOICE_PITCH_OPTIONS: VoiceOption[] = [
+  { value: 0.75, label: "Low" },
+  { value: 1, label: "Normal" },
+  { value: 1.25, label: "High" },
+];
+
+/** The valid range for voice rate and pitch. */
+export const VOICE_RATE_MIN = 0.5;
+export const VOICE_RATE_MAX = 2;
+export const VOICE_PITCH_MIN = 0.5;
+export const VOICE_PITCH_MAX = 2;
+
+// --- Preferred stylist ----------------------------------------------------
+// The five stylists, by full name. The source of truth is EMPLOYEES in
+// lib/dashboard.ts — these names are duplicated here deliberately so
+// this client-safe file does not import the dashboard module (which
+// carries the 1,377-row SALES array into the client bundle).
+// __tests__/personalization.test.ts asserts the two lists agree, so
+// a rename in one place fails the test instead of silently drifting.
+export const STYLIST_NAMES: string[] = [
+  "Amelia Brooks",
+  "Sofia Reyes",
+  "Maya Chen",
+  "Jordan Lee",
+  "Priya Nair",
+];
+
 // --- Validation -----------------------------------------------------------
 // Never trust stored input: localStorage and the API body can hold
 // anything. Unknown values fall back to the default for that field
@@ -252,6 +322,35 @@ export function isFontSizeId(value: unknown): value is FontSizeId {
 
 export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
+}
+
+/** A voice identifier: null (browser default) or a voiceURI / name. */
+export function isVoiceURI(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+/** A voice rate or pitch: a finite number inside the valid range. */
+export function isVoiceRate(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= VOICE_RATE_MIN &&
+    value <= VOICE_RATE_MAX
+  );
+}
+
+export function isVoicePitch(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= VOICE_PITCH_MIN &&
+    value <= VOICE_PITCH_MAX
+  );
+}
+
+/** A preferred stylist: null (no preference) or one of the five names. */
+export function isPreferredStylist(value: unknown): value is string | null {
+  return value === null || (typeof value === "string" && STYLIST_NAMES.includes(value));
 }
 
 /** Lenient parse: unknown/missing fields become the default. */
@@ -275,6 +374,21 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
     largerText: isBoolean(obj.largerText)
       ? obj.largerText
       : DEFAULT_PREFERENCES.largerText,
+    voiceURI: isVoiceURI(obj.voiceURI)
+      ? obj.voiceURI
+      : DEFAULT_PREFERENCES.voiceURI,
+    voiceRate: isVoiceRate(obj.voiceRate)
+      ? obj.voiceRate
+      : DEFAULT_PREFERENCES.voiceRate,
+    voicePitch: isVoicePitch(obj.voicePitch)
+      ? obj.voicePitch
+      : DEFAULT_PREFERENCES.voicePitch,
+    preferredStylist: isPreferredStylist(obj.preferredStylist)
+      ? obj.preferredStylist
+      : DEFAULT_PREFERENCES.preferredStylist,
+    emailNotifications: isBoolean(obj.emailNotifications)
+      ? obj.emailNotifications
+      : DEFAULT_PREFERENCES.emailNotifications,
   };
 }
 
@@ -303,7 +417,70 @@ export function validatePreferencesStrict(input: unknown): {
       errors.push(`${key} must be true or false`);
     }
   }
+  if (obj.voiceURI !== undefined && !isVoiceURI(obj.voiceURI)) {
+    errors.push(`voiceURI must be a voice id string or null`);
+  }
+  if (obj.voiceRate !== undefined && !isVoiceRate(obj.voiceRate)) {
+    errors.push(
+      `voiceRate must be a number between ${VOICE_RATE_MIN} and ${VOICE_RATE_MAX}`,
+    );
+  }
+  if (obj.voicePitch !== undefined && !isVoicePitch(obj.voicePitch)) {
+    errors.push(
+      `voicePitch must be a number between ${VOICE_PITCH_MIN} and ${VOICE_PITCH_MAX}`,
+    );
+  }
+  if (obj.preferredStylist !== undefined && !isPreferredStylist(obj.preferredStylist)) {
+    errors.push(
+      `preferredStylist must be one of: ${STYLIST_NAMES.join(", ")} (or null for no preference)`,
+    );
+  }
+  if (obj.emailNotifications !== undefined && !isBoolean(obj.emailNotifications)) {
+    errors.push(`emailNotifications must be true or false`);
+  }
   return { ok: errors.length === 0, errors, preferences: parsePreferences(obj) };
+}
+
+// --- Browser chrome colour (theme-color) ----------------------------------
+// The <meta name="theme-color"> tag is the hint Safari and Chrome
+// use to tint the browser chrome (Safari tab bar, mobile
+// Safari/Chrome address bar). It is a hint, not a command: browsers
+// may tint the chrome but desktop behaviour varies, and it never
+// recolours the whole browser window. The value here is the theme's
+// header background (--nav-bg) for the current light/dark mode, so
+// the chrome matches the header the customer sees. It is updated
+// whenever the theme or the light/dark mode changes (see
+// applyPreferences + syncThemeColorMeta + the MutationObserver in
+// components/PersonalizationProvider.tsx) and before first paint by
+// the pre-paint script below, so the chrome never shows the wrong
+// colour on load.
+
+/** Header background for a theme + mode — the theme-color value. */
+export function themeColorFor(theme: ThemeId, dark: boolean): string {
+  const def = THEMES[theme] ?? THEMES.plum;
+  return dark ? def.navBgDark : def.navBgLight;
+}
+
+/**
+ * Write the theme-color meta tag to match the theme and light/dark
+ * mode currently on <html>. Creates the tag if it is missing (the
+ * layout renders it, so this is only a fallback). No-op when there
+ * is no document (server render).
+ */
+export function syncThemeColorMeta(): void {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  const themeAttr = el.getAttribute("data-personalization-theme");
+  const theme: ThemeId = isThemeId(themeAttr) ? themeAttr : "plum";
+  const dark = el.getAttribute("data-theme") === "dark";
+  const color = themeColorFor(theme, dark);
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", color);
 }
 
 // --- Storage + application ------------------------------------------------
@@ -336,7 +513,11 @@ export function writeStoredPreferences(prefs: PersonalizationPreferences): void 
  * Apply preferences to <html> as data attributes. The CSS in
  * app/globals.css reads these; the pre-paint script
  * (PERSONALIZATION_PREPAINT_SCRIPT) sets the same attributes before
- * first paint so there is no flash of the default theme.
+ * first paint so there is no flash of the default theme. The
+ * browser chrome colour (theme-color meta tag) is synced here too,
+ * so it follows the theme — and the light/dark mode, which the
+ * MutationObserver in components/PersonalizationProvider.tsx
+ * watches for (toggling dark mode does not call this function).
  */
 export function applyPreferences(prefs: PersonalizationPreferences): void {
   if (typeof document === "undefined") return;
@@ -347,6 +528,7 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
   el.setAttribute("data-high-contrast", String(prefs.highContrast));
   el.setAttribute("data-reduce-motion", String(prefs.reduceMotion));
   el.setAttribute("data-larger-text", String(prefs.largerText));
+  syncThemeColorMeta();
 }
 
 // Pre-paint script (mirrors the dark-mode THEME_SCRIPT in
@@ -356,4 +538,4 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
 // value against the allowlists inline (never trust stored input) and
 // falls back to the defaults on any failure. The coordinator renders
 // it via <PersonalizationScript /> — see PERSONALIZATION.md.
-export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));}catch(e){}})();`;
+export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;

@@ -75,9 +75,9 @@ export default async function ProfilePage() {
         <p>
           <Link href="/auth/update-password">Change password</Link>
         </p>
-        <p>
+        <div>
           <SignOutButton />
-        </p>
+        </div>
       </div>
     </main>
   );

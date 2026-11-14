@@ -11,7 +11,6 @@ import ReferralCard from "@/components/ReferralCard";
 import BookingActions from "@/components/BookingActions";
 import RepurchaseSection from "@/components/RepurchaseSection";
 import SavedCartsSection from "@/components/SavedCartsSection";
-import PersonalizationSettings from "@/components/PersonalizationSettings";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
@@ -157,24 +156,10 @@ export default async function MyAccountPage() {
         <p>
           <Link href="/auth/update-password">Change password</Link>
         </p>
-        <p>
+        <div>
           <SignOutButton />
-        </p>
+        </div>
       </div>
-
-      <section>
-        <h2>Display settings</h2>
-        <p>
-          <small>
-            Your colour theme, fonts, text size and accessibility
-            options. They apply across the whole site as soon as you
-            pick them, and are saved on this device — and to your
-            account when the studio has set up Supabase storage, so
-            they follow you to another device.
-          </small>
-        </p>
-        <PersonalizationSettings />
-      </section>
 
       {supabase && (
         <ReferralCard

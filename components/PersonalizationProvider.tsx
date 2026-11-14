@@ -20,11 +20,29 @@ import {
   PERSONALIZATION_PREPAINT_SCRIPT,
   applyPreferences,
   readStoredPreferences,
+  syncThemeColorMeta,
 } from "@/lib/personalization";
 
 export default function PersonalizationProvider() {
   useEffect(() => {
     applyPreferences(readStoredPreferences());
+  }, []);
+  // Toggling dark/light mode (components/ThemeToggle.tsx) changes
+  // data-theme on <html> without calling applyPreferences, so the
+  // browser chrome colour (theme-color meta tag) would go stale.
+  // Watch data-theme and re-sync the chrome colour when it flips.
+  // applyPreferences already syncs it when the theme itself changes.
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === "data-theme") syncThemeColorMeta();
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
   }, []);
   return null;
 }

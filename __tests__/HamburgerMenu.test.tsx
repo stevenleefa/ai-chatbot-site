@@ -136,6 +136,9 @@ describe("HamburgerMenu", () => {
       screen.getByRole("link", { name: "My account" })
     ).toHaveAttribute("href", "/my-account");
     expect(
+      screen.getByRole("link", { name: "Settings" })
+    ).toHaveAttribute("href", "/settings");
+    expect(
       screen.getByRole("button", { name: "Log out" })
     ).toBeInTheDocument();
     expect(
@@ -159,6 +162,22 @@ describe("HamburgerMenu", () => {
     expect(screen.getByRole("link", { name: "Contact us" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Deals" })).toBeInTheDocument();
     expect(screen.getByText("Dark mode")).toBeInTheDocument();
+  });
+
+  it("signed in as staff: shows Profile and Settings, but no My account", () => {
+    render(<HamburgerMenu user={staffUser} />);
+    openMenu();
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings"
+    );
+    expect(
+      screen.queryByRole("link", { name: "My account" })
+    ).not.toBeInTheDocument();
   });
 
   it("Escape closes the panel and returns focus to the button", () => {
@@ -221,5 +240,25 @@ describe("HamburgerMenu", () => {
       "aria-hidden",
       "true"
     );
+  });
+});
+
+describe("menu panel scrolling", () => {
+  // The panel is a CSS-only behaviour (jsdom does not apply the
+  // stylesheet), so this guards the rule in app/globals.css: the
+  // panel has a max-height below the viewport and scrolls
+  // (overflow-y: auto) when its rows are taller than the screen,
+  // so the bottom owner rows are reachable on small viewports.
+  it("the .menu-panel rule caps its height and scrolls", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const css = fs.readFileSync(
+      path.join(__dirname, "..", "app", "globals.css"),
+      "utf8"
+    ) as string;
+    const rule = css.match(/\.menu-panel \{[^}]*\}/);
+    expect(rule).not.toBeNull();
+    expect(rule![0]).toContain("max-height:");
+    expect(rule![0]).toContain("overflow-y: auto");
   });
 });

@@ -36,6 +36,65 @@ describe("ChatWidget voice", () => {
     expect(screen.getByText(/guided tour/)).toBeInTheDocument();
   });
 
+  it("speaks replies with the customer's chosen voice, speed and pitch", async () => {
+    // Mock the speech APIs (jsdom has neither) and the utterance
+    // constructor, so the widget thinks speaking is supported.
+    const voices = [
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+      { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
+    ];
+    const speak = jest.fn();
+    Object.defineProperty(window, "speechSynthesis", {
+      value: {
+        getVoices: jest.fn(() => voices),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        cancel: jest.fn(),
+        speak,
+      },
+      configurable: true,
+      writable: true,
+    });
+    class MockUtterance {
+      text: string;
+      voice: unknown = null;
+      rate = 1;
+      pitch = 1;
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+    global.SpeechSynthesisUtterance =
+      MockUtterance as unknown as typeof SpeechSynthesisUtterance;
+    window.localStorage.setItem(
+      "lumen-preferences",
+      JSON.stringify({
+        voiceURI: "samantha",
+        voiceRate: 1.25,
+        voicePitch: 0.75,
+      }),
+    );
+    render(<ChatWidget displayName="Alex Rivera" />);
+    openChat();
+    // The greeting is a bot message, so opening the chat speaks it.
+    expect(speak).toHaveBeenCalledTimes(1);
+    const utterance = speak.mock.calls[0][0] as {
+      text: string;
+      voice: { name: string } | null;
+      rate: number;
+      pitch: number;
+    };
+    expect(utterance.text).toContain("Hi Alex Rivera");
+    expect(utterance.voice?.name).toBe("Samantha");
+    expect(utterance.rate).toBe(1.25);
+    expect(utterance.pitch).toBe(0.75);
+    // @ts-expect-error — deleting window globals for the test.
+    delete window.speechSynthesis;
+    // @ts-expect-error — deleting a global for the test.
+    delete global.SpeechSynthesisUtterance;
+    window.localStorage.clear();
+  });
+
   it("shows no speaker toggle or microphone button where speech is unsupported", () => {
     render(<ChatWidget />);
     openChat();

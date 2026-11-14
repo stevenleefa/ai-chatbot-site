@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  TOUR_CLOSE_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   clearTourProgress,
@@ -10,18 +11,27 @@ import {
   saveTourProgress,
 } from "@/lib/tour";
 
-// Guided tour — five steps through the site, started only when the
+// Guided tour — six steps through the site, started only when the
 // customer asks for it (the "Take a guided tour" / "Resume tour"
 // rows in the hamburger menu dispatch TOUR_START_EVENT). It never
 // auto-starts on page load. Each step navigates to its page,
-// scrolls the target into view, and shows a small tooltip card
-// with Back / Next / Skip tour and a "Step X of 5" indicator.
+// scrolls the target into view, highlights that target with the
+// "tour-highlight" outline (app/globals.css) so the customer can
+// see what the step is about, and shows a small tooltip card
+// with Back / Next / Skip tour and a "Step X of 6" indicator.
+// While the tour is showing it also sets data-tour-active on
+// <body>, which hides the bottom-left review pop-ups
+// (components/ReviewPopups.tsx) until the tour closes.
 //
 // Dismissible: "Skip tour" on every step, and Escape closes it.
 // Resumable: progress (steps completed, finished only at the end)
 // is saved to localStorage ("lumen-tour"), so closing mid-tour
 // offers "Resume tour" in the menu later; closing mid-tour never
-// marks it finished.
+// marks it finished. Opening the hamburger menu mid-tour also
+// closes it the same way (the menu dispatches TOUR_CLOSE_EVENT):
+// the tour's tooltip card otherwise holds focus and fights the
+// menu panel, so the menu glitches closed and the user cannot
+// reach Sign in.
 //
 // Keyboard: the tooltip is a real dialog region (role="dialog"),
 // focus moves into it on each step, Escape closes it and focus
@@ -64,8 +74,22 @@ export default function GuidedTour() {
   const completedRef = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  // The element currently carrying the "tour-highlight" outline,
+  // so the next step (or the tour closing) can take it off again.
+  const highlightedRef = useRef<Element | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  // While the tour is showing, mark <body> so the review pop-ups
+  // (components/ReviewPopups.tsx) hide until the tour closes.
+  // The attribute is removed on close and on unmount.
+  useEffect(() => {
+    if (index === null) return;
+    document.body.setAttribute("data-tour-active", "true");
+    return () => {
+      document.body.removeAttribute("data-tour-active");
+    };
+  }, [index]);
 
   // The menu starts (or resumes) the tour with this event:
   // new CustomEvent("lumen:start-tour", { detail: { step } }).
@@ -116,8 +140,31 @@ export default function GuidedTour() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
+  // The hamburger menu closes the tour (and saves progress) when
+  // it is opened mid-tour: it dispatches TOUR_CLOSE_EVENT, and
+  // the tour closes exactly as Skip tour / Escape would — progress
+  // saved, never marked finished, so the menu can offer
+  // "Resume tour" at the saved step afterwards. Without this the
+  // tour's tooltip card holds focus and fights the menu panel, and
+  // the menu glitches closed before the user can reach Sign in.
+  useEffect(() => {
+    if (index === null) return;
+    function onClose() {
+      closeTour(false);
+    }
+    window.addEventListener(TOUR_CLOSE_EVENT, onClose);
+    return () => window.removeEventListener(TOUR_CLOSE_EVENT, onClose);
+    // closeTour reads completedRef, so it is stable to call here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
   // On each step: navigate to the step's page if needed, scroll
-  // the target into view, and move focus into the tooltip card.
+  // the target into view, highlight it with the "tour-highlight"
+  // outline (so the customer can see what the step is about), and
+  // move focus into the tooltip card. The highlight is taken off
+  // the old target when the step changes or the tour closes — the
+  // cleanup below runs on every index change and on unmount.
+  // Highlighting never moves focus: focus stays in the tooltip.
   useEffect(() => {
     if (index === null) return;
     const step = TOUR_STEPS[index];
@@ -125,11 +172,15 @@ export default function GuidedTour() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
     const behavior: ScrollBehavior = reduceMotion ? "auto" : "smooth";
-    function scrollToTarget() {
+    function findTarget(): Element | null {
       let el: Element | null = null;
       if (step.selector) el = document.querySelector(step.selector);
       if (!el && step.heading) el = findHeadingElement(step.heading);
       if (!el) el = document.querySelector("#main-content");
+      return el;
+    }
+    function scrollToTarget() {
+      const el = findTarget();
       el?.scrollIntoView({ behavior, block: "start" });
     }
     const [path, hash] = step.href.split("#");
@@ -142,10 +193,27 @@ export default function GuidedTour() {
     } else {
       scrollToTarget();
     }
+    // Highlight the target once it is in the page. The navigation
+    // above may render it late, so retry briefly after the scroll
+    // timer as well as right away.
+    function highlightTarget() {
+      const el = findTarget();
+      if (!el) return;
+      if (highlightedRef.current && highlightedRef.current !== el) {
+        highlightedRef.current.classList.remove("tour-highlight");
+      }
+      el.classList.add("tour-highlight");
+      highlightedRef.current = el;
+    }
+    highlightTarget();
+    const highlightTimer = setTimeout(highlightTarget, 450);
     const focusTimer = setTimeout(() => cardRef.current?.focus(), 50);
     return () => {
       if (scrollTimer) clearTimeout(scrollTimer);
+      clearTimeout(highlightTimer);
       clearTimeout(focusTimer);
+      highlightedRef.current?.classList.remove("tour-highlight");
+      highlightedRef.current = null;
     };
   }, [index, pathname, router]);
 
@@ -179,7 +247,7 @@ export default function GuidedTour() {
       tabIndex={-1}
       style={CARD_STYLE}
     >
-      <p style={{ margin: "0 0 6px", fontSize: 18 }}>
+      <p style={{ margin: "0 0 6px", fontSize: "1.125rem" }}>
         <strong>{step.title}</strong>
       </p>
       <p id="tour-text" style={{ margin: "0 0 12px" }}>
