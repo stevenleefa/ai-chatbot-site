@@ -37,7 +37,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("customer_preferences")
     .select(
-      "theme, font_pairing, font_size, high_contrast, reduce_motion, larger_text",
+      "theme, font_pairing, font_size, high_contrast, reduce_motion, larger_text, voice_uri, voice_rate, voice_pitch",
     )
     .eq("user_id", session.user.id)
     .maybeSingle();
@@ -56,6 +56,9 @@ export async function GET() {
       highContrast: data.high_contrast,
       reduceMotion: data.reduce_motion,
       largerText: data.larger_text,
+      voiceURI: data.voice_uri,
+      voiceRate: data.voice_rate,
+      voicePitch: data.voice_pitch,
     }),
   });
 }
@@ -119,6 +122,9 @@ export async function POST(req: Request) {
       high_contrast: prefs.highContrast,
       reduce_motion: prefs.reduceMotion,
       larger_text: prefs.largerText,
+      voice_uri: prefs.voiceURI,
+      voice_rate: prefs.voiceRate,
+      voice_pitch: prefs.voicePitch,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

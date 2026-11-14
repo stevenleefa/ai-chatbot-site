@@ -80,6 +80,65 @@ export function stripMarkdownForSpeech(text: string): string {
     .trim();
 }
 
+// --- Assistant voice options (Display settings → Voice) ------------------
+// The customer picks a voice (by voiceURI, or by name when the voice
+// has no voiceURI), a rate and a pitch. The voice list comes from
+// the browser, so it differs by browser and OS — and a voice picked
+// on one device may not exist on another. Resolution is therefore
+// forgiving: exact voiceURI first, then the same name, then no
+// voice (the browser default, which the widget's English fallback
+// covers). Nothing here throws; a missing voice just means the
+// default voice speaks.
+
+/** Clamp a rate/pitch to the valid range (0.5–2); non-numbers become 1. */
+export function clampVoiceValue(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 1;
+  return Math.min(2, Math.max(0.5, value));
+}
+
+/**
+ * Find a voice by the stored identifier: the voiceURI first, then
+ * the same name (for voices stored by name because they had no
+ * voiceURI). Returns null when nothing matches — the caller then
+ * uses the browser default voice.
+ */
+export function findVoiceByUri(
+  voices: SpeechSynthesisVoice[],
+  voiceURI: string | null | undefined,
+): SpeechSynthesisVoice | null {
+  if (!voiceURI) return null;
+  const byUri = voices.find((v) => v.voiceURI === voiceURI);
+  if (byUri) return byUri;
+  const byName = voices.find((v) => v.name === voiceURI);
+  return byName ?? null;
+}
+
+/**
+ * Apply the customer's voice choices to an utterance. The chosen
+ * voice wins when it exists in this browser; otherwise the first
+ * English voice is used (the widget's long-standing default), and
+ * when there is no English voice either the browser default speaks.
+ * Rate and pitch are clamped to the valid range. Safe to call with
+ * an empty voices list — the utterance just keeps its defaults.
+ */
+export function applyVoiceSettings(
+  utterance: SpeechSynthesisUtterance,
+  voiceURI: string | null | undefined,
+  rate: unknown,
+  pitch: unknown,
+  voices: SpeechSynthesisVoice[],
+): void {
+  const chosen = findVoiceByUri(voices, voiceURI);
+  if (chosen) {
+    utterance.voice = chosen;
+  } else {
+    const english = voices.find((v) => v.lang?.startsWith("en"));
+    if (english) utterance.voice = english;
+  }
+  utterance.rate = clampVoiceValue(rate);
+  utterance.pitch = clampVoiceValue(pitch);
+}
+
 // The plain-language fallback the widget shows when voice input
 // cannot start (unsupported browser, or the visitor refused the
 // microphone). Text chat keeps working either way.

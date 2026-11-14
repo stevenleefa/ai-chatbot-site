@@ -23,11 +23,17 @@ import {
   FONT_SIZE_IDS,
   THEMES,
   THEME_IDS,
+  VOICE_PITCH_OPTIONS,
+  VOICE_RATE_OPTIONS,
   applyPreferences,
   readStoredPreferences,
   writeStoredPreferences,
   type PersonalizationPreferences,
 } from "@/lib/personalization";
+import {
+  applyVoiceSettings,
+  isSpeechSynthesisSupported,
+} from "@/lib/speech";
 
 type SyncState = "unknown" | "account" | "device-only";
 
@@ -37,9 +43,28 @@ export default function PersonalizationSettings() {
   );
   const [sync, setSync] = useState<SyncState>("unknown");
   const [status, setStatus] = useState("");
+  // The assistant's voice list comes from this browser
+  // (speechSynthesis.getVoices()). It loads asynchronously, so
+  // the list may be empty on first call — voiceschanged fills it
+  // in. Where speech synthesis is unsupported there is no list at
+  // all, and the Voice section says so instead of offering a picker.
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [speechSupported, setSpeechSupported] = useState(false);
   // The account fetch must not overwrite a change the customer made
   // while it was still in flight.
   const changedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isSpeechSynthesisSupported()) return;
+    setSpeechSupported(true);
+    const synth = window.speechSynthesis;
+    function loadVoices() {
+      setVoices(synth.getVoices());
+    }
+    loadVoices();
+    synth.addEventListener("voiceschanged", loadVoices);
+    return () => synth.removeEventListener("voiceschanged", loadVoices);
+  }, []);
 
   useEffect(() => {
     const stored = readStoredPreferences();
@@ -106,6 +131,39 @@ export default function PersonalizationSettings() {
   ) {
     save({ ...prefs, [key]: value });
   }
+
+  // Speak a short sample with the voice, speed and pitch currently
+  // chosen, so the customer hears the difference at once. It uses
+  // the same voice resolution as the chat (lib/speech.ts), so a
+  // voice that is not on this device falls back to the default.
+  // It is a one-off utterance — it does not touch the chat's speak
+  // state, and the chat's next reply cancels it if one arrives.
+  function previewVoice() {
+    if (!speechSupported) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(
+      "Hi, I'm Lumen — your hair studio assistant. How can I help today?",
+    );
+    applyVoiceSettings(
+      utterance,
+      prefs.voiceURI,
+      prefs.voiceRate,
+      prefs.voicePitch,
+      voices,
+    );
+    synth.speak(utterance);
+  }
+
+  // The saved voice may not exist on this device (it was picked
+  // somewhere else). When it does not, the select shows the default
+  // voice — which is what will actually speak — and this note says so.
+  const savedVoiceAvailable =
+    prefs.voiceURI !== null &&
+    voices.some(
+      (v) => v.voiceURI === prefs.voiceURI || v.name === prefs.voiceURI,
+    );
+  const voiceSelectValue = savedVoiceAvailable ? prefs.voiceURI : "";
 
   return (
     <div className="personalization-settings">
@@ -207,6 +265,87 @@ export default function PersonalizationSettings() {
             doesn&apos;t ask for it.
           </label>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Voice</legend>
+        <p>
+          <small>
+            How the assistant sounds when it reads its replies aloud.
+            The voice list comes from this browser — it differs by
+            browser and device.
+          </small>
+        </p>
+        {!speechSupported ? (
+          <p>
+            <small>
+              Voice options aren&apos;t available in this browser — the
+              assistant still works by text.
+            </small>
+          </p>
+        ) : (
+          <div className="settings-options">
+            <label htmlFor="voice-choice">
+              <strong>Voice</strong>
+            </label>
+            <select
+              id="voice-choice"
+              value={voiceSelectValue ?? ""}
+              onChange={(e) =>
+                update("voiceURI", e.target.value === "" ? null : e.target.value)
+              }
+            >
+              <option value="">Default voice</option>
+              {voices.map((voice) => (
+                <option
+                  key={voice.voiceURI || voice.name}
+                  value={voice.voiceURI || voice.name}
+                >
+                  {voice.name} — {voice.lang}
+                </option>
+              ))}
+            </select>
+            {prefs.voiceURI !== null && !savedVoiceAvailable && (
+              <p>
+                <small>
+                  Your saved voice isn&apos;t available on this device —
+                  using the default voice instead.
+                </small>
+              </p>
+            )}
+            <label htmlFor="voice-rate">
+              <strong>Speed</strong>
+            </label>
+            <select
+              id="voice-rate"
+              value={String(prefs.voiceRate)}
+              onChange={(e) => update("voiceRate", Number(e.target.value))}
+            >
+              {VOICE_RATE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="voice-pitch">
+              <strong>Pitch</strong>
+            </label>
+            <select
+              id="voice-pitch"
+              value={String(prefs.voicePitch)}
+              onChange={(e) => update("voicePitch", Number(e.target.value))}
+            >
+              {VOICE_PITCH_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={previewVoice}>
+              Hear a preview
+            </button>
+          </div>
+        )}
       </fieldset>
 
       {sync === "device-only" && (

@@ -106,6 +106,60 @@ describe("preference validation", () => {
   });
 });
 
+describe("voice options", () => {
+  it("defaults are the browser default voice, normal speed and pitch", () => {
+    expect(DEFAULT_PREFERENCES.voiceURI).toBeNull();
+    expect(DEFAULT_PREFERENCES.voiceRate).toBe(1);
+    expect(DEFAULT_PREFERENCES.voicePitch).toBe(1);
+  });
+
+  it("parsePreferences keeps valid voice values and defaults the rest", () => {
+    const parsed = parsePreferences({
+      voiceURI: "com.apple.speech.synthesis.voice.samantha",
+      voiceRate: 1.25,
+      voicePitch: 0.75,
+    });
+    expect(parsed.voiceURI).toBe("com.apple.speech.synthesis.voice.samantha");
+    expect(parsed.voiceRate).toBe(1.25);
+    expect(parsed.voicePitch).toBe(0.75);
+    const bad = parsePreferences({
+      voiceURI: 42,
+      voiceRate: 5,
+      voicePitch: "high",
+    });
+    expect(bad.voiceURI).toBeNull();
+    expect(bad.voiceRate).toBe(1);
+    expect(bad.voicePitch).toBe(1);
+  });
+
+  it("validatePreferencesStrict rejects out-of-range rate/pitch and non-string voiceURI", () => {
+    const bad = validatePreferencesStrict({
+      voiceURI: 42,
+      voiceRate: 0.1,
+      voicePitch: 3,
+    });
+    expect(bad.ok).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/voiceURI/);
+    expect(bad.errors.join(" ")).toMatch(/voiceRate/);
+    expect(bad.errors.join(" ")).toMatch(/voicePitch/);
+  });
+
+  it("validatePreferencesStrict accepts a full valid voice set and partial updates", () => {
+    expect(
+      validatePreferencesStrict({
+        voiceURI: "Google US English",
+        voiceRate: 0.75,
+        voicePitch: 1.25,
+      }).ok,
+    ).toBe(true);
+    expect(validatePreferencesStrict({ voiceURI: null }).ok).toBe(true);
+    const partial = validatePreferencesStrict({ voiceRate: 1.25 });
+    expect(partial.ok).toBe(true);
+    expect(partial.preferences.voiceRate).toBe(1.25);
+    expect(partial.preferences.voicePitch).toBe(1);
+  });
+});
+
 describe("font-size scaling values", () => {
   it("small < medium < large on body, heading and button sizes", () => {
     expect(FONT_SIZES.small.bodyPx).toBeLessThan(FONT_SIZES.medium.bodyPx);

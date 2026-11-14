@@ -23,6 +23,14 @@ export interface PersonalizationPreferences {
   highContrast: boolean;
   reduceMotion: boolean;
   largerText: boolean;
+  /** Voice the assistant speaks with (speechSynthesis voiceURI, or a
+   * voice name when the voice has no voiceURI). Null = the browser
+   * default voice (the first English voice, see lib/speech.ts). */
+  voiceURI: string | null;
+  /** Spoken-reply speed (0.75 slow, 1 normal, 1.25 fast). */
+  voiceRate: number;
+  /** Spoken-reply pitch (0.75 low, 1 normal, 1.25 high). */
+  voicePitch: number;
 }
 
 export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
@@ -32,6 +40,9 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
   highContrast: false,
   reduceMotion: false,
   largerText: false,
+  voiceURI: null,
+  voiceRate: 1,
+  voicePitch: 1,
 };
 
 export const STORAGE_KEY = "lumen-preferences";
@@ -232,6 +243,39 @@ export const FONT_SIZES: Record<FontSizeId, FontSizeOption> = {
   large: { id: "large", label: "Large", bodyPx: 18, headingPx: 39, buttonPx: 16 },
 };
 
+// --- Voice options --------------------------------------------------------
+// The assistant's spoken voice: which voice, how fast, how high.
+// The voice list itself comes from the browser (speechSynthesis
+// .getVoices()) — it differs by browser and OS (Safari on Mac has
+// its own set, Chrome has Google voices), so the picker lists
+// whatever this browser offers. Rate and pitch are the same three
+// steps for every voice. The valid range for both is 0.5–2; the
+// panel only offers the three steps below, but the API accepts any
+// number in range (see isVoiceRate / isVoicePitch).
+export interface VoiceOption {
+  /** SpeechSynthesisUtterance rate/pitch value. */
+  value: number;
+  label: string;
+}
+
+export const VOICE_RATE_OPTIONS: VoiceOption[] = [
+  { value: 0.75, label: "Slow" },
+  { value: 1, label: "Normal" },
+  { value: 1.25, label: "Fast" },
+];
+
+export const VOICE_PITCH_OPTIONS: VoiceOption[] = [
+  { value: 0.75, label: "Low" },
+  { value: 1, label: "Normal" },
+  { value: 1.25, label: "High" },
+];
+
+/** The valid range for voice rate and pitch. */
+export const VOICE_RATE_MIN = 0.5;
+export const VOICE_RATE_MAX = 2;
+export const VOICE_PITCH_MIN = 0.5;
+export const VOICE_PITCH_MAX = 2;
+
 // --- Validation -----------------------------------------------------------
 // Never trust stored input: localStorage and the API body can hold
 // anything. Unknown values fall back to the default for that field
@@ -252,6 +296,30 @@ export function isFontSizeId(value: unknown): value is FontSizeId {
 
 export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
+}
+
+/** A voice identifier: null (browser default) or a voiceURI / name. */
+export function isVoiceURI(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+/** A voice rate or pitch: a finite number inside the valid range. */
+export function isVoiceRate(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= VOICE_RATE_MIN &&
+    value <= VOICE_RATE_MAX
+  );
+}
+
+export function isVoicePitch(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= VOICE_PITCH_MIN &&
+    value <= VOICE_PITCH_MAX
+  );
 }
 
 /** Lenient parse: unknown/missing fields become the default. */
@@ -275,6 +343,15 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
     largerText: isBoolean(obj.largerText)
       ? obj.largerText
       : DEFAULT_PREFERENCES.largerText,
+    voiceURI: isVoiceURI(obj.voiceURI)
+      ? obj.voiceURI
+      : DEFAULT_PREFERENCES.voiceURI,
+    voiceRate: isVoiceRate(obj.voiceRate)
+      ? obj.voiceRate
+      : DEFAULT_PREFERENCES.voiceRate,
+    voicePitch: isVoicePitch(obj.voicePitch)
+      ? obj.voicePitch
+      : DEFAULT_PREFERENCES.voicePitch,
   };
 }
 
@@ -302,6 +379,19 @@ export function validatePreferencesStrict(input: unknown): {
     if (obj[key] !== undefined && !isBoolean(obj[key])) {
       errors.push(`${key} must be true or false`);
     }
+  }
+  if (obj.voiceURI !== undefined && !isVoiceURI(obj.voiceURI)) {
+    errors.push(`voiceURI must be a voice id string or null`);
+  }
+  if (obj.voiceRate !== undefined && !isVoiceRate(obj.voiceRate)) {
+    errors.push(
+      `voiceRate must be a number between ${VOICE_RATE_MIN} and ${VOICE_RATE_MAX}`,
+    );
+  }
+  if (obj.voicePitch !== undefined && !isVoicePitch(obj.voicePitch)) {
+    errors.push(
+      `voicePitch must be a number between ${VOICE_PITCH_MIN} and ${VOICE_PITCH_MAX}`,
+    );
   }
   return { ok: errors.length === 0, errors, preferences: parsePreferences(obj) };
 }

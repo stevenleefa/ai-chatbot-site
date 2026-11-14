@@ -87,6 +87,48 @@ All controls are real radio inputs / checkboxes with labels, so the
 panel works by keyboard alone; the selected theme swatch is a checked
 radio, so it is announced.
 
+## Voice
+
+The assistant's spoken voice — a **Voice** section in the same
+Display settings panel, with three controls:
+
+- **Voice** — a dropdown of the voices this browser offers
+  (`speechSynthesis.getVoices()`), each shown as its name and
+  language (e.g. "Samantha — en-US"). The choice is stored by the
+  voice's `voiceURI` (or its name, when the voice has no `voiceURI`);
+  "Default voice" stores nothing and the browser default speaks.
+  The list loads asynchronously — `getVoices()` may return empty
+  on first call, so the panel listens for the `voiceschanged`
+  event and fills the dropdown when the voices arrive. Where
+  speech synthesis is unsupported, the picker is replaced by a
+  note ("Voice options aren't available in this browser") and the
+  text chat keeps working.
+- **Speed** — Slow / Normal / Fast (rate 0.75 / 1 / 1.25).
+- **Pitch** — Low / Normal / High (pitch 0.75 / 1 / 1.25).
+- **Hear a preview** — speaks a short sample sentence with the
+  voice, speed and pitch currently chosen, so the customer hears
+  the difference at once.
+
+The next spoken reply uses the new settings — the chat reads them
+fresh from localStorage every time it speaks, so a change made on
+/my-account applies at once even while the chat is open. The
+speaker toggle, the spoken-reply behaviour and the text fallback
+are unchanged; listening (speech-to-text) is untouched.
+
+**Browser differences, and the fallback.** The voice list depends
+on the browser and the operating system: Safari on a Mac has its
+own set of voices, Chrome has Google voices, and a phone has
+different voices again. A voice picked on one device may not
+exist on another — when the saved voice is not in this browser's
+list, the panel says so ("Your saved voice isn't available on
+this device — using the default voice instead") and the assistant
+speaks with the first English voice (or the browser default). It
+never errors, and the stored choice is kept, so it comes back if
+the customer returns to a device that has it. Rate and pitch are
+validated to the range 0.5–2 server-side (see below); the panel
+only offers the three steps, but the API accepts any number in
+range.
+
 ## How persistence works
 
 - **On the device (always):** `localStorage` key `lumen-preferences`
@@ -115,6 +157,14 @@ ON and NO public policies (service-role only, same pattern as
 device only — nothing breaks, they just don't follow the customer
 across devices.
 
+For the voice options, also run
+`supabase/customer-preferences-voice.sql` **once** in the same SQL
+Editor. It only adds three columns (`voice_uri`, `voice_rate`,
+`voice_pitch`) to the existing table — safe to run again
+(`IF NOT EXISTS`), no data is changed, and RLS stays on. Until it
+has run, the voice choice stays on the device only (the theme,
+font and size sync is unaffected).
+
 ## Layout wiring (for the coordinator — NOT done by this change)
 
 `app/layout.tsx` was deliberately not edited (the voice/tour work
@@ -137,16 +187,20 @@ the existing dark-mode pre-paint script.
 
 | File | What it does |
 |---|---|
-| `lib/personalization.ts` | Themes + ratios, font/size options, validation (lenient parse + strict API check), localStorage helpers, `applyPreferences`, the pre-paint script string, and the browser chrome colour (`themeColorFor` + `syncThemeColorMeta`). Pure + client-safe. |
-| `components/PersonalizationSettings.tsx` | The settings panel (radios + checkboxes, immediate apply + save). |
+| `lib/personalization.ts` | Themes + ratios, font/size options, voice options (rate/pitch steps + range), validation (lenient parse + strict API check), localStorage helpers, `applyPreferences`, the pre-paint script string, and the browser chrome colour (`themeColorFor` + `syncThemeColorMeta`). Pure + client-safe. |
+| `components/PersonalizationSettings.tsx` | The settings panel (radios + checkboxes, immediate apply + save), including the Voice section (voice dropdown from `getVoices()`, speed/pitch selects, Hear a preview). |
 | `components/PersonalizationProvider.tsx` | Mount-time applier (no UI) + `PersonalizationScript` for `<head>`; watches `data-theme` so the chrome colour follows dark/light toggles too. |
 | `components/GuidedTour.tsx` | Six-step tour; highlights each step's target (`tour-highlight` outline) and sets `data-tour-active` on `<body>` while showing, which hides the review pop-ups. |
+| `lib/speech.ts` | Web Speech helpers; `findVoiceByUri` (voiceURI, then name, then null) and `applyVoiceSettings` (chosen voice or first English voice, rate/pitch clamped to 0.5–2). |
+| `components/ChatWidget.tsx` | The chat; `speak()` reads the stored voice choices fresh each reply and applies them via `applyVoiceSettings`. |
 | `app/api/preferences/route.ts` | GET / POST, session user id only, strict validation, rate-limited. |
 | `supabase/customer-preferences-schema.sql` | The table (run once — see above). |
+| `supabase/customer-preferences-voice.sql` | Adds the three voice columns (run once — see above). |
 | `app/my-account/page.tsx` | "Display settings" section rendering the panel. |
 | `app/globals.css` | Theme variables per theme/mode, font/size/accessibility rules, panel styles; button hover ends now use `--rose-hover` so they follow the theme. |
 | `__tests__/personalization.test.ts` | Contrast re-computation, validation, font-size values, storage helpers. |
 | `__tests__/PersonalizationSettings.test.tsx` | Panel behaviour (apply + persist, signed-out shape). |
+| `__tests__/speech.test.ts` | Speech helpers: feature detection, markdown stripping, voice resolution (by URI/name, fallback, clamping). |
 
 ## How to test (on the clone)
 
@@ -163,7 +217,14 @@ the existing dark-mode pre-paint script.
 - Accessibility: Larger text grows text further; High contrast
   darkens text and strengthens borders; Reduce motion stops the hero
   zoom and card transitions even with the OS set to full motion.
-- Keyboard: Tab through the panel — every swatch, radio and checkbox
-  is reachable and the focus ring is visible.
+- Voice: in Display settings → Voice, pick a voice, a speed and
+  a pitch, then "Hear a preview" — the sample speaks with the
+  chosen settings. Ask the chat a question and the reply speaks
+  with them too. Change the voice on one device and the choice
+  follows the account (after running the voice SQL); pick a voice
+  on a Mac and open the site on a device that doesn't have it and
+  the panel says so and the default voice speaks.
+- Keyboard: Tab through the panel — every swatch, radio, checkbox
+  and select is reachable and the focus ring is visible.
 - Account sync: sign in on a second device (after running the SQL)
   — the theme picked on the first device is already applied.

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type { ChatAction } from "@/lib/tools";
 import { applyCartActionToStorage } from "@/lib/chat-cart";
 import {
+  applyVoiceSettings,
   getSpeechRecognitionConstructor,
   isSpeechRecognitionSupported,
   isSpeechSynthesisSupported,
@@ -11,6 +12,7 @@ import {
   VOICE_UNAVAILABLE_MESSAGE,
   type SpeechRecognitionLike,
 } from "@/lib/speech";
+import { readStoredPreferences } from "@/lib/personalization";
 
 type Msg = { role: "user" | "bot"; text: string; sources?: string[]; action?: ChatAction };
 
@@ -127,9 +129,19 @@ export default function ChatWidget({
     const clean = stripMarkdownForSpeech(text);
     if (!clean) return;
     const utterance = new SpeechSynthesisUtterance(clean);
-    const voices = synth.getVoices();
-    const english = voices.find((v) => v.lang?.startsWith("en"));
-    if (english) utterance.voice = english;
+    // The customer's voice choices (Display settings → Voice),
+    // read fresh from localStorage so a change made on /my-account
+    // applies to the next reply even while the chat is open. A
+    // voice picked on another device falls back to the first
+    // English voice (or the browser default) — never an error.
+    const prefs = readStoredPreferences();
+    applyVoiceSettings(
+      utterance,
+      prefs.voiceURI,
+      prefs.voiceRate,
+      prefs.voicePitch,
+      synth.getVoices(),
+    );
     synth.speak(utterance);
   }
 
