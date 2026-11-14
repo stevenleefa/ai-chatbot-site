@@ -124,20 +124,32 @@ Display settings panel, with three controls:
   A customer who has never picked anything gets Samantha (a macOS
   system voice, stored by name — where it does not exist the
   first English voice / browser default speaks instead).
-  The list is grouped, because a Mac can report dozens of voices
-  (novelty voices like Zarvox and Bubbles mixed in with the
-  natural ones): a **Popular voices** group leads with the five
-  most common — Samantha, Daniel, Moira, Flo, Grandma, in that
-  order (`POPULAR_VOICE_NAMES` in `lib/speech.ts`, matched by
-  name) — and an **All voices** group underneath holds every
-  other voice in the browser's order. Only the popular voices
-  actually installed on this device are shown, so the Popular
-  group is omitted entirely when none of the five is installed;
-  nothing is filtered out — every voice appears in one of the
-  two groups. "Default voice" stays the first option, above both
-  groups, and the dropdown stays a plain `<select>` with
-  `<optgroup>`s, so keyboard navigation and screen-reader
-  announcements work as before.
+  The voices are split across two dropdowns, because a Mac can
+  report dozens of voices (novelty voices like Zarvox and Bubbles
+  mixed in with the natural ones) and a single long dropdown
+  opens scrolled to the selected option — so with a mid-list
+  voice selected, the popular voices at the top were invisible
+  unless the customer scrolled all the way up. **Common voices**
+  (left) holds "Default voice" plus the five most common —
+  Samantha, Daniel, Moira, Flo, Grandma, in that order
+  (`POPULAR_VOICE_NAMES` in `lib/speech.ts`, matched by name) —
+  and **Other voices** (right) holds every other voice in the
+  browser's order. Only the popular voices actually installed
+  on this device are shown; nothing is filtered out — every
+  voice appears in exactly one of the two dropdowns. Both
+  dropdowns are plain `<select>`s controlling the same voice
+  choice, so keyboard navigation and screen-reader announcements
+  work as before, and they sit side by side (stacking on a narrow
+  screen). The dropdown that does not hold the current voice
+  shows a disabled placeholder instead ("Other voice selected" /
+  "Common voice selected"), so the customer can always tell which
+  dropdown the current voice is in. The Common dropdown has only
+  ~6 options, so it never scrolls and always opens showing all of
+  them from the top; the Other dropdown opens at the top whenever
+  the current voice is common or the default. When the current
+  voice IS an other voice, the browser opens the Other dropdown
+  scrolled to that voice — that is the browser showing the current
+  selection, and it cannot be overridden for a native select.
   The list loads asynchronously — `getVoices()` may return empty
   on first call, so the panel listens for the `voiceschanged`
   event and fills the dropdown when the voices arrive. Where

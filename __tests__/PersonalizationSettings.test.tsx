@@ -7,8 +7,11 @@
 // localStorage-only and never error when the route says no.
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import PersonalizationSettings, {
+  COMMON_VOICE_PLACEHOLDER_TEXT,
   LARGER_TEXT_POPOVER_DETAIL,
   LARGER_TEXT_POPOVER_TITLE,
+  OTHER_VOICE_PLACEHOLDER_TEXT,
+  OTHER_VOICE_PLACEHOLDER_VALUE,
 } from "@/components/PersonalizationSettings";
 import { STORAGE_KEY } from "@/lib/personalization";
 
@@ -170,19 +173,23 @@ describe("Voice section", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("lists the browser voices and saves the chosen one", async () => {
+  it("lists the browser voices in the two dropdowns and saves the chosen one", async () => {
     mockSpeechSynthesis();
     await act(async () => {
       render(<PersonalizationSettings />);
     });
-    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
+    // Samantha is a common voice, Google US English is an other one.
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
     expect(
-      screen.getByRole("option", { name: "Samantha — en-US" }),
+      within(common).getByRole("option", { name: "Samantha — en-US" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "Google US English — en-US" }),
+      within(other).getByRole("option", { name: "Google US English — en-US" }),
     ).toBeInTheDocument();
-    fireEvent.change(select, { target: { value: "google-us" } });
+    fireEvent.change(other, { target: { value: "google-us" } });
     const stored = JSON.parse(
       window.localStorage.getItem(STORAGE_KEY) as string,
     ) as Record<string, unknown>;
@@ -240,14 +247,26 @@ describe("Voice section", () => {
     expect(
       screen.getByText(/isn't available on this device/),
     ).toBeInTheDocument();
-    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
-    expect(select.value).toBe("");
+    // Both dropdowns fall back to the default: the Common one shows
+    // "Default voice", the Other one its placeholder.
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    expect(common.value).toBe("");
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    expect(other.value).toBe("");
+    expect(
+      within(other).getByRole("option", {
+        name: COMMON_VOICE_PLACEHOLDER_TEXT,
+      }),
+    ).toBeInTheDocument();
   });
 
-  it("groups the voices: the popular five first, the rest underneath", async () => {
+  it("splits the voices: the popular five in Common, the rest in Other", async () => {
     // Browser order is scrambled and the novelty voices sit mixed
-    // in with the natural ones — the dropdown must still lead with
-    // the five popular voices in curated order.
+    // in with the natural ones — the dropdowns must still lead with
+    // the five popular voices in curated order, and no voice may
+    // appear in both dropdowns.
     mockSpeechSynthesis([
       { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
       { voiceURI: "grandma-us", name: "Grandma", lang: "en-US" },
@@ -261,17 +280,18 @@ describe("Voice section", () => {
     await act(async () => {
       render(<PersonalizationSettings />);
     });
-    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
-    // "Default voice" is still the first option in the select.
-    expect(select.options[0].value).toBe("");
-    expect(select.options[0].text).toBe("Default voice");
-
-    const popular = screen.getByRole("group", { name: "Popular voices" });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    // "Default voice" is still the first option in the Common dropdown.
+    expect(common.options[0].value).toBe("");
+    expect(common.options[0].text).toBe("Default voice");
     expect(
-      within(popular)
+      within(common)
         .getAllByRole("option")
         .map((o) => o.textContent),
     ).toEqual([
+      "Default voice",
       "Samantha — en-US",
       "Daniel — en-GB",
       "Moira — en-IE",
@@ -279,23 +299,31 @@ describe("Voice section", () => {
       "Grandma — en-US",
     ]);
 
-    const all = screen.getByRole("group", { name: "All voices" });
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    // The current voice is Samantha (the default), a common voice,
+    // so the Other dropdown leads with its disabled placeholder.
     expect(
-      within(all)
+      within(other)
         .getAllByRole("option")
         .map((o) => o.textContent),
     ).toEqual([
+      COMMON_VOICE_PLACEHOLDER_TEXT,
       "Zarvox — en-US",
       "Bubbles — en-US",
       "Google US English — en-US",
     ]);
 
-    // No voice appears twice across the two groups.
-    const values = Array.from(select.options).map((o) => o.value);
+    // No voice appears twice across the two dropdowns.
+    const values = [
+      ...Array.from(common.options),
+      ...Array.from(other.options),
+    ]
+      .map((o) => o.value)
+      .filter((v) => v !== "" && v !== OTHER_VOICE_PLACEHOLDER_VALUE);
     expect(new Set(values).size).toBe(values.length);
   });
 
-  it("omits the Popular group when none of the five is installed", async () => {
+  it("shows only Default voice in Common when none of the five is installed", async () => {
     mockSpeechSynthesis([
       { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
       { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
@@ -303,21 +331,34 @@ describe("Voice section", () => {
     await act(async () => {
       render(<PersonalizationSettings />);
     });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    // No popular voice is installed, so the Common dropdown holds
+    // only "Default voice" (plus the placeholder, because the
+    // default Samantha is not on this device and no other voice is
+    // the current one — the current voice falls back to Default).
     expect(
-      screen.queryByRole("group", { name: "Popular voices" }),
-    ).not.toBeInTheDocument();
-    const all = screen.getByRole("group", { name: "All voices" });
-    expect(
-      within(all)
+      within(common)
         .getAllByRole("option")
         .map((o) => o.textContent),
-    ).toEqual(["Zarvox — en-US", "Google US English — en-US"]);
+    ).toEqual(["Default voice"]);
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    expect(
+      within(other)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      COMMON_VOICE_PLACEHOLDER_TEXT,
+      "Zarvox — en-US",
+      "Google US English — en-US",
+    ]);
     expect(
       screen.getByRole("option", { name: "Default voice" }),
     ).toBeInTheDocument();
   });
 
-  it("saves a voice picked from the Popular group", async () => {
+  it("saves a voice picked from the Common dropdown", async () => {
     mockSpeechSynthesis([
       { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
       { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
@@ -326,12 +367,127 @@ describe("Voice section", () => {
     await act(async () => {
       render(<PersonalizationSettings />);
     });
-    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "daniel" } });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    fireEvent.change(common, { target: { value: "daniel" } });
     const stored = JSON.parse(
       window.localStorage.getItem(STORAGE_KEY) as string,
     ) as Record<string, unknown>;
     expect(stored.voiceURI).toBe("daniel");
+  });
+
+  it("shows the placeholder in the dropdown that does not hold the current voice", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    // The current voice is Zarvox, an other voice.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ voiceURI: "zarvox" }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    expect(common.value).toBe(OTHER_VOICE_PLACEHOLDER_VALUE);
+    const commonPlaceholder = within(common).getByRole("option", {
+      name: OTHER_VOICE_PLACEHOLDER_TEXT,
+    }) as HTMLOptionElement;
+    expect(commonPlaceholder.disabled).toBe(true);
+    expect(commonPlaceholder.selected).toBe(true);
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    expect(other.value).toBe("zarvox");
+    // The Other dropdown has no placeholder now — it holds the
+    // current voice.
+    expect(
+      within(other).queryByRole("option", {
+        name: COMMON_VOICE_PLACEHOLDER_TEXT,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the placeholder in the Other dropdown when the current voice is common", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    // The current voice is Daniel, a common voice.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ voiceURI: "daniel" }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    expect(common.value).toBe("daniel");
+    expect(
+      within(common).queryByRole("option", {
+        name: OTHER_VOICE_PLACEHOLDER_TEXT,
+      }),
+    ).not.toBeInTheDocument();
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    expect(other.value).toBe("");
+    const otherPlaceholder = within(other).getByRole("option", {
+      name: COMMON_VOICE_PLACEHOLDER_TEXT,
+    }) as HTMLOptionElement;
+    expect(otherPlaceholder.disabled).toBe(true);
+    expect(otherPlaceholder.selected).toBe(true);
+  });
+
+  it("picking a voice in either dropdown flips the other one to its placeholder", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    // Starts on Samantha (the default), a common voice.
+    expect(common.value).toBe("samantha");
+    expect(other.value).toBe("");
+    // Pick Zarvox, an other voice: the Common dropdown flips to
+    // its placeholder and the Other dropdown holds Zarvox.
+    fireEvent.change(other, { target: { value: "zarvox" } });
+    expect(common.value).toBe(OTHER_VOICE_PLACEHOLDER_VALUE);
+    expect(other.value).toBe("zarvox");
+    let stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.voiceURI).toBe("zarvox");
+    // Pick Daniel, a common voice: the Other dropdown flips back
+    // to its placeholder and the Common dropdown holds Daniel.
+    fireEvent.change(common, { target: { value: "daniel" } });
+    expect(common.value).toBe("daniel");
+    expect(other.value).toBe("");
+    stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.voiceURI).toBe("daniel");
+  });
+
+  it("renders the two voice dropdowns side by side in one row", async () => {
+    mockSpeechSynthesis();
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const row = document.querySelector(".voice-select-row");
+    expect(row).toBeInTheDocument();
+    expect(row).toContainElement(screen.getByLabelText("Common voices"));
+    expect(row).toContainElement(screen.getByLabelText("Other voices"));
   });
 });
 

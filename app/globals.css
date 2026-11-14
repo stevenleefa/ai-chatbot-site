@@ -264,6 +264,14 @@ html[data-reduce-motion="true"] .demo-popover { transition: none; transform: non
 .settings-options { display: grid; gap: 10px; margin: 8px 0; }
 .settings-options label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
 .settings-options input { flex: none; margin-top: 4px; }
+/* Voice section: two dropdowns side by side — Common voices on the
+   left, Other voices on the right. Each column is a label above its
+   select; the row wraps, so on a narrow screen the two stack
+   instead of overflowing. */
+.voice-select-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.voice-select-row > div { flex: 1 1 200px; min-width: 0; }
+.voice-select-row label { display: block; margin-bottom: 4px; }
+.voice-select-row select { width: 100%; }
 .theme-picker { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
 .theme-swatch-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; padding: 6px 12px 6px 8px; border: 2px solid var(--border); border-radius: 999px; }
 .theme-swatch-label:has(input:checked) { border-color: var(--rose); }
