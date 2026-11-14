@@ -157,9 +157,9 @@ export default async function MyAccountPage() {
         <p>
           <Link href="/auth/update-password">Change password</Link>
         </p>
-        <p>
+        <div>
           <SignOutButton />
-        </p>
+        </div>
       </div>
 
       <section>
