@@ -8,6 +8,7 @@
      See ACCESSIBILITY.md for the full contrast table. */
   --rose: #a05a66;
   --rose-deep: #8e4a56;
+  --rose-hover: #7a3f4a;
   --plum: #3d2433;
   --gold: #c9a86a;
   --sage: #e8ece3;
@@ -79,6 +80,14 @@
      that could only grow, and the wrapped rows stretched apart
      into a huge cream gap at the top of the page. */
   --nav-height: 64px;
+  /* Header colour: the fixed top nav's background + foreground.
+     Light mode is plum #3d2433 with cream text (13.26:1); dark mode
+     is rose #a05a66 with white text (5.06:1) — see
+     :root[data-theme="dark"] below and ACCESSIBILITY.md. Both pairs
+     were computed with a relative-luminance script and pass
+     WCAG 2.1 AA. */
+  --nav-bg: #3d2433;
+  --nav-fg: #fdf8f1;
 }
 
 @media (max-width: 640px) {
@@ -101,6 +110,10 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --cream: #221820;
+  /* Header colour: rose in dark mode (plum in light mode, above).
+     White on rose is 5.06:1. */
+  --nav-bg: #a05a66;
+  --nav-fg: #ffffff;
   --plum: #f2e7de;
   --sage: #2e3b2e;
   --surface: #2a1e27;
@@ -142,6 +155,108 @@
   --chart-dot-stroke: #2a1e27;
 }
 
+
+/* --- Per-customer personalisation (2026-11-13, see PERSONALIZATION.md) --- */
+/* The customer's choice lives on <html> as data attributes, set before
+   first paint by the pre-paint script and kept in sync by
+   components/PersonalizationProvider.tsx + PersonalizationSettings.tsx.
+   Plum is the default: with no choice saved there is NO
+   [data-personalization-theme="plum"] block, because the :root values
+   above already ARE plum/rose. Every other theme overrides the same
+   five variables in light mode and the matching set in dark mode, so
+   each theme works in both modes. White-on-accent, header and
+   accent-text pairs for every theme are >= 4.5:1 (WCAG 2.1 AA);
+   the ratios are in lib/personalization.ts and PERSONALIZATION.md.
+   --plum-deep follows the theme too, so the chat head, table headers
+   and back-to-top button match the chosen colour. */
+/* Rose: deeper rose red. White on #9c3d54 6.54:1, on #7f2d40 8.93:1,
+   on #6b2436 10.88:1; cream on #4a1524 13.96:1; #7f2d40 on cream 8.45:1;
+   #f9a8d4 on dark page 9.50:1. */
+html[data-personalization-theme="rose"] { --rose: #9c3d54; --rose-deep: #7f2d40; --rose-hover: #6b2436; --rose-text: #7f2d40; --nav-bg: #4a1524; --nav-fg: #fdf8f1; --plum-deep: #4a1524; --chart-rose: #9c3d54; }
+html[data-personalization-theme="rose"][data-theme="dark"] { --nav-bg: #9c3d54; --nav-fg: #ffffff; --rose-text: #f9a8d4; --plum-deep: #7f2d40; --chart-rose: #f9a8d4; }
+/* Teal: dark teal (stylist Maya's #0f766e). White on #0f766e 5.47:1,
+   on #0b5a53 8.07:1, on #084c46 9.85:1; cream on #0b3d3a 11.40:1;
+   #0b5a53 on cream 7.64:1; #7dd3c8 on dark page 9.86:1. */
+html[data-personalization-theme="teal"] { --rose: #0f766e; --rose-deep: #0b5a53; --rose-hover: #084c46; --rose-text: #0b5a53; --nav-bg: #0b3d3a; --nav-fg: #fdf8f1; --plum-deep: #0b3d3a; --chart-rose: #0f766e; }
+html[data-personalization-theme="teal"][data-theme="dark"] { --nav-bg: #0f766e; --nav-fg: #ffffff; --rose-text: #7dd3c8; --plum-deep: #0b5a53; --chart-rose: #7dd3c8; }
+/* Forest: dark green (stylist Jordan's #166534). White on #166534
+   7.13:1, on #14532d 9.11:1, on #0f3d21 12.28:1; cream on #0f2e1d
+   13.91:1; #14532d on cream 8.62:1; #86efac on dark page 12.26:1. */
+html[data-personalization-theme="forest"] { --rose: #166534; --rose-deep: #14532d; --rose-hover: #0f3d21; --rose-text: #14532d; --nav-bg: #0f2e1d; --nav-fg: #fdf8f1; --plum-deep: #0f2e1d; --chart-rose: #166534; }
+html[data-personalization-theme="forest"][data-theme="dark"] { --nav-bg: #166534; --nav-fg: #ffffff; --rose-text: #86efac; --plum-deep: #14532d; --chart-rose: #86efac; }
+/* Navy: dark navy (appointments #1e3a5f). White on #1e3a5f 11.50:1,
+   on #172c49 14.07:1, on #12263f 15.28:1; cream on #101f33 15.70:1;
+   #172c49 on cream 13.31:1; #93c5fd on dark page 9.55:1. */
+html[data-personalization-theme="navy"] { --rose: #1e3a5f; --rose-deep: #172c49; --rose-hover: #12263f; --rose-text: #172c49; --nav-bg: #101f33; --nav-fg: #fdf8f1; --plum-deep: #101f33; --chart-rose: #1e3a5f; }
+html[data-personalization-theme="navy"][data-theme="dark"] { --nav-bg: #1e3a5f; --nav-fg: #ffffff; --rose-text: #93c5fd; --plum-deep: #172c49; --chart-rose: #93c5fd; }
+
+/* Font pairings: only fonts the site already loads (Playfair Display
+   + Inter, via next/font in app/layout.tsx) plus system fonts — no
+   new font load. "classic" has no rules: it is the site as it is.
+   "clean" puts Inter on headings too; "readable" puts a system serif
+   on headings and a system sans on the body. */
+html[data-font-pairing="clean"] h1, html[data-font-pairing="clean"] h2, html[data-font-pairing="clean"] h3, html[data-font-pairing="clean"] .site-nav-brand, html[data-font-pairing="clean"] .kpi-value { font-family: var(--font-body), system-ui, sans-serif; }
+html[data-font-pairing="readable"] body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+html[data-font-pairing="readable"] h1, html[data-font-pairing="readable"] h2, html[data-font-pairing="readable"] h3, html[data-font-pairing="readable"] .site-nav-brand, html[data-font-pairing="readable"] .kpi-value { font-family: Georgia, "Times New Roman", serif; }
+
+/* Font size: the size choice sets the ROOT font-size on <html>,
+   and every text size in this file is in rem, so the whole site
+   scales with it — body, headings, buttons, inputs, tables, the
+   brand, hero text, chat messages, review stars, badges, the small
+   muted notes, the hamburger menu and the nav. Medium is the site
+   as it is (16px root, the browser default — no rule needed).
+   Small is 15px root (~0.94x), Large is 18px root (~1.13x).
+   Because the sizes are rem, the medium rendering is unchanged:
+   1rem is 16px, so e.g. 0.875rem is exactly the old 14px. See
+   PERSONALIZATION.md. */
+html[data-font-size="small"] { font-size: 15px; }
+html[data-font-size="large"] { font-size: 18px; }
+
+/* Larger text (accessibility toggle): a stronger boost than the
+   Large size above. This rule comes AFTER the font-size rules, so
+   when both are set the larger-text root (19px) wins. Body text
+   also gets a roomier 1.7 line-height. */
+html[data-larger-text="true"] { font-size: 19px; }
+html[data-larger-text="true"] body { line-height: 1.7; }
+
+/* High contrast (accessibility toggle): darker body and muted text,
+   stronger borders and input borders, a thicker focus ring and
+   2px card borders — in both light and dark mode. The accent text
+   (--rose-text) is NOT touched here: every theme's accent text
+   already passes 4.5:1 on its page background (6.09:1 or better in
+   light mode), so darkening it would only lose the theme's hue. */
+html[data-high-contrast="true"] { --plum: #1a0f16; --muted: #3d2c36; --border: #6b5560; --border-soft: #97826f; --input-border: #3d2433; }
+html[data-high-contrast="true"][data-theme="dark"] { --plum: #ffffff; --muted: #e8dde2; --border: #b9a7b0; --border-soft: #a08d97; --input-border: #c9b8bd; }
+html[data-high-contrast="true"] :focus-visible { outline-width: 4px; }
+html[data-high-contrast="true"] .card, html[data-high-contrast="true"] .product-card, html[data-high-contrast="true"] .booking-card, html[data-high-contrast="true"] .review-card, html[data-high-contrast="true"] .kpi-card { border-width: 2px; }
+
+/* Reduce motion (accessibility toggle): the same switch-offs as the
+   prefers-reduced-motion media query below, but driven by the
+   customer's choice — so it applies even when their OS does not ask
+   for it. */
+html[data-reduce-motion="true"] { scroll-behavior: auto; }
+html[data-reduce-motion="true"] .hero-img, html[data-reduce-motion="true"] .reveal { animation: none; }
+html[data-reduce-motion="true"] .card { transition: none; }
+html[data-reduce-motion="true"] .spinner { animation: none; }
+html[data-reduce-motion="true"] .review-popup { transition: none; }
+html[data-reduce-motion="true"] .demo-popover { transition: none; transform: none; }
+
+/* Personalisation settings panel (components/PersonalizationSettings.tsx):
+   grouped fieldsets, a row of theme swatches (real radio inputs with
+   labels — the swatch dot is decorative, aria-hidden) and stacked
+   radio/checkbox rows. The checked swatch gets the accent border;
+   focusing its radio rings the swatch. */
+.personalization-settings fieldset { border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+.personalization-settings legend { font-weight: 700; padding: 0 6px; }
+.settings-options { display: grid; gap: 10px; margin: 8px 0; }
+.settings-options label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.settings-options input { flex: none; margin-top: 4px; }
+.theme-picker { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.theme-swatch-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; padding: 6px 12px 6px 8px; border: 2px solid var(--border); border-radius: 999px; }
+.theme-swatch-label:has(input:checked) { border-color: var(--rose); }
+.theme-swatch-label:has(input:focus-visible) { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+.theme-swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.2); flex: none; }
+
 html { scroll-behavior: smooth; }
 /* Keyboard focus, WCAG 2.1 AA (2.4.7, 1.4.11): one clear indicator
    everywhere. Two concentric rings — white inside, dark navy
@@ -169,6 +284,8 @@ html { scroll-behavior: smooth; }
      for reduced motion (the component also stops its timer and
      shows one static review). */
   .review-popup { transition: none; }
+  /* The demo popover appears instantly instead of fading in. */
+  .demo-popover { transition: none; transform: none; }
 }
 body { font-family: var(--font-body), system-ui, sans-serif; margin: 0; color: var(--plum); background: var(--cream); line-height: 1.6; padding-top: var(--nav-height); /* Room for the fixed top nav, so it never covers the hero or a page heading. */ }
 h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
@@ -178,7 +295,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
    viewport on every page; the links wrap on a narrow screen
    instead of overflowing. The skip link (z-index 100) still sits
    above it when focused. */
-.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--cream); border-bottom: 1px solid var(--border); }
+.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--nav-bg); border-bottom: 1px solid var(--border); }
 /* The header's height comes from its content alone — it must NOT
    read --nav-height (no min-height here). NavHeight.tsx writes the
    measured header height into --nav-height, so a min-height on
@@ -192,38 +309,67 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
    top: the default (stretch) spreads them across the container
    height, which turned any extra height into a wide cream gap
    between the brand row and the owner buttons. */
-.site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 24px; }
-.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 22px; font-weight: 700; color: var(--rose-text); text-decoration: none; margin-right: 8px; }
+/* The 12px top/bottom padding (was 0) gives the theme toggle and
+   the header-colour swatches breathing room — with no vertical
+   padding the toggle icon touched the bar's top and bottom edges.
+   NavHeight.tsx measures the taller header, so body padding-top
+   follows automatically; no min-height here (see above). */
+.site-nav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 24px; }
+/* The brand inherits the body's 1.6 line-height, so its line box
+   (~35px at 22px) was taller than the nav links' and its text sat a
+   few pixels low relative to them. A tight 1.1 line-height (with
+   inline-flex centring) brings it optically level with the links,
+   the "Owner sign in" link and the owner pills. Size and weight
+   unchanged. */
+.site-nav-brand { font-family: var(--font-display), Georgia, serif; font-size: 1.375rem; font-weight: 700; line-height: 1.1; display: inline-flex; align-items: center; color: var(--nav-fg); text-decoration: none; margin-right: 8px; }
 .site-nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
-.site-nav-links a { color: var(--plum); text-decoration: none; font-weight: 600; }
-.site-nav-links a:hover { color: var(--rose-deep); text-decoration: underline; }
-.site-nav-owner { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.site-nav-links a { color: var(--nav-fg); text-decoration: none; font-weight: 600; }
+/* Hover keeps the underline only: the old rose-deep hover colour
+   would fail contrast on the rose header and vanish on plum. */
+.site-nav-links a:hover { text-decoration: underline; }
+/* "Assistant" is a button, not a link (components/AssistantNavLink.tsx):
+   it opens the chat instead of navigating. It inherits the links'
+   look exactly — same colour, weight and hover underline — so it
+   reads as one of the nav links. The reset strips the global rose
+   button style; :not(:disabled) lifts both rules above the global
+   button:hover, which sits later in this file. */
+.site-nav-links button:not(:disabled) { background: none; border: 0; padding: 0; font: inherit; color: var(--nav-fg); font-weight: 600; cursor: pointer; }
+.site-nav-links button:hover:not(:disabled) { background: none; text-decoration: underline; }
+/* Right side of the header (components/SiteNav.tsx): the search box
+   and the hamburger menu. margin-left: auto pushes them to the far
+   right; they wrap below the nav links on a narrow screen. */
+.site-nav-tools { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 
 .hero { position: relative; overflow: hidden; border-radius: 28px; margin: 20px 0 8px; min-height: 420px; display: flex; align-items: flex-end; color: white; box-shadow: 0 20px 50px rgba(61, 36, 51, 0.25); }
 .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: heroZoom 14s ease-out forwards; }
 .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(61, 36, 51, 0.35), rgba(61, 36, 51, 0.88)); }
 .hero-content h1, .hero-content p { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.65); }
 .hero-content { position: relative; z-index: 1; padding: 36px; max-width: 640px; }
-.hero-content h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; margin: 0 0 12px; }
-.hero-content p { margin: 6px 0; font-size: 18px; }
-.hero-tag { display: inline-block; background: var(--gold); color: var(--plum); font-weight: 700; padding: 6px 12px; border-radius: 999px; font-size: 14px; margin-bottom: 14px; }
+.hero-content h1 { font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1.05; margin: 0 0 12px; }
+.hero-content p { margin: 6px 0; font-size: 1.125rem; }
+.hero-tag { display: inline-block; background: var(--gold); color: var(--plum); font-weight: 700; padding: 6px 12px; border-radius: 999px; font-size: 0.875rem; margin-bottom: 14px; }
 .hero-cta { display: inline-block; margin-top: 16px; background: var(--rose); color: white; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 999px; border: 2px solid transparent; text-align: center; }
-.hero-cta:hover { background: #7a3f4a; border-color: var(--hover-border); }
+.hero-cta:hover { background: var(--rose-hover); border-color: var(--hover-border); }
 
 @keyframes heroZoom { from { transform: scale(1.12); } to { transform: scale(1); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .reveal { animation: fadeUp 0.7s ease both; }
 section { margin: 56px 0; scroll-margin-top: 80px; }
-section h2 { font-size: 34px; margin-bottom: 20px; }
+section h2 { font-size: 2.125rem; margin-bottom: 20px; }
 /* Booking and review forms side by side (Book on the left), stacking
    vertically when the page narrows. The row keeps the same 56px
    vertical spacing as a section, and the 40px column gap is the
    breathing room between the two forms; the section inside the row
    drops its own margin so the row sets the spacing. Both headings
-   are h2s sized by the row rule so they match exactly. */
-.booking-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; margin: 56px 0; align-items: start; }
-.booking-review-row section { margin: 0; }
-.booking-review-row h2 { font-size: 34px; margin: 0 0 20px; }
+   are h2s sized by the row rule so they match exactly. The grid
+   stretches both sections to the same height; each section is a
+   flex column whose card fills it, and each card is a flex column
+   whose form fills it, so the two submit buttons sit at the same
+   level (the note below each button reserves two lines of small
+   text on both sides — see .form-note). */
+.booking-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; margin: 56px 0; align-items: stretch; }
+.booking-review-row section { margin: 0; display: flex; flex-direction: column; }
+.booking-review-row h2 { font-size: 2.125rem; margin: 0 0 20px; }
 .booking-review-row .review-form { margin: 0; }
 @media (max-width: 900px) {
   .booking-review-row { grid-template-columns: 1fr; }
@@ -232,10 +378,32 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-top: 5px solid var(--rose); border-radius: 20px; padding: 22px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .card:hover { transform: translateY(-5px); box-shadow: 0 16px 32px rgba(61, 36, 51, 0.14); }
 .card h3 { margin-top: 0; }
-.price { font-weight: 800; color: var(--rose-text); font-size: 18px; }
-.card-icon { font-size: 28px; }
+.price { font-weight: 800; color: var(--rose-text); font-size: 1.125rem; }
+.card-icon { font-size: 1.75rem; }
+/* Social links on the contact page (app/contact/page.tsx): a plain
+   stacked list inside the "Follow us" card, no bullets. */
+.social-links { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.social-links a { font-weight: 600; }
 
-.booking-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
+.booking-card, .review-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
+/* The two form cards are flex columns whose form fills the card, so
+   the submit button (margin-top: auto, below) pins to the same level
+   in both cards. The assistant card is not in the row, so it stays
+   a plain block. */
+.booking-card, .review-card { display: flex; flex-direction: column; flex: 1; }
+/* Inside the two cards the form is a flex column that fills the card.
+   The global .lead-form stays a grid everywhere else (login, admin, …). */
+.booking-card .lead-form, .review-card .lead-form { display: flex; flex-direction: column; flex: 1; }
+/* The submit button in each card pins to the bottom of its form, so
+   both buttons sit at the same level. */
+.booking-card .lead-form > button, .review-card .lead-form > button { margin-top: auto; }
+/* The small note under each submit button. Both notes reserve two
+   lines of small text: the review note is longer and wraps to two
+   lines at desktop width, while the booking note is one line — the
+   same reserved height on both keeps the buttons level. The text
+   itself is the default body colour on the card surface, so it
+   passes WCAG 2.1 AA like the booking note always did. */
+.booking-card .form-note, .review-card .form-note { min-height: 2.7em; }
 .lead-form { display: grid; gap: 12px; max-width: 540px; }
 /* Labels wrap their input (Email, Password, …). Stack the label text
    above the input and make the input fill the form width, so every field
@@ -243,7 +411,7 @@ section h2 { font-size: 34px; margin-bottom: 20px; }
    inputs sat at their narrow default width inside the full-width label. */
 .lead-form label { display: grid; gap: 6px; }
 .lead-form input, .lead-form select, .lead-form textarea { width: 100%; box-sizing: border-box; }
-.lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 16px; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); color: var(--plum); font-family: inherit; }
+.lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 1rem; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); color: var(--plum); font-family: inherit; }
 /* Placeholder text must meet the same 4.5:1 bar as other text:
    #6b5560 on the cream input background is 6.42:1. (Browsers
    otherwise render placeholders in a light grey that can fail.) */
@@ -258,16 +426,20 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
    ring above is untouched and stays distinct from hover: hover is a
    black border at the button edge, focus is a navy ring outside it
    with a white gap. */
-button { padding: 12px 20px; font-size: 16px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
-button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
+button { padding: 12px 20px; font-size: 0.875rem; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; cursor: pointer; font-weight: 700; text-align: center; }
+button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); border-color: var(--hover-border); }
 button:disabled { opacity: 0.6; cursor: default; }
-/* Owner navigation buttons (site nav + top of /leads, /dashboard, /admin).
-   Real buttons that go to the owner routes, so nobody has to type a URL. */
-.owner-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
-.owner-nav a, .owner-nav button { display: inline-block; padding: 8px 16px; font-size: 15px; border: 2px solid transparent; border-radius: 999px; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; text-decoration: none; cursor: pointer; font-weight: 700; font-family: inherit; text-align: center; }
-.owner-nav a:hover, .owner-nav button:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
-.owner-nav form { display: inline; margin: 0; }
-
+/* Admin table Actions column: the buttons are right-justified and all
+   the same length, so the column reads as a uniform block instead of
+   ragged buttons sized by their labels. 160px fits the longest label
+   ("Demote to staff") at the 14px button size. */
+.actions-cell { text-align: right; }
+.actions-cell button { min-width: 160px; }
+/* The "Actions" header label is a 160px box — the same width as the
+   action buttons — centred on its own text and right-aligned in the
+   column, so the word sits over the centre of the rightmost button
+   instead of flush against the column's right edge. */
+.actions-header-label { display: inline-block; width: 160px; text-align: center; }
 /* Sign-out confirmation dialog (components/SignOutButton.tsx).
    Native <dialog> shown with showModal(), so the browser centres
    it on the top layer, traps Tab inside it, and closes it on
@@ -278,14 +450,42 @@ button:disabled { opacity: 0.6; cursor: default; }
    buttons). No animation, so reduced-motion needs nothing here. */
 .signout-dialog { border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 360px; max-width: 90vw; background: var(--surface); color: var(--plum); box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); }
 .signout-dialog::backdrop { background: rgba(61, 36, 51, 0.45); }
-.signout-dialog h2 { margin: 0 0 8px; font-size: 24px; }
+.signout-dialog h2 { margin: 0 0 8px; font-size: 1.5rem; }
 .signout-dialog p { margin: 0 0 20px; }
+
+/* --- Deals coupons (/deals) ------------------------------------------------- */
+/* Coupon dialog (components/CouponDialog.tsx): the same native <dialog>
+   pattern as the sign-out dialog above — same width, backdrop, and
+   Close button (it reuses .signout-cancel and .coupon-actions).
+   The code is big and monospaced so it reads clearly at the till.
+   The QR code on each deal card sits on a white pad so it scans in
+   either theme (the dark page would swallow a bare QR); the pad
+   stays white on hover instead of taking the rose button hover. */
+.coupon-dialog { border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 380px; max-width: 90vw; background: var(--surface); color: var(--plum); box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); }
+.coupon-dialog::backdrop { background: rgba(61, 36, 51, 0.45); }
+.coupon-dialog h2 { margin: 0 0 8px; font-size: 1.5rem; }
+.coupon-dialog p { margin: 0 0 12px; }
+.coupon-code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.75rem; font-weight: 700; letter-spacing: 0.08em; text-align: center; background: var(--pill-bg); border: 2px dashed var(--border); border-radius: 12px; padding: 12px; margin: 0 0 12px; }
+.coupon-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
+.deal-qr { display: block; margin: 12px auto 4px; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.deal-qr:hover:not(:disabled) { background: #fff; border-color: var(--hover-border); }
+.deal-qr svg { display: block; }
+.deal-coupon-btn { margin-top: 8px; }
+/* Deal cards: the card is a flex column and the QR code + "Show
+   coupon" button sit in a footer pinned to the bottom
+   (margin-top: auto — the same pattern as the booking/review form
+   buttons) and centred, so they line up across cards even though
+   the title, description and terms above vary in length. The grid
+   already stretches cards in a row to equal height. The QR pad
+   stays white in both themes so the code scans (see above). */
+.deal-card { display: flex; flex-direction: column; }
+.deal-card-footer { margin-top: auto; display: flex; flex-direction: column; align-items: center; }
 .signout-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
 .signout-actions form { display: inline; margin: 0; }
 .signout-cancel { background: var(--surface); color: var(--plum); border: 2px solid var(--border); }
 .signout-cancel:hover:not(:disabled) { background: var(--pill-bg); border-color: var(--hover-border); }
 .signout-confirm { background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; border: 2px solid transparent; }
-.signout-confirm:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); border-color: var(--hover-border); }
+.signout-confirm:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); border-color: var(--hover-border); }
 
 /* Small loading spinner for buttons (invite form while sending). White
    ring on the rose button background. */
@@ -311,9 +511,9 @@ button:disabled { opacity: 0.6; cursor: default; }
 /* Structured-action line (booking confirmation / free slots) under a
    bot reply. Same muted text as the "Sources" line, so it reads as
    part of the answer rather than a second message. */
-.chat-action { margin: 6px 0 0; font-size: 13px; font-weight: 600; }
+.chat-action { margin: 6px 0 0; font-size: 0.8125rem; font-weight: 600; }
 .chat-suggested { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
-.chat-suggested button { background: var(--pill-bg); color: var(--plum); font-size: 13px; padding: 6px 10px; }
+.chat-suggested button { background: var(--pill-bg); color: var(--plum); font-size: 0.8125rem; padding: 6px 10px; }
 .chat-suggested button:hover:not(:disabled) { background: var(--pill-hover-bg); color: var(--plum); border-color: var(--hover-border); }
 .chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--table-border-d); }
 .chat-form input { flex: 1; }
@@ -335,30 +535,49 @@ button:disabled { opacity: 0.6; cursor: default; }
    border, like every other button. */
 .back-to-top { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40; background: var(--plum-deep); color: white; border: 2px solid transparent; border-radius: 999px; padding: 10px 18px; font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.25); }
 .back-to-top:hover { background: #2c1a26; border-color: var(--hover-border); }
-.dash-nav a, .dash-nav button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); text-decoration: none; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.dash-nav a, .dash-nav button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); text-decoration: none; font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: inherit; text-align: center; }
 /* White pills darken to a light warm grey on hover (plum text on
    #f3e8e0 is 11.63:1) with the black border; the active (rose) tab
    darkens to the deeper rose like every other rose button. */
 .dash-nav a:hover, .dash-nav button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .dash-nav button.active { background: var(--rose); color: white; border-color: var(--rose); }
-.dash-nav button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.dash-nav button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .dash-section { margin: 40px 0; scroll-margin-top: 24px; }
-.dash-section h2 { font-size: 30px; color: var(--rose-text); margin-bottom: 12px; }
-.dash-section h3 { font-size: 20px; margin: 24px 0 10px; }
+.dash-section h2 { font-size: 1.875rem; color: var(--rose-text); margin-bottom: 12px; }
+.dash-section h3 { font-size: 1.25rem; margin: 24px 0 10px; }
 .demo-banner { background: var(--banner-bg); border: 1px solid var(--banner-border); border-radius: 14px; padding: 12px 16px; }
 .demo-banner-sample { background: var(--banner2-bg); border-color: var(--banner2-border); }
-.dash-note { color: var(--muted); font-size: 14px; }
+/* "For demo purposes only" popover (components/DemoPopover.tsx). A
+   small floating note over the controls that are disabled in Test
+   Admin Mode, and over the Test Admin Mode menu entry. It is
+   position: fixed so it is never clipped by a scrolling table
+   container (the owner tables sit in overflow-x: auto wrappers);
+   its coordinates are measured from the wrapped control when it
+   opens. Plum background with white text in both modes — white on
+   plum-deep is 13.26:1 in light mode and about 10:1 in dark mode.
+   Shown on hover and on keyboard focus; hidden otherwise. The
+   wrapper is the tab stop when the control inside is disabled
+   (disabled elements cannot take focus), and it takes the site's
+   usual :focus-visible double ring. The popover itself never takes
+   pointer events, so moving the mouse off the control hides it. */
+.demo-popover-wrap { position: relative; display: inline-block; }
+.demo-popover-wrap-block { display: block; }
+.demo-popover { position: fixed; z-index: 90; max-width: 260px; width: max-content; background: var(--plum-deep); color: #fff; border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.35); font-size: 0.875rem; line-height: 1.4; text-align: left; opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s; pointer-events: none; }
+.demo-popover-visible { opacity: 1; visibility: visible; transform: translateY(0); }
+.demo-popover strong { display: block; font-weight: 700; }
+.demo-popover > span { display: block; margin-top: 2px; font-size: 0.8125rem; color: rgba(255, 255, 255, 0.85); }
+.dash-note { color: var(--muted); font-size: 0.875rem; }
 
 /* Standard colour coding for the owner area. .tag is a small pill
    (white text on the category colour); the legend row shows the key
    where the colours are used. */
-.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: white; vertical-align: middle; white-space: nowrap; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: white; vertical-align: middle; white-space: nowrap; }
 .tag-people { background: var(--tag-people); }
 .tag-money { background: var(--tag-money); }
 .tag-appointments { background: var(--tag-appointments); }
 .tag-products { background: var(--tag-products); }
 .tag-services { background: var(--tag-services); }
-.colour-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); margin: 12px 0; }
+.colour-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 0.875rem; color: var(--muted); margin: 12px 0; }
 
 /* Sortable tables (components/SortableTable.tsx). The header button
    is the whole header cell: transparent, inherits the header's font
@@ -370,7 +589,7 @@ button:disabled { opacity: 0.6; cursor: default; }
    (a near-black chip on plum is 1.27:1, invisible); the underline
    from the old hover is kept as well. */
 .sort-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: var(--hover-border); text-decoration: underline; }
-.sort-arrow { font-size: 12px; }
+.sort-arrow { font-size: 0.75rem; }
 
 /* The leads table keeps its plainer pre-dashboard look (no dark
    header) — these rules replace the inline styles it used to carry. */
@@ -384,7 +603,7 @@ button:disabled { opacity: 0.6; cursor: default; }
    several appointments; each block is small, with ellipsis so a long
    name never breaks the cell. */
 .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
-.cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 14px; }
+.cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 0.875rem; }
 .cal-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; min-height: 132px; padding: 6px 8px; }
 .cal-cell.cal-closed { background: var(--closed-bg); }
 /* Outside-month cells are muted by a lighter day number, not by
@@ -392,24 +611,24 @@ button:disabled { opacity: 0.6; cursor: default; }
    cell. #6b5560 on the cream page is 6.42:1. */
 .cal-cell.cal-outside { background: transparent; border-color: transparent; }
 .cal-cell.cal-outside .cal-day { color: var(--muted); }
-.cal-day { font-weight: 700; color: var(--plum); font-size: 14px; }
+.cal-day { font-weight: 700; color: var(--plum); font-size: 0.875rem; }
 /* Closed-day text darkened from #8a7d75 (3.36:1 on #f0ebe4, below
    AA) to #6b5560 (5.72:1 on #f0ebe4). */
 .cal-closed .cal-day { color: var(--muted); }
-.cal-closed-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
-.cal-appt { color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 12px; line-height: 1.35; }
+.cal-closed-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+.cal-appt { color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 0.75rem; line-height: 1.35; }
 .cal-appt a { color: white; }
 .cal-appt-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* View tabs (Month / Week / Day) and prev/next navigation on
    /appointments — same pill shape as the dashboard tabs. */
 .view-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
-.view-tabs button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.view-tabs button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: inherit; text-align: center; }
 .view-tabs button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .view-tabs button.active { background: var(--rose); color: white; border-color: var(--rose); }
-.view-tabs button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.view-tabs button.active:hover:not(:disabled) { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .view-nav { display: flex; gap: 8px; margin: 8px 0 12px; }
-.view-nav button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.view-nav button { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 6px 12px; color: var(--plum); font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: inherit; text-align: center; }
 .view-nav button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .view-nav button:disabled { opacity: 0.45; cursor: default; }
 
@@ -428,13 +647,13 @@ button:disabled { opacity: 0.6; cursor: default; }
    hidden but stays in the tab order; the checked label gets the
    rose active style, and focusing the checkbox rings its label. */
 .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; border: 0; padding: 0; }
-.filter-btn { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; }
+.filter-btn { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 14px; color: var(--plum); font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: inherit; text-align: center; }
 .filter-btn:hover { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .filter-checkbox:checked + .filter-btn { background: var(--rose); color: white; border-color: var(--rose); }
-.filter-checkbox:checked + .filter-btn:hover { background: linear-gradient(135deg, var(--rose-deep), #7a3f4a); color: white; border-color: var(--hover-border); }
+.filter-checkbox:checked + .filter-btn:hover { background: linear-gradient(135deg, var(--rose-deep), var(--rose-hover)); color: white; border-color: var(--hover-border); }
 .filter-checkbox:focus-visible + .filter-btn { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 .stylist-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
-.stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); margin: 12px 0; }
+.stylist-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 0.875rem; color: var(--muted); margin: 12px 0; }
 
 /* Day view on /appointments: one day as a timed list. */
 .day-list { list-style: none; padding: 0; margin: 12px 0; }
@@ -442,37 +661,37 @@ button:disabled { opacity: 0.6; cursor: default; }
 
 .dash-chart { margin: 20px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
 .dash-chart figcaption { font-weight: 700; color: var(--plum); margin-bottom: 8px; }
-.dash-chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--plum); margin-bottom: 4px; }
+.dash-chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.875rem; color: var(--plum); margin-bottom: 4px; }
 .dash-chart-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; }
 
 /* Owner appointments card on the homepage (signed-in owners only). */
 .owner-card { background: var(--surface); border: 1px solid var(--border); border-top: 5px solid var(--rose); border-radius: 20px; padding: 20px 22px; margin: 20px 0 8px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.08); }
-.owner-card h2 { margin: 0 0 6px; color: var(--rose-text); font-size: 22px; }
+.owner-card h2 { margin: 0 0 6px; color: var(--rose-text); font-size: 1.375rem; }
 .owner-card p { margin: 0 0 10px; color: var(--plum); }
 .owner-card a { color: var(--rose-text); font-weight: 700; }
 
 /* Recommendation cards + nudge box on the customer detail page. */
 .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 12px 0; }
 .rec-card { background: var(--surface); border: 1px solid var(--border); border-top: 5px solid var(--gold); border-radius: 16px; padding: 16px 18px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.06); }
-.rec-card h3 { margin: 0 0 4px; font-size: 18px; color: var(--plum); }
-.rec-card p { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+.rec-card h3 { margin: 0 0 4px; font-size: 1.125rem; color: var(--plum); }
+.rec-card p { margin: 0 0 6px; color: var(--muted); font-size: 0.875rem; }
 .nudge-box { background: var(--banner-bg); border: 1px solid var(--banner-border); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
 .nudge-box p { margin: 0 0 6px; }
 .nudge-box p:last-child { margin-bottom: 0; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .kpi-card { background: var(--surface); border: 1px solid var(--border); border-top: 5px solid var(--rose); border-radius: 20px; padding: 18px 20px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.08); }
-.kpi-label { font-size: 14px; color: var(--muted); font-weight: 600; }
-.kpi-value { font-family: var(--font-display), Georgia, serif; font-size: 28px; font-weight: 700; color: var(--plum); margin-top: 4px; }
+.kpi-label { font-size: 0.875rem; color: var(--muted); font-weight: 600; }
+.kpi-value { font-family: var(--font-display), Georgia, serif; font-size: 1.75rem; font-weight: 700; color: var(--plum); margin-top: 4px; }
 .table-wrap { overflow-x: auto; }
 .dash-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.06); }
-.dash-table th, .dash-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); font-size: 15px; }
+.dash-table th, .dash-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); font-size: 0.9375rem; }
 .dash-table th { background: var(--plum-deep); color: white; font-weight: 700; }
 .dash-table tr:last-child td { border-bottom: 0; }
 .dash-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .dash-table .total-row td { font-weight: 800; background: var(--surface-3); }
 .dash-table .negative { color: var(--negative); }
-.dash-table .sub { color: var(--muted); font-size: 13px; }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: capitalize; }
+.dash-table .sub { color: var(--muted); font-size: 0.8125rem; }
+.badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; text-transform: capitalize; text-align: center; white-space: nowrap; }
 .badge-paid { background: var(--badge-paid-bg); color: var(--badge-paid-text); }
 /* Unpaid text darkened from #8a6d00 (4.35:1 on #fdf0d3, just under
    AA) to #7a6100 (5.25:1). */
@@ -486,12 +705,13 @@ button:disabled { opacity: 0.6; cursor: default; }
 .product-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
 .product-card h3 { margin: 4px 0 0; }
 .product-card p { margin: 0; }
-.product-category { color: var(--tag-products-text); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.product-card .price { font-weight: 700; font-size: 18px; }
+.product-category { color: var(--tag-products-text); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.product-card .price { font-weight: 700; font-size: 1.125rem; }
 /* No product photos — a styled tile with the product's initials. */
-.product-tile { height: 96px; border-radius: 12px; background: var(--sage); color: var(--plum); display: flex; align-items: center; justify-content: center; font-family: var(--font-display), Georgia, serif; font-size: 36px; font-weight: 700; }
+.product-tile { position: relative; height: 96px; border-radius: 12px; background: var(--sage); overflow: hidden; }
+.product-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qty-row { display: flex; gap: 12px; align-items: flex-end; margin-top: auto; padding-top: 8px; }
-.qty-row label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.qty-row label { display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
 .qty-row input[type="number"] { width: 72px; }
 .cart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin: 24px 0; }
 .cart-lines { list-style: none; padding: 0; margin: 0; }
@@ -499,7 +719,43 @@ button:disabled { opacity: 0.6; cursor: default; }
 .cart-qty { display: inline-flex; align-items: center; gap: 8px; }
 .cart-qty button { min-width: 32px; }
 .cart-remove { margin-left: auto; }
-.cart-total { font-size: 18px; }
+.cart-total { font-size: 1.125rem; }
+
+/* --- Shop: featured, out of stock & sales (see SHOP.md) ------------- */
+/* Featured section: a heading plus one larger card (wider, taller
+   photo) above the grid. The featured product also appears in the
+   grid with its badge, so the section is a highlight, not the only
+   place to buy it. */
+.featured-section { margin: 24px 0; }
+.featured-section h2 { font-size: 1.875rem; margin-bottom: 12px; }
+.featured-card { max-width: 560px; }
+.featured-card .product-tile { height: 220px; }
+/* Featured badge: plum text on gold (6.20:1, WCAG AA). The
+   out-of-stock badge is white on dark grey #374151 (10.31:1).
+   Both are plain text, not colour alone. */
+.badge-featured { background: var(--gold); color: var(--plum-deep); }
+.badge-out-of-stock { background: var(--tag-money); color: white; }
+.out-of-stock-note { color: var(--muted); font-size: 0.875rem; }
+/* Sale price: the struck-through original sits next to the sale
+   price in muted text, and the offer is plain text too — the sale
+   is never shown by colour alone. */
+.price-original { color: var(--muted); font-weight: 400; font-size: 1rem; }
+.sale-label { color: var(--rose-text); font-weight: 700; font-size: 0.875rem; }
+.cart-sale-note { color: var(--rose-text); font-weight: 700; font-size: 0.875rem; }
+/* Sale ribbon: a diagonal RED bar across the BOTTOM-LEFT corner of
+   the product photo tile. The tile is position: relative with
+   overflow: hidden; the ribbon is a 200px strip centred on the
+   tile's bottom-left corner (left -100px, bottom -12px puts its
+   centre on the corner) and rotated 45deg clockwise, so its long
+   axis runs along the corner's diagonal and the tile clips both
+   ends — a band across the corner, on the photo only, never over
+   the product name or price below the tile. White bold text on
+   #b91c1c is 6.47:1 (WCAG 2.1 AA needs >= 4.5:1 for normal text);
+   the same fixed red is used in both themes, so the ratio holds in
+   light and dark mode. The ribbon is aria-hidden in the markup
+   (decorative): the offer text is also shown as plain text next to
+   the price, so screen readers hear it once. */
+.sale-ribbon { position: absolute; left: -100px; bottom: -12px; width: 200px; padding: 4px 0; transform: rotate(45deg); background: #b91c1c; color: #fff; font-size: 0.75rem; font-weight: 700; line-height: 1.4; text-align: center; white-space: nowrap; }
 
 /* --- Rave-review pop-ups (public pages only) --------------------------- */
 /* Bottom-left, so it never covers the chat widget (bottom-right) or
@@ -509,38 +765,60 @@ button:disabled { opacity: 0.6; cursor: default; }
 .review-popup { position: fixed; left: 16px; bottom: 16px; z-index: 50; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(61, 36, 51, 0.18); padding: 14px 16px; opacity: 1; transition: opacity 0.5s ease; }
 .review-popup.fading { opacity: 0; }
 .review-popup-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.review-popup-close { margin-left: auto; background: none; border: none; font-size: 18px; line-height: 1; padding: 4px 8px; cursor: pointer; color: var(--plum); }
+.review-popup-close { margin-left: auto; background: none; border: none; font-size: 1.125rem; line-height: 1; padding: 4px 8px; cursor: pointer; color: var(--plum); }
 .review-popup p { margin: 4px 0; }
+/* The pop-up body is a link to the Reviews section: it fills the
+   card so the whole body is clickable, inherits the text colour,
+   and carries no underline (it is a card, not inline text). */
+.review-popup-link { display: block; color: inherit; text-decoration: none; }
 
 /* --- Reviews section (homepage #reviews) -------------------------------- */
 .review-list { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 16px; }
 .review-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
 .review-item p { margin: 8px 0 0; }
 .review-head { display: flex; align-items: center; gap: 12px; }
-.review-service, .review-date { color: var(--tag-products-text); font-size: 14px; }
+.review-service, .review-date { color: var(--tag-products-text); font-size: 0.875rem; }
 /* Initials avatar: a coloured circle with the reviewer's initials.
    Colours are the WCAG-verified dark hues from lib/reviews.ts, so
    white initials on them pass AA. No photos of real people. */
-.avatar { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+.avatar { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
 .stars { color: var(--stars); letter-spacing: 2px; }
 /* Star rating picker: real radio buttons in DOM order 5 to 1 with
    row-reverse, so `input:checked ~ label` fills this star and every
    star to its left. Keyboard: the radios are focusable (the
    :focus-visible ring shows) and arrow keys move between them. */
 .star-row { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
-.star-row label { font-size: 28px; line-height: 1; cursor: pointer; color: var(--star-idle); padding: 2px; }
+.star-row label { font-size: 1.75rem; line-height: 1; cursor: pointer; color: var(--star-idle); padding: 2px; }
 .star-row input:checked ~ label, .star-row label:hover, .star-row label:hover ~ label { color: var(--stars); }
 .star-row input:focus-visible + label { outline: 3px solid #1e3a5f; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
+/* Star rating picker, compact single line (components/ReviewForm.tsx):
+   the stars and the "Choose a rating" hint sit side by side in one
+   input-like box, so the row is the same height as the booking
+   form's "Phone or email" input (~52px: 16px text at 1.6 line-height
+   + 24px padding + 2px border). The stars are 28px with 2px padding
+   (32px), so the box uses 9px vertical padding to land on the same
+   52px. The fieldset itself carries no border or padding — the
+   legend reads as the field label, like the other labels. */
+.star-picker { border: 0; padding: 0; margin: 0; }
+.star-picker legend { padding: 0; }
+.star-line { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); box-sizing: border-box; }
+.star-value { margin: 0; }
 
 /* --- Theme toggle + alert classes (dark mode) ----------------------------- */
-/* Theme toggle (components/ThemeToggle.tsx): a plain circular button in
-   the fixed nav, NOT the rose gradient — it is a utility control, so it
-   uses the surface and border like the other nav pills. The sun/moon
-   icon is an inline SVG (aria-hidden); the button's aria-label names
-   the action ("Switch to dark mode" / "Switch to light mode"). */
-.theme-toggle { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
-.theme-toggle:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
+/* Theme toggle (components/ThemeToggle.tsx) and hamburger button
+   (components/HamburgerMenu.tsx): plain circular utility buttons in
+   the fixed nav — NOT the rose gradient — so they use the surface
+   and border like the other nav pills. The sun/moon icon is an
+   inline SVG (aria-hidden); the button's aria-label names the
+   action ("Switch to dark mode" / "Switch to light mode"). The
+   hamburger shows a three-bar SVG icon (22px, a little larger
+   than the 20px theme icon) instead of a text glyph, so it is
+   centred by the button's flex layout rather than by font
+   metrics. */
+.theme-toggle, .hamburger-button { width: 40px; height: 40px; padding: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--plum); border: 2px solid var(--border); border-radius: 50%; cursor: pointer; font-size: 1.125rem; line-height: 1; }
+.theme-toggle:hover:not(:disabled), .hamburger-button:hover:not(:disabled) { background: var(--pill-bg); color: var(--plum); border-color: var(--hover-border); }
 .theme-toggle svg { width: 20px; height: 20px; }
+.hamburger-button svg { width: 22px; height: 22px; }
 
 /* Alert banners that used to be inline styles (background #fff3cd, or
    rose error text) in the auth/admin/leads/orders pages. Same colours
@@ -557,3 +835,61 @@ button:disabled { opacity: 0.6; cursor: default; }
    which would vanish on a dark page, so it lightens instead. */
 [data-theme="dark"] .hero-tag { color: #2b1a24; }
 [data-theme="dark"] .back-to-top:hover { background: #55404a; }
+
+/* --- Hamburger menu + header search --------------------------------------- */
+/* Hamburger menu (components/HamburgerMenu.tsx): a three-bar button at the far
+   right of the header opens a dropdown panel with the account rows,
+   the dark-mode toggle, the site links and the owner links. The
+   panel is absolutely positioned against its wrapper, so it hangs
+   below the button and never widens the header. Rows are plain
+   links/buttons (Tab reaches them); the hover rule is scoped under
+   .menu-panel so it beats the global button:hover rose gradient.
+   The avatar reuses the rose from the buttons. */
+.menu-wrap { position: relative; }
+/* The panel scrolls when it is taller than the viewport (small
+   screens / many owner rows): max-height is the viewport minus room
+   for the fixed header and the 8px gap, and overflow-y: auto lets
+   the user scroll to the bottom items (Orders, Admin). On desktop
+   the content is shorter than the max-height, so no scrollbar
+   appears and nothing changes. dvh is the mobile-viewport height
+   (Safari); the vh line is the fallback where dvh is unsupported. */
+.menu-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; max-width: calc(100vw - 32px); max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.25); padding: 8px; z-index: 70; }
+.menu-panel .menu-row { display: flex; align-items: center; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 10px; background: none; color: var(--plum); text-decoration: none; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.menu-panel .menu-row:hover { background: var(--pill-bg); }
+/* Guided-tour target highlight (components/GuidedTour.tsx adds this
+   class to the step's target while the step is showing, and takes
+   it off when the step changes or the tour closes). A 3px accent
+   outline with offset, plus a faint accent tint, so the customer
+   can see what the step is about. The outline alone carries it —
+   the tint is a bonus via color-mix, which older browsers ignore
+   (the outline still shows). The accent (--rose) is >= 4.5:1
+   against the page in every theme, light and dark, so the outline
+   is visible in both modes. It never moves focus: highlighting is
+   a class change only; focus stays in the tooltip card. */
+.tour-highlight { outline: 3px solid var(--rose); outline-offset: 4px; background-color: color-mix(in srgb, var(--rose) 7%, transparent); }
+.menu-user { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.menu-avatar { width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--rose); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
+.menu-user-text { display: flex; flex-direction: column; min-width: 0; }
+.menu-user-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-user-email { font-size: 0.8125rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-user-role { font-size: 0.8125rem; color: var(--muted); }
+.menu-divider { border-top: 1px solid var(--border); margin: 6px 0; }
+.menu-section-label { padding: 10px 12px 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.menu-theme-row { justify-content: space-between; }
+/* The theme toggle sits on the panel's surface, so it gets the pill
+   background to read as a distinct control instead of blending in. */
+.menu-theme-row .theme-toggle { background: var(--pill-bg); }
+
+/* Header search (components/SearchBox.tsx): a compact pill input in
+   the header; the dropdown hangs below it with matching results.
+   The wrapper is position: relative so the dropdown anchors to it.
+   The input is a surface pill on the coloured header, like the
+   theme toggle circle. */
+.header-search { position: relative; flex: 0 1 220px; min-width: 140px; }
+.header-search-input { width: 100%; box-sizing: border-box; padding: 8px 14px; font-size: 0.9375rem; font-family: inherit; color: var(--plum); background: var(--surface); border: 2px solid var(--border); border-radius: 999px; text-overflow: ellipsis; }
+.header-search-input::placeholder { color: var(--muted); }
+.header-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; min-width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 40px rgba(61, 36, 51, 0.2); padding: 6px; z-index: 70; }
+.header-search-dropdown ul { list-style: none; margin: 0; padding: 0; }
+.header-search-dropdown a { display: block; padding: 8px 10px; border-radius: 8px; color: var(--plum); text-decoration: none; font-weight: 600; }
+.header-search-dropdown a:hover { background: var(--pill-bg); }
+.header-search-empty { margin: 0; padding: 8px 10px; color: var(--muted); font-size: 0.875rem; }

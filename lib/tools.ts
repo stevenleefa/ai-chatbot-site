@@ -1,17 +1,25 @@
 // Assistant tools — the AI-engineer layer.
 //
-// Three tools, one contract, two callers:
+// Six tools, one contract, two callers:
 //   - OpenAI mode: the model calls them via real function calling.
 //   - Free mode: the deterministic intent parser (lib/intent.ts)
 //     calls the same functions directly.
 //
 // Every tool reads ONLY from the existing single sources of truth:
 // services/prices from lib/business.ts, the diary from
-// lib/customers.ts (November 2026, 11 appointments), and bookings
-// save through the same saveLead() as the booking form — including
-// its 60-second duplicate protection. No tool invents data, and no
-// tool sends an email or message: a booking is a saved lead the
-// studio confirms, never an auto-confirmation.
+// lib/customers.ts (November 2026, 11 appointments), products and
+// sale prices from lib/products.ts, and bookings save through the
+// same saveLead() as the booking form — including its 60-second
+// duplicate protection. No tool invents data, and no tool sends an
+// email or message: a booking is a saved lead the studio confirms,
+// never an auto-confirmation.
+//
+// addToCart is the one tool with a client half: server code cannot
+// write localStorage, so the tool validates (product exists, is
+// active, is in stock, quantity 1–99) and returns the structured
+// action { action: "addToCart", productId, quantity }, and the chat
+// widget writes it to the "lumen-cart" cart — re-validating against
+// the catalogue first (see lib/chat-cart.ts).
 //
 // The response shape is identical in both modes: an action object
 // the widget can render, plus a plain-language summary.
@@ -25,6 +33,14 @@ import {
 import { formatTime } from "./format";
 import { saveLead } from "./leads";
 import { emitEvent } from "./events";
+import {
+  PRODUCTS,
+  formatPrice,
+  getDiscountLabel,
+  getProduct,
+  getSalePriceCents,
+  type Product,
+} from "./products";
 
 // The diary covers November 2026 only (see lib/customers.ts).
 export const DIARY_START = "2026-11-01";
@@ -63,7 +79,66 @@ export type ChatAction =
   | {
       type: "services";
       services: { name: string; price: string; time: string }[];
-    };
+    }
+  // Shop products (grounded in lib/products.ts only — every price
+  // comes from the catalogue via the pricing helpers, sale prices
+  // included, never from the model or the visitor).
+  | {
+      type: "products";
+      products: ProductSummary[];
+      query: string;
+    }
+  | {
+      type: "product_recommendation";
+      product: ProductSummary;
+      reason: string;
+    }
+  // The cart action: the widget writes this to the localStorage
+  // cart (see lib/chat-cart.ts). `action: "addToCart"` is the
+  // literal shape the client looks for; `type` is the union tag.
+  | {
+      type: "cart_added";
+      action: "addToCart";
+      productId: string;
+      productName: string;
+      quantity: number;
+      unitPrice: string;
+    }
+  | { type: "cart_failed"; reason: string }
+  | { type: "product_failed"; reason: string };
+
+// One product as the chat may state it: real prices only, the sale
+// price next to the original when there is a sale.
+export type ProductSummary = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  salePrice: string | null;
+  discount: string | null;
+};
+
+function productSummary(p: Product): ProductSummary {
+  const salePriceCents = getSalePriceCents(p);
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    category: p.category,
+    price: formatPrice(p.priceCents),
+    salePrice:
+      salePriceCents !== p.priceCents ? formatPrice(salePriceCents) : null,
+    discount: getDiscountLabel(p),
+  };
+}
+
+function productPriceLine(p: ProductSummary): string {
+  if (p.salePrice) {
+    return `${p.name} — ${p.salePrice} (was ${p.price}${p.discount ? `, ${p.discount}` : ""})`;
+  }
+  return `${p.name} — ${p.price}`;
+}
 
 export function getServices() {
   return {
@@ -76,6 +151,285 @@ export function getServices() {
     hours: business.hours,
     phone: business.phone,
   };
+}
+
+// --- Shop product tools -----------------------------------------------------
+//
+// Grounded in lib/products.ts only. Only ACTIVE products are ever
+// listed or recommended (a removed product is gone from the shop);
+// a price is always the catalogue price via getSalePriceCents, so
+// a sale price is stated, never the pre-sale price.
+
+// Search the catalogue by name / category / keyword. Name matches
+// count most, then category, then description. At most 5 results,
+// best first. No match is an empty list, not a failure — the route
+// falls through to the grounded refusal when nothing matches.
+export function searchProducts(query: string): ChatAction {
+  const tokens = query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (tokens.length === 0) {
+    return { type: "products", products: [], query };
+  }
+  const scored = PRODUCTS.filter((p) => p.active)
+    .map((p) => {
+      const name = p.name.toLowerCase();
+      const category = p.category.toLowerCase();
+      const hay = `${name} ${category} ${p.description.toLowerCase()}`;
+      let score = 0;
+      for (const t of tokens) {
+        if (name.includes(t)) score += 3;
+        else if (category.includes(t)) score += 2;
+        else if (hay.includes(t)) score += 1;
+      }
+      return { p, score };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  return {
+    type: "products",
+    products: scored.map((s) => productSummary(s.p)),
+    query,
+  };
+}
+
+// Needs are matched by keyword, in order: the first candidate list
+// whose pattern matches the need. Only in-stock, active products
+// are ever recommended — if the best match is out of stock, the
+// reason says so and names the closest in-stock pick instead.
+// With no recognised need, the featured product is the pick.
+const NEED_CANDIDATES: { match: RegExp; ids: string[] }[] = [
+  { match: /colou?r|dyed/, ids: ["colour-care-mask", "colour-care-shampoo", "colour-care-gift-set"] },
+  { match: /dry|damaged|split/, ids: ["leave-in-treatment", "hair-oil", "colour-care-mask"] },
+  { match: /beard/, ids: ["beard-oil"] },
+  { match: /frizz|curly|smooth|shine/, ids: ["styling-cream", "hair-oil"] },
+  { match: /heat/, ids: ["heat-protect-spray"] },
+  { match: /gift/, ids: ["colour-care-gift-set", "everyday-gift-set"] },
+  { match: /scalp/, ids: ["scalp-scrub", "shampoo-1l"] },
+  { match: /volume|refresh|between wash/, ids: ["dry-shampoo"] },
+  { match: /hold|definition|texture/, ids: ["styling-gel", "hairspray"] },
+];
+
+export function recommendProduct(need: string): ChatAction {
+  const lower = need.toLowerCase();
+  const entry = NEED_CANDIDATES.find((e) => e.match.test(lower));
+  const ids = entry ? entry.ids : ["colour-care-mask"];
+  const candidates = ids
+    .map((id) => getProduct(id))
+    .filter((p): p is Product => p !== null);
+  const first = candidates[0];
+  const pick = candidates.find((p) => p.active && p.inStock);
+  if (!pick) {
+    return {
+      type: "product_failed",
+      reason:
+        `The ${first ? first.name : "product"} for that isn't available at the moment — ` +
+        `please ask in the studio and the team will suggest something.`,
+    };
+  }
+  // The reason is one line tied to the product's own description.
+  const reason =
+    first && first.id !== pick.id
+      ? `The ${first.name} is out of stock at the moment, so the closest in-stock pick is the ${pick.name} — ${pick.description}`
+      : pick.description;
+  return {
+    type: "product_recommendation",
+    product: productSummary(pick),
+    reason,
+  };
+}
+
+// Server-side validation for an add-to-cart request, shared by the
+// tool and the tests. Pure: takes the product (or null) so an
+// inactive product can be tested without touching the catalogue.
+export function validateAddToCart(
+  product: Product | null,
+  quantity: unknown
+): { ok: true; product: Product; quantity: number } | { ok: false; reason: string } {
+  if (!product) {
+    return {
+      ok: false,
+      reason:
+        "I don't have a product by that name in the shop — the range is on the shop page.",
+    };
+  }
+  if (!product.active) {
+    return {
+      ok: false,
+      reason: `The ${product.name} is no longer in the shop.`,
+    };
+  }
+  if (!product.inStock) {
+    return {
+      ok: false,
+      reason: `The ${product.name} is out of stock at the moment — check back soon, or ask in the studio.`,
+    };
+  }
+  const qty =
+    typeof quantity === "number"
+      ? quantity
+      : typeof quantity === "string" && /^\d+$/.test(quantity.trim())
+        ? Number(quantity)
+        : NaN;
+  if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+    return {
+      ok: false,
+      reason: "The quantity has to be a whole number from 1 to 99.",
+    };
+  }
+  return { ok: true, product, quantity: qty };
+}
+
+function findProductsByName(name: string): Product[] {
+  const lower = name.trim().toLowerCase();
+  if (!lower) return [];
+  const exact = PRODUCTS.filter((p) => p.name.toLowerCase() === lower);
+  if (exact.length > 0) return exact;
+  return PRODUCTS.filter((p) => p.name.toLowerCase().includes(lower));
+}
+
+export function addToCart(args: {
+  productId?: string;
+  productName?: string;
+  quantity?: unknown;
+}): ChatAction {
+  let product: Product | null = null;
+  if (args.productId) {
+    product = getProduct(args.productId);
+    if (!product) {
+      return {
+        type: "cart_failed",
+        reason:
+          "I don't have a product by that name in the shop — the range is on the shop page.",
+      };
+    }
+  } else if (args.productName) {
+    const matches = findProductsByName(args.productName);
+    if (matches.length === 0) {
+      return {
+        type: "cart_failed",
+        reason: `I don't have a product called "${args.productName}" in the shop — the range is on the shop page.`,
+      };
+    }
+    if (matches.length > 1) {
+      return {
+        type: "cart_failed",
+        reason: `"${args.productName}" matches more than one product — ${matches.map((m) => m.name).join(", ")}. Which one did you mean?`,
+      };
+    }
+    product = matches[0];
+  } else {
+    return {
+      type: "cart_failed",
+      reason: "Which product should I add to your cart?",
+    };
+  }
+  const checked = validateAddToCart(product, args.quantity ?? 1);
+  if (!checked.ok) return { type: "cart_failed", reason: checked.reason };
+  // The widget writes this to the localStorage cart (it re-validates
+  // first — see lib/chat-cart.ts). No cart is written here: server
+  // code cannot touch localStorage.
+  return {
+    type: "cart_added",
+    action: "addToCart",
+    productId: checked.product.id,
+    productName: checked.product.name,
+    quantity: checked.quantity,
+    unitPrice: formatPrice(getSalePriceCents(checked.product)),
+  };
+}
+
+// --- Free-mode product intent ----------------------------------------------
+//
+// lib/intent.ts is the booking/availability parser; product intent
+// lives here so the route can run the product tools in free mode
+// without touching it. Deterministic, same as the rest of free
+// mode: a product name in the message, an "add … to cart", or a
+// "recommend … for …". Service questions are never hijacked: a
+// message naming a service ("beard trim", "haircut", "balayage",
+// "full colour") with no product in it is not a product intent,
+// so "Do you do beard trims?" still reaches retrieval ($15).
+
+export type ProductIntent =
+  | {
+      kind: "product_add";
+      productId?: string;
+      productName?: string;
+      quantity: number;
+    }
+  | { kind: "product_recommend"; need: string }
+  | { kind: "product_search"; query: string }
+  | { kind: "none" };
+
+const PRODUCT_WORDS = [
+  "shampoo",
+  "conditioner",
+  "mask",
+  "hairspray",
+  "gel",
+  "spray",
+  "cream",
+  "scrub",
+  "gift set",
+  "beard oil",
+];
+
+const SERVICE_WORDS = /\b(beard\s*trims?|hair\s*cuts?|balayage|full\s*colou?rs?)\b/;
+
+function findNamedProduct(text: string): Product | null {
+  const lower = text.toLowerCase();
+  // Longest names first, so "colour-care shampoo" wins over a
+  // bare "shampoo" substring.
+  const sorted = [...PRODUCTS].sort((a, b) => b.name.length - a.name.length);
+  for (const p of sorted) {
+    if (lower.includes(p.name.toLowerCase())) return p;
+  }
+  return null;
+}
+
+export function parseProductIntent(message: string): ProductIntent {
+  const lower = message.toLowerCase();
+
+  // "Add the colour-care mask to my cart" / "Add 2 shampoos to cart".
+  if (/\b(add|put)\b.{0,60}\b(cart|basket)\b/.test(lower)) {
+    const named = findNamedProduct(message);
+    const qtyMatch = message.match(/\b(\d{1,2})\s*(?:x|×)?\b/);
+    const quantity = qtyMatch ? Number(qtyMatch[1]) : 1;
+    if (named) return { kind: "product_add", productId: named.id, quantity };
+    const afterAdd = message.match(/\badd\b\s+(?:the\s+)?(.+?)\s+to\b/i);
+    return {
+      kind: "product_add",
+      productName: (afterAdd?.[1] ?? "").trim(),
+      quantity,
+    };
+  }
+
+  // "What do you recommend for dry hair?" / "Suggest something for my beard".
+  if (
+    /\b(recommend|suggest)\b/.test(lower) ||
+    /\bwhat\b.{0,30}\b(best|good)\b.{0,30}\bfor\b/.test(lower)
+  ) {
+    return { kind: "product_recommend", need: message };
+  }
+
+  const named = findNamedProduct(message);
+  if (named) return { kind: "product_search", query: named.name };
+
+  // Service questions first: "Do you do beard trims?" names a
+  // service, not a product, and must reach retrieval.
+  if (SERVICE_WORDS.test(lower)) return { kind: "none" };
+
+  // "Do you sell shampoo?" / "What products do you have?"
+  if (
+    /\b(products?|shop|sell|stock)\b/.test(lower) ||
+    PRODUCT_WORDS.some((w) => lower.includes(w))
+  ) {
+    return { kind: "product_search", query: message };
+  }
+
+  return { kind: "none" };
 }
 
 function dayLabel(iso: string): string {
@@ -344,6 +698,27 @@ export async function dispatchTool(
     });
     return { action, summary: actionToText(action) };
   }
+  if (name === "searchProducts") {
+    const action = searchProducts(
+      typeof args.query === "string" ? args.query : ""
+    );
+    return { action, summary: actionToText(action) };
+  }
+  if (name === "recommendProduct") {
+    const action = recommendProduct(
+      typeof args.need === "string" ? args.need : ""
+    );
+    return { action, summary: actionToText(action) };
+  }
+  if (name === "addToCart") {
+    const action = addToCart({
+      productId: typeof args.productId === "string" ? args.productId : undefined,
+      productName:
+        typeof args.productName === "string" ? args.productName : undefined,
+      quantity: args.quantity,
+    });
+    return { action, summary: actionToText(action) };
+  }
   return {
     action: {
       type: "booking_failed",
@@ -413,12 +788,35 @@ export function actionToText(action: ChatAction): string {
           .join("; ") +
         "."
       );
+    case "products":
+      if (action.products.length === 0) {
+        return `I don't have a product matching "${action.query}" in the shop at the moment. The full range is on the shop page — or ask in the studio.`;
+      }
+      return (
+        "In the shop: " +
+        action.products.map((p) => productPriceLine(p)).join("; ") +
+        "."
+      );
+    case "product_recommendation": {
+      const p = action.product;
+      const price = p.salePrice
+        ? `${p.salePrice} (was ${p.price}, ${p.discount})`
+        : p.price;
+      return `I'd suggest the ${p.name} (${price}): ${action.reason}`;
+    }
+    case "cart_added":
+      return `Added ${action.productName} × ${action.quantity} to your cart — view it on the shop page.`;
+    case "cart_failed":
+      return action.reason;
+    case "product_failed":
+      return action.reason;
   }
 }
 
 // OpenAI function definitions (gpt-4o-mini). The model sees exactly
-// these three tools and nothing else — it cannot invent a service,
-// a slot or a stylist, because the tools validate server-side.
+// these six tools and nothing else — it cannot invent a service,
+// a slot, a stylist or a product price, because the tools validate
+// server-side.
 export const OPENAI_TOOL_DEFS = [
   {
     type: "function",
@@ -484,6 +882,68 @@ export const OPENAI_TOOL_DEFS = [
           },
         },
         required: ["service", "name", "contact"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "searchProducts",
+      description:
+        "Search the shop catalogue by name, category or keyword. Returns matching products with their real prices, including sale prices. Use it for any question about what the shop sells or what a product costs.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The product name, category or keyword, e.g. 'colour-care shampoo' or 'beard'.",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recommendProduct",
+      description:
+        "Recommend one shop product for a stated need, e.g. coloured hair, dry hair, beard care. Returns the product with a one-line reason tied to its description. Never recommend a product that is out of stock — the tool picks an in-stock alternative itself.",
+      parameters: {
+        type: "object",
+        properties: {
+          need: {
+            type: "string",
+            description: "The visitor's need in their own words, e.g. 'coloured hair' or 'dry ends'.",
+          },
+        },
+        required: ["need"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "addToCart",
+      description:
+        "Add a product to the visitor's cart. Validates server-side: the product must exist, be in the shop and be in stock, and the quantity must be 1–99. Returns an addToCart action the chat widget applies to the cart — never claim the product is in the cart unless the tool succeeded.",
+      parameters: {
+        type: "object",
+        properties: {
+          productId: {
+            type: "string",
+            description: "The product id (slug), e.g. 'colour-care-mask', when known.",
+          },
+          productName: {
+            type: "string",
+            description: "The product name when the id is not known, e.g. 'Colour-care mask'.",
+          },
+          quantity: {
+            type: "integer",
+            description: "How many, 1–99. Defaults to 1.",
+          },
+        },
+        required: [],
       },
     },
   },

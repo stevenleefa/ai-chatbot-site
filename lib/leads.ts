@@ -16,6 +16,7 @@ export type Lead = {
   service: string;
   message: string | null;
   status: LeadStatus;
+  appointment_at?: string | null; // rescheduled date/time (null = never rescheduled; the original booking date/time lives in the message text)
   repeatCount?: number;
 };
 

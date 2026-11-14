@@ -9,8 +9,9 @@ export const revalidate = 0;
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import SortableTable from "@/components/SortableTable";
+import DemoBanner from "@/components/DemoBanner";
 import { isAuthConfigured } from "@/lib/auth/server";
-import { getSession } from "@/lib/auth/session";
+import { getDemoOrSession } from "@/lib/auth/demo";
 import { fmtDate, money } from "@/lib/dashboard";
 import { formatTime } from "@/lib/customers";
 import { getEmployeeSummary } from "@/lib/employees";
@@ -25,7 +26,13 @@ export default async function EmployeeDetailPage({
 }: {
   params: { id: string };
 }) {
-  if (!isAuthConfigured()) {
+  // Test Admin Mode: a signed-out visitor with the demo cookie sees
+  // this page as-is — the employee record is already derived from
+  // sample data (lib/dashboard.ts, lib/employees.ts), so nothing else
+  // changes. The auth-configured and session checks only apply
+  // outside demo mode, so demo works whether or not Supabase is set up.
+  const { demo, session } = await getDemoOrSession();
+  if (!demo && !isAuthConfigured()) {
     return (
       <main id="main-content" className="dash-main">
         <h1>Employee — {BUSINESS_NAME}</h1>
@@ -42,8 +49,12 @@ export default async function EmployeeDetailPage({
     );
   }
 
-  const session = await getSession();
-  if (!session) redirect(`/login?next=/employees/${params.id}`);
+  if (!demo) {
+    if (!session) redirect(`/login?next=/employees/${params.id}`);
+    // Defence in depth behind the middleware: a customer must never
+    // see the owner employee records.
+    if (session.profile.role === "customer") redirect("/my-account");
+  }
 
   const summary = getEmployeeSummary(params.id);
   if (!summary) notFound();
@@ -59,10 +70,17 @@ export default async function EmployeeDetailPage({
       <p>
         <Link href="/employees">← Back to employees</Link>
       </p>
-      <p>
-        Signed in as <strong>{session.user.email}</strong> (
-        {session.profile.role}).
-      </p>
+      {demo && <DemoBanner />}
+      {demo ? (
+        <p>
+          <strong>Test Admin Mode</strong> — sample data, no real account.
+        </p>
+      ) : session ? (
+        <p>
+          Signed in as <strong>{session.user.email}</strong> (
+          {session.profile.role}).
+        </p>
+      ) : null}
 
       <p role="note" className="demo-banner demo-banner-sample">
         <strong>Sample demo data — not a real business&apos;s figures.</strong>{" "}

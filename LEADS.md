@@ -29,7 +29,8 @@ No payment details are collected or stored anywhere.
 
 `/leads` and all leads APIs require a signed-in account with an active
 staff or admin profile — see AUTH.md. Sign in at `/login`; staff join
-by admin invite from `/admin` (there is no public signup). There is no
+by admin invite from `/admin` (there is no public staff signup;
+customers sign up themselves — see CUSTOMER_ACCOUNTS.md). There is no
 shared token any more (the old `LEADS_OWNER_TOKEN` is gone and unused).
 
 ## Setup (user step — nothing here is wired up yet)

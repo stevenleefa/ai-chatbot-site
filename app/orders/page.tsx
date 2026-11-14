@@ -5,9 +5,11 @@ export const revalidate = 0;
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import DemoBanner from "@/components/DemoBanner";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
-import { getSession } from "@/lib/auth/session";
+import { getDemoOrSession } from "@/lib/auth/demo";
+import { SAMPLE_ORDERS } from "@/lib/demo-data";
 import { BUSINESS_NAME, BUSINESS_SLUG } from "@/lib/leads";
 import { formatPrice } from "@/lib/products";
 import { fmtDate } from "@/lib/format";
@@ -45,28 +47,39 @@ function statusBadge(status: Order["status"]) {
 }
 
 export default async function OrdersPage() {
-  if (!isAuthConfigured()) {
-    return (
-      <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
-        <h1>Orders — {BUSINESS_NAME}</h1>
-        <p>
-          <Link href="/">← Back to the site</Link>
-        </p>
-        <p role="alert" className="alert-note">
-          <strong>Auth is not configured.</strong> Add
-          NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
-          .env.local and restart the dev server. Sign-in is unavailable
-          until then, so the orders list is hidden. See AUTH.md.
-        </p>
-      </main>
-    );
+  // Test Admin Mode: a signed-out visitor with the demo cookie sees
+  // the sample orders below and never touches the real orders table.
+  // The auth-configured and session checks only apply outside demo
+  // mode, so demo works whether or not Supabase is set up.
+  const { demo, session } = await getDemoOrSession();
+  if (!demo) {
+    if (!isAuthConfigured()) {
+      return (
+        <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
+          <h1>Orders — {BUSINESS_NAME}</h1>
+          <p>
+            <Link href="/">← Back to the site</Link>
+          </p>
+          <p role="alert" className="alert-note">
+            <strong>Auth is not configured.</strong> Add
+            NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
+            .env.local and restart the dev server. Sign-in is unavailable
+            until then, so the orders list is hidden. See AUTH.md.
+          </p>
+        </main>
+      );
+    }
+
+    if (!session) redirect("/login?next=/orders");
+    // Defence in depth behind the middleware: a customer must never
+    // see the owner orders list (their own orders are on /my-account).
+    if (session.profile.role === "customer") redirect("/my-account");
   }
 
-  const session = await getSession();
-  if (!session) redirect("/login?next=/orders");
-
   let orders: Order[] = [];
-  if (isSupabaseConfigured()) {
+  if (demo) {
+    orders = SAMPLE_ORDERS;
+  } else if (isSupabaseConfigured()) {
     const supabase = getServerSupabase();
     const { data, error } = await supabase!
       .from("orders")
@@ -84,11 +97,18 @@ export default async function OrdersPage() {
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <p>
-        Signed in as <strong>{session.user.email}</strong> (
-        {session.profile.role}).
-      </p>
-      {!isSupabaseConfigured() && (
+      {demo && <DemoBanner />}
+      {demo ? (
+        <p>
+          <strong>Test Admin Mode</strong> — sample data, no real account.
+        </p>
+      ) : session ? (
+        <p>
+          Signed in as <strong>{session.user.email}</strong> (
+          {session.profile.role}).
+        </p>
+      ) : null}
+      {!demo && !isSupabaseConfigured() && (
         <p>
           Supabase is not configured, so no orders are being recorded
           yet. See SHOP.md to set it up — run

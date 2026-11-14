@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import ChatWidget from "@/components/ChatWidget";
+import Calendar from "@/components/Calendar";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewPopups from "@/components/ReviewPopups";
 import ReviewAvatar from "@/components/ReviewAvatar";
@@ -36,6 +36,16 @@ export default function HomeClient({
   const [lead, setLead] = useState(initialLead);
   const [leadResult, setLeadResult] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Preferred date (optional): picked on the month calendar below.
+  // It is not a separate lead field — the original booking date
+  // lives in the message text (the same convention the chat
+  // booking uses), so the picked date is appended to the message
+  // on submit. Sundays are closed and past dates cannot be picked.
+  const [preferredDate, setPreferredDate] = useState("");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
   const { average, count } = averageRating(reviews);
 
   async function submitLead(e: React.FormEvent) {
@@ -44,17 +54,27 @@ export default function HomeClient({
     if (submitting) return;
     setSubmitting(true);
     setLeadResult("Sending…");
+    // The picked date travels in the message (see above) so the
+    // salon sees it; the typed message itself is left untouched.
+    const submittedMessage = preferredDate
+      ? [lead.message, `Preferred date: ${fmtDate(preferredDate)}.`]
+          .filter(Boolean)
+          .join(" ")
+      : lead.message;
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead),
+        body: JSON.stringify({ ...lead, message: submittedMessage }),
       });
       const data = await res.json();
       setLeadResult(data.message ?? data.error ?? "Something went wrong.");
       // Clear the fields only on a successful submit, so a failed
       // submit keeps what the user typed and they can retry.
-      if (res.ok && data.ok) setLead(initialLead);
+      if (res.ok && data.ok) {
+        setLead(initialLead);
+        setPreferredDate("");
+      }
     } catch {
       setLeadResult("Something went wrong. Please try again.");
     } finally {
@@ -92,11 +112,78 @@ export default function HomeClient({
         </div>
       </section>
 
+      {/* Booking (left) and Leave a review (right) side by side;
+          they stack vertically on narrow screens — see
+          .booking-review-row in globals.css. */}
+      <div className="booking-review-row">
+        <section id="booking" className="reveal">
+          <h2>Book an appointment</h2>
+          <div className="booking-card">
+            <form className="lead-form" onSubmit={submitLead}>
+              <label>
+                Your name
+                <input placeholder="Your name" required value={lead.name}
+                  onChange={(e) => setLead({ ...lead, name: e.target.value })} />
+              </label>
+              <label>
+                Service
+                <select value={lead.service}
+                  onChange={(e) => setLead({ ...lead, service: e.target.value })}>
+                  {services.map((s) => <option key={s.name}>{s.name}</option>)}
+                </select>
+              </label>
+              <label>
+                Anything we should know? (optional)
+                <textarea placeholder="Anything we should know? (optional)" rows={3} value={lead.message}
+                  onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+              </label>
+              <label>
+                Phone or email
+                <input placeholder="Phone or email" required value={lead.contact}
+                  onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
+              </label>
+              <div>
+                <p>
+                  <strong>Preferred date (optional)</strong>
+                </p>
+                {/* Month calendar (components/Calendar.tsx): tap a
+                    day to pick it. Sundays are closed and past
+                    dates cannot be picked. The picked date is added
+                    to the booking request (see submitLead above). */}
+                <Calendar
+                  selected={preferredDate || null}
+                  onSelect={setPreferredDate}
+                  minDate={tomorrow}
+                  disableSundays
+                  ariaLabel="Pick a preferred date"
+                />
+                {preferredDate ? (
+                  <p>Preferred date: {fmtDate(preferredDate)}</p>
+                ) : (
+                  <p>No date picked yet — optional.</p>
+                )}
+              </div>
+              <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
+            </form>
+            {leadResult && <p>{leadResult}</p>}
+            <p className="form-note"><small>Cancellations need at least 24 hours notice.</small></p>
+          </div>
+        </section>
+        <ReviewForm />
+      </div>
+
+      <section id="assistant" className="reveal">
+        <h2>Try the AI assistant</h2>
+        <div className="assistant-card">
+          <p>Click “Ask Lumen” at the bottom right. It answers only from the studio’s own details — try asking about a price it does not list, and watch it refuse to guess.</p>
+        </div>
+      </section>
+
       <section id="reviews" className="reveal">
         <h2>What our customers say</h2>
         <p>
           {count === 0 ? (
-            "No reviews yet — be the first to leave one below."
+            "No reviews yet — be the first to leave one above."
           ) : (
             <>
               <Stars rating={Math.round(average)} />{" "}
@@ -128,53 +215,6 @@ export default function HomeClient({
         </ul>
       </section>
 
-      {/* Booking (left) and Leave a review (right) side by side;
-          they stack vertically on narrow screens — see
-          .booking-review-row in globals.css. */}
-      <div className="booking-review-row">
-        <section id="booking" className="reveal">
-          <h2>Book an appointment</h2>
-          <div className="booking-card">
-            <form className="lead-form" onSubmit={submitLead}>
-              <label>
-                Your name
-                <input placeholder="Your name" required value={lead.name}
-                  onChange={(e) => setLead({ ...lead, name: e.target.value })} />
-              </label>
-              <label>
-                Phone or email
-                <input placeholder="Phone or email" required value={lead.contact}
-                  onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
-              </label>
-              <label>
-                Service
-                <select value={lead.service}
-                  onChange={(e) => setLead({ ...lead, service: e.target.value })}>
-                  {services.map((s) => <option key={s.name}>{s.name}</option>)}
-                </select>
-              </label>
-              <label>
-                Anything we should know? (optional)
-                <textarea placeholder="Anything we should know? (optional)" value={lead.message}
-                  onChange={(e) => setLead({ ...lead, message: e.target.value })} />
-              </label>
-              <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
-            </form>
-            {leadResult && <p>{leadResult}</p>}
-            <p><small>Cancellations need at least 24 hours notice.</small></p>
-          </div>
-        </section>
-        <ReviewForm />
-      </div>
-
-      <section id="assistant" className="reveal">
-        <h2>Try the AI assistant</h2>
-        <div className="assistant-card">
-          <p>Click “Ask Lumen” at the bottom right. It answers only from the studio’s own details — try asking about a price it does not list, and watch it refuse to guess.</p>
-        </div>
-      </section>
-
-      <ChatWidget />
       <ReviewPopups />
     </main>
   );

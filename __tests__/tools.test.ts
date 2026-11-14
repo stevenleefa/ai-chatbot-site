@@ -163,11 +163,14 @@ describe("dispatchTool", () => {
     expect(unknown.action.type).toBe("booking_failed");
   });
 
-  it("exposes exactly three OpenAI function definitions", () => {
+  it("exposes exactly six OpenAI function definitions, including the three product tools", () => {
     expect(OPENAI_TOOL_DEFS.map((d) => d.function.name)).toEqual([
       "getServices",
       "getAvailability",
       "createBooking",
+      "searchProducts",
+      "recommendProduct",
+      "addToCart",
     ]);
     const booking = OPENAI_TOOL_DEFS.find(
       (d) => d.function.name === "createBooking"
@@ -176,6 +179,24 @@ describe("dispatchTool", () => {
       "service",
       "name",
       "contact",
+    ]);
+    // The product tools: search and recommend need their query,
+    // addToCart takes a product id or name plus a quantity.
+    const search = OPENAI_TOOL_DEFS.find(
+      (d) => d.function.name === "searchProducts"
+    )!;
+    expect(search.function.parameters.required).toEqual(["query"]);
+    const recommend = OPENAI_TOOL_DEFS.find(
+      (d) => d.function.name === "recommendProduct"
+    )!;
+    expect(recommend.function.parameters.required).toEqual(["need"]);
+    const add = OPENAI_TOOL_DEFS.find(
+      (d) => d.function.name === "addToCart"
+    )!;
+    expect(Object.keys(add.function.parameters.properties).sort()).toEqual([
+      "productId",
+      "productName",
+      "quantity",
     ]);
   });
 });

@@ -2,13 +2,16 @@
 // Sample/demo data only — see lib/dashboard.ts and DASHBOARD.md.
 // Access: sign in at /login. The middleware redirects signed-out users
 // there; this page checks the session itself too (defense in depth).
+// Test Admin Mode (demo mode, see DEMO_MODE.md): a signed-out visitor
+// with the demo cookie sees this page as-is, because the dashboard
+// already uses sample data.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthConfigured } from "@/lib/auth/server";
-import { getSession } from "@/lib/auth/session";
+import { getDemoOrSession } from "@/lib/auth/demo";
 import {
   AS_OF_DATE,
   EMPLOYEES,
@@ -47,6 +50,7 @@ import {
 } from "@/lib/dashboard";
 import { BUSINESS_NAME } from "@/lib/leads";
 import DashboardTabs from "@/components/DashboardTabs";
+import DemoBanner from "@/components/DemoBanner";
 import LineChart from "@/components/LineChart";
 import SortableTable from "@/components/SortableTable";
 import { employeeIdForName } from "@/lib/employees";
@@ -56,25 +60,35 @@ function statusBadge(status: string) {
 }
 
 export default async function DashboardPage() {
-  if (!isAuthConfigured()) {
-    return (
-      <main id="main-content" className="dash-main">
-        <h1>Dashboard — Lumen Hair Studio</h1>
-        <p>
-          <Link href="/">← Back to the site</Link>
-        </p>
-        <p role="alert" className="demo-banner">
-          <strong>Auth is not configured.</strong> Add
-          NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
-          .env.local and restart the dev server. Sign-in is unavailable
-          until then, so the dashboard is hidden. See AUTH.md.
-        </p>
-      </main>
-    );
-  }
+  // Test Admin Mode: a signed-out visitor with the demo cookie sees
+  // this page as-is — the dashboard already uses sample data
+  // (lib/dashboard.ts), so nothing else changes. The auth-configured
+  // and session checks only apply outside demo mode, so demo works
+  // whether or not Supabase is set up.
+  const { demo, session } = await getDemoOrSession();
+  if (!demo) {
+    if (!isAuthConfigured()) {
+      return (
+        <main id="main-content" className="dash-main">
+          <h1>Dashboard — Lumen Hair Studio</h1>
+          <p>
+            <Link href="/">← Back to the site</Link>
+          </p>
+          <p role="alert" className="demo-banner">
+            <strong>Auth is not configured.</strong> Add
+            NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to
+            .env.local and restart the dev server. Sign-in is unavailable
+            until then, so the dashboard is hidden. See AUTH.md.
+          </p>
+        </main>
+      );
+    }
 
-  const session = await getSession();
-  if (!session) redirect("/login?next=/dashboard");
+    if (!session) redirect("/login?next=/dashboard");
+    // Defence in depth behind the middleware: a customer session is
+    // real, but a customer must never see the owner dashboard.
+    if (session.profile.role === "customer") redirect("/my-account");
+  }
 
   const kpis = overview();
   const pl = profitAndLoss();
@@ -96,10 +110,17 @@ export default async function DashboardPage() {
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
-      <p>
-        Signed in as <strong>{session.user.email}</strong> (
-        {session.profile.role}).
-      </p>
+      {demo && <DemoBanner />}
+      {demo ? (
+        <p>
+          <strong>Test Admin Mode</strong> — sample data, no real account.
+        </p>
+      ) : session ? (
+        <p>
+          Signed in as <strong>{session.user.email}</strong> (
+          {session.profile.role}).
+        </p>
+      ) : null}
 
       <p role="note" className="demo-banner demo-banner-sample">
         <strong>Sample demo data — not a real business&apos;s figures.</strong>{" "}

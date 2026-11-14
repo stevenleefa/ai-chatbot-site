@@ -2,6 +2,11 @@
 // "Admins only" page instead of the user list. Unauthenticated users are
 // redirected to /login by the middleware, and this page checks the
 // session itself too (defense in depth).
+// Test Admin Mode (demo mode, see DEMO_MODE.md): a signed-out visitor
+// with the demo cookie sees the same page with sample users and
+// sample pending reviews, the settings form filled from the static
+// business values (never the real site_settings row), and every
+// button disabled — nothing here can change anything.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -9,14 +14,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isAuthConfigured } from "@/lib/auth/server";
-import { getSession, type Profile } from "@/lib/auth/session";
-import { getSiteSettings } from "@/lib/site-settings";
+import { getDemoOrSession } from "@/lib/auth/demo";
+import { type Profile } from "@/lib/auth/session";
+import { defaultSettings, getSiteSettings } from "@/lib/site-settings";
 import { getPendingReviews } from "@/lib/reviews-server";
+import { SAMPLE_PENDING_REVIEWS, SAMPLE_PROFILES } from "@/lib/demo-data";
 import { setUserActive, setUserRole, saveSiteSettings, approveReview, deleteReview } from "./actions";
 import InviteStaffForm from "@/components/InviteStaffForm";
+import DemoBanner from "@/components/DemoBanner";
+import DemoPopover from "@/components/DemoPopover";
 
 export default async function AdminPage() {
-  if (!isAuthConfigured()) {
+  // Test Admin Mode: a signed-out visitor with the demo cookie sees
+  // the sample users and sample pending reviews below and never
+  // touches the real profiles or reviews tables. The
+  // auth-configured, session and admin-role checks only apply outside
+  // demo mode, so demo works whether or not Supabase is set up.
+  const { demo, session } = await getDemoOrSession();
+  if (!demo && !isAuthConfigured()) {
     return (
       <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
         <h1>Admin — Lumen Hair Studio</h1>
@@ -32,31 +47,34 @@ export default async function AdminPage() {
     );
   }
 
-  const session = await getSession();
-  if (!session) redirect("/login?next=/admin");
+  if (!demo) {
+    if (!session) redirect("/login?next=/admin");
 
-  if (session.profile.role !== "admin") {
-    return (
-      <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
-        <h1>Admin — Lumen Hair Studio</h1>
-        <p>
-          <Link href="/">← Back to the site</Link>
-        </p>
-        <p role="alert">
-          <strong>Admins only.</strong> You are signed in, but your account
-          does not have the admin role. Ask an admin to promote you on this
-          page.
-        </p>
-        <p>
-          Signed in as {session.user.email} ({session.profile.role}).
-        </p>
-      </main>
-    );
+    if (session.profile.role !== "admin") {
+      return (
+        <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
+          <h1>Admin — Lumen Hair Studio</h1>
+          <p>
+            <Link href="/">← Back to the site</Link>
+          </p>
+          <p role="alert">
+            <strong>Admins only.</strong> You are signed in, but your account
+            does not have the admin role. Ask an admin to promote you on this
+            page.
+          </p>
+          <p>
+            Signed in as {session.user.email} ({session.profile.role}).
+          </p>
+        </main>
+      );
+    }
   }
 
   let profiles: Profile[] = [];
   let storageError = "";
-  if (!isSupabaseConfigured()) {
+  if (demo) {
+    profiles = SAMPLE_PROFILES;
+  } else if (!isSupabaseConfigured()) {
     storageError =
       "Leads storage is not configured (SUPABASE_SERVICE_ROLE_KEY missing), so the user list cannot be loaded.";
   } else {
@@ -72,8 +90,12 @@ export default async function AdminPage() {
     }
   }
 
-  const settings = await getSiteSettings();
-  const pendingReviews = await getPendingReviews();
+  // In demo mode the settings form shows the static business values
+  // (lib/business.ts) — the real site_settings row is never read.
+  const settings = demo ? defaultSettings() : await getSiteSettings();
+  const pendingReviews = demo
+    ? SAMPLE_PENDING_REVIEWS
+    : await getPendingReviews();
 
   return (
     <main id="main-content" style={{ maxWidth: 900, margin: "24px auto", padding: "0 20px" }}>
@@ -81,18 +103,30 @@ export default async function AdminPage() {
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
+      {demo && <DemoBanner />}
+      {demo ? (
+        <p>
+          <strong>Test Admin Mode</strong> — sample data, no real account.
+        </p>
+      ) : session ? (
+        <p>
+          Signed in as <strong>{session.user.email}</strong> (admin).
+        </p>
+      ) : null}
       <p>
-        Signed in as <strong>{session.user.email}</strong> (admin).
+        <Link href="/admin/products">Manage products →</Link>
       </p>
 
       <section>
         <h2>Users</h2>
         <p>
-          Staff join by admin invite only — there is no public signup.
-          Invite someone below and they start as staff; promote them
-          here when they need admin access. Deactivated accounts cannot
-          sign in. The last remaining active admin cannot be demoted or
-          deactivated.
+          Staff join by admin invite only — there is no public staff
+          signup. Invite someone below and they start as staff; promote
+          them here when they need admin access. Customers sign up
+          themselves from the site and appear here as “customer”;
+          promote one to staff here if they join the team. Deactivated
+          accounts cannot sign in. The last remaining active admin
+          cannot be demoted or deactivated.
         </p>
         {storageError && (
           <p role="alert" className="alert-note">
@@ -115,7 +149,7 @@ export default async function AdminPage() {
                   <th>Role</th>
                   <th>Active</th>
                   <th>Joined</th>
-                  <th>Actions</th>
+                  <th className="actions-cell"><span className="actions-header-label">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -127,24 +161,38 @@ export default async function AdminPage() {
                     <td>
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>
-                    <td>
+                    <td className="actions-cell">
                       <form action={setUserRole} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="userId" value={p.id} />
                         <input
                           type="hidden"
                           name="role"
-                          value={p.role === "admin" ? "staff" : "admin"}
+                          value={
+                            p.role === "admin"
+                              ? "staff"
+                              : p.role === "customer"
+                                ? "staff"
+                                : "admin"
+                          }
                         />
-                        <button type="submit">
-                          {p.role === "admin" ? "Demote to staff" : "Make admin"}
-                        </button>
+                        <DemoPopover enabled={demo}>
+                          <button type="submit" disabled={demo}>
+                            {p.role === "admin"
+                              ? "Demote to staff"
+                              : p.role === "customer"
+                                ? "Make staff"
+                                : "Make admin"}
+                          </button>
+                        </DemoPopover>
                       </form>
                       <form action={setUserActive} style={{ display: "inline" }}>
                         <input type="hidden" name="userId" value={p.id} />
                         <input type="hidden" name="active" value={p.is_active ? "false" : "true"} />
-                        <button type="submit">
-                          {p.is_active ? "Deactivate" : "Reactivate"}
-                        </button>
+                        <DemoPopover enabled={demo}>
+                          <button type="submit" disabled={demo}>
+                            {p.is_active ? "Deactivate" : "Reactivate"}
+                          </button>
+                        </DemoPopover>
                       </form>
                     </td>
                   </tr>
@@ -162,7 +210,15 @@ export default async function AdminPage() {
           is signed in through /auth/callback, and sets their first
           password on /auth/update-password. They start as staff.
         </p>
-        <InviteStaffForm />
+        {demo ? (
+          <DemoPopover block>
+            <p>
+              Demo mode — inviting staff is disabled. Nothing is sent.
+            </p>
+          </DemoPopover>
+        ) : (
+          <InviteStaffForm />
+        )}
       </section>
 
       <section>
@@ -177,7 +233,7 @@ export default async function AdminPage() {
           The seed reviews on the homepage are demo data in code, not
           rows here — they are not listed.
         </p>
-        {!isSupabaseConfigured() ? (
+        {!demo && !isSupabaseConfigured() ? (
           <p role="alert" className="alert-note">
             Review storage is not configured
             (SUPABASE_SERVICE_ROLE_KEY missing), so reviews cannot be
@@ -199,7 +255,7 @@ export default async function AdminPage() {
                   <th>Rating</th>
                   <th>Service</th>
                   <th>Review</th>
-                  <th>Actions</th>
+                  <th className="actions-cell"><span className="actions-header-label">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -213,14 +269,18 @@ export default async function AdminPage() {
                     </td>
                     <td>{r.service ?? "—"}</td>
                     <td>{r.text}</td>
-                    <td>
+                    <td className="actions-cell">
                       <form action={approveReview} style={{ display: "inline", marginRight: 8 }}>
                         <input type="hidden" name="reviewId" value={r.id} />
-                        <button type="submit">Approve</button>
+                        <DemoPopover enabled={demo}>
+                          <button type="submit" disabled={demo}>Approve</button>
+                        </DemoPopover>
                       </form>
                       <form action={deleteReview} style={{ display: "inline" }}>
                         <input type="hidden" name="reviewId" value={r.id} />
-                        <button type="submit">Delete</button>
+                        <DemoPopover enabled={demo}>
+                          <button type="submit" disabled={demo}>Delete</button>
+                        </DemoPopover>
                       </form>
                     </td>
                   </tr>
@@ -239,29 +299,34 @@ export default async function AdminPage() {
           <code>lib/business.ts</code> — edit those in code for now (see
           AUTH.md).
         </p>
-        <form action={saveSiteSettings} className="lead-form">
-          <label>
-            Business name
-            <input name="business_name" required defaultValue={settings.business_name} />
-          </label>
-          <label>
-            Phone
-            <input name="phone" required defaultValue={settings.phone} />
-          </label>
-          <label>
-            Email
-            <input name="email" type="email" defaultValue={settings.email} />
-          </label>
-          <label>
-            Address
-            <input name="address" defaultValue={settings.address} />
-          </label>
-          <label>
-            Hours
-            <input name="hours" defaultValue={settings.hours} />
-          </label>
-          <button type="submit">Save settings</button>
-        </form>
+        {/* One popover for the whole form: every input and the save
+            button are disabled in demo mode, so hovering anywhere on
+            the form explains why. */}
+        <DemoPopover enabled={demo} block>
+          <form action={saveSiteSettings} className="lead-form">
+            <label>
+              Business name
+              <input name="business_name" required defaultValue={settings.business_name} disabled={demo} />
+            </label>
+            <label>
+              Phone
+              <input name="phone" required defaultValue={settings.phone} disabled={demo} />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" defaultValue={settings.email} disabled={demo} />
+            </label>
+            <label>
+              Address
+              <input name="address" defaultValue={settings.address} disabled={demo} />
+            </label>
+            <label>
+              Hours
+              <input name="hours" defaultValue={settings.hours} disabled={demo} />
+            </label>
+            <button type="submit" disabled={demo}>Save settings</button>
+          </form>
+        </DemoPopover>
       </section>
     </main>
   );
