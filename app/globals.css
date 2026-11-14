@@ -163,8 +163,11 @@
    Plum is the default: with no choice saved there is NO
    [data-personalization-theme="plum"] block, because the :root values
    above already ARE plum/rose. Every other theme overrides the same
-   five variables in light mode and the matching set in dark mode, so
-   each theme works in both modes. White-on-accent, header and
+   variables in light mode and the matching set in dark mode, so
+   each theme works in both modes. One exception: Yellow's light
+   header is bright yellow, so it also overrides --nav-fg to a dark
+   colour (cream text on it fails AA) and sets --plum-deep to a
+   dark gold (it carries white text). White-on-accent, header and
    accent-text pairs for every theme are >= 4.5:1 (WCAG 2.1 AA);
    the ratios are in lib/personalization.ts and PERSONALIZATION.md.
    --plum-deep follows the theme too, so the chat head, table headers
@@ -189,6 +192,29 @@ html[data-personalization-theme="forest"][data-theme="dark"] { --nav-bg: #166534
    #172c49 on cream 13.31:1; #93c5fd on dark page 9.55:1. */
 html[data-personalization-theme="navy"] { --rose: #1e3a5f; --rose-deep: #172c49; --rose-hover: #12263f; --rose-text: #172c49; --nav-bg: #101f33; --nav-fg: #fdf8f1; --plum-deep: #101f33; --chart-rose: #1e3a5f; }
 html[data-personalization-theme="navy"][data-theme="dark"] { --nav-bg: #1e3a5f; --nav-fg: #ffffff; --rose-text: #93c5fd; --plum-deep: #172c49; --chart-rose: #93c5fd; }
+/* Purple: a true violet, clearly distinct from Plum and Rose.
+   White on #7c3aed 5.70:1, on #5b21b6 8.98:1, on #4c1d95 10.95:1;
+   cream on #3b0764 14.19:1; #5b21b6 on cream 8.50:1; #c4b5fd on
+   dark page 9.33:1. */
+html[data-personalization-theme="purple"] { --rose: #7c3aed; --rose-deep: #5b21b6; --rose-hover: #4c1d95; --rose-text: #5b21b6; --nav-bg: #3b0764; --nav-fg: #fdf8f1; --plum-deep: #3b0764; --chart-rose: #7c3aed; }
+html[data-personalization-theme="purple"][data-theme="dark"] { --nav-bg: #7c3aed; --nav-fg: #ffffff; --rose-text: #c4b5fd; --plum-deep: #5b21b6; --chart-rose: #c4b5fd; }
+/* Orange/Blue: navy header + burnt-orange accent, like the plumbing
+   demo. White on #c2410c 5.18:1, on #9a3412 7.31:1, on #7c2d12
+   9.37:1; cream on #0f2a44 13.85:1; #9a3412 on cream 6.92:1;
+   #fdba74 on dark page 10.21:1. */
+html[data-personalization-theme="orange-blue"] { --rose: #c2410c; --rose-deep: #9a3412; --rose-hover: #7c2d12; --rose-text: #9a3412; --nav-bg: #0f2a44; --nav-fg: #fdf8f1; --plum-deep: #0f2a44; --chart-rose: #c2410c; }
+html[data-personalization-theme="orange-blue"][data-theme="dark"] { --nav-bg: #c2410c; --nav-fg: #ffffff; --rose-text: #fdba74; --plum-deep: #9a3412; --chart-rose: #fdba74; }
+/* Yellow: a warm yellow. White on #a16207 4.92:1, on #854d0e
+   6.85:1, on #713f12 8.67:1; #854d0e on cream 6.48:1; #fde047 on
+   dark page 13.06:1. The light-mode header IS bright yellow
+   (#eab308) — cream text on it is 1.81:1, so --nav-fg is dark
+   #1a0f16 instead (9.74:1), the one theme that overrides it in
+   light mode. --plum-deep is a dark gold (#854d0e light,
+   #713f12 dark), not the bright yellow: it carries white text
+   (chat head, table headers, back-to-top, skip link, popover),
+   which fails on #eab308. */
+html[data-personalization-theme="yellow"] { --rose: #a16207; --rose-deep: #854d0e; --rose-hover: #713f12; --rose-text: #854d0e; --nav-bg: #eab308; --nav-fg: #1a0f16; --plum-deep: #854d0e; --chart-rose: #a16207; }
+html[data-personalization-theme="yellow"][data-theme="dark"] { --nav-bg: #a16207; --nav-fg: #ffffff; --rose-text: #fde047; --plum-deep: #713f12; --chart-rose: #fde047; }
 
 /* Font pairings: only fonts the site already loads (Playfair Display
    + Inter, via next/font in app/layout.tsx) plus system fonts — no

@@ -1,5 +1,5 @@
 // components/PersonalizationSettings.tsx — the Display settings panel
-// on /my-account. Tests the behaviour only: the five theme radios,
+// on /my-account. Tests the behaviour only: the eight theme radios,
 // font/size radios and accessibility checkboxes are real inputs with
 // labels, a change applies the data attributes to <html> at once and
 // persists to localStorage. The account sync (fetch /api/preferences)
@@ -41,11 +41,20 @@ afterEach(() => {
 });
 
 describe("PersonalizationSettings", () => {
-  it("shows five theme radios, three font pairings, three sizes and three accessibility toggles", async () => {
+  it("shows eight theme radios, three font pairings, three sizes and three accessibility toggles", async () => {
     await act(async () => {
       render(<PersonalizationSettings />);
     });
-    for (const name of ["Plum", "Rose", "Teal", "Forest", "Navy"]) {
+    for (const name of [
+      "Plum",
+      "Rose",
+      "Teal",
+      "Forest",
+      "Navy",
+      "Purple",
+      "Orange/Blue",
+      "Yellow",
+    ]) {
       expect(screen.getByRole("radio", { name })).toBeInTheDocument();
     }
     expect(screen.getByRole("radio", { name: /Clean/ })).toBeInTheDocument();
@@ -72,6 +81,25 @@ describe("PersonalizationSettings", () => {
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toContain('"theme":"teal"');
     expect(screen.getByRole("radio", { name: "Teal" })).toBeChecked();
+  });
+
+  it("picking a new theme applies it to <html> at once and saves it to localStorage", async () => {
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Yellow" }));
+    expect(document.documentElement.getAttribute("data-personalization-theme")).toBe(
+      "yellow",
+    );
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain('"theme":"yellow"');
+    expect(screen.getByRole("radio", { name: "Yellow" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Orange/Blue" }));
+    expect(document.documentElement.getAttribute("data-personalization-theme")).toBe(
+      "orange-blue",
+    );
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain(
+      '"theme":"orange-blue"',
+    );
   });
 
   it("toggling high contrast sets the attribute and persists it", async () => {
@@ -488,6 +516,105 @@ describe("Voice section", () => {
     expect(row).toBeInTheDocument();
     expect(row).toContainElement(screen.getByLabelText("Common voices"));
     expect(row).toContainElement(screen.getByLabelText("Other voices"));
+  });
+
+  it('picking "Default voice" stores "" (not null) and shows Default voice, with no unavailable note', async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    // Starts on Samantha (the default), a common voice.
+    expect(common.value).toBe("samantha");
+    // Pick "Default voice": the stored value is "" — the explicit
+    // browser-default sentinel — not null (null is only the legacy
+    // never-set value, and must never be stored again).
+    fireEvent.change(common, { target: { value: "" } });
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.voiceURI).toBe("");
+    // The dropdowns show the choice: Common on "Default voice",
+    // Other on its placeholder — and "" is a real choice, so the
+    // "isn't available on this device" note must NOT appear.
+    expect(common.value).toBe("");
+    expect(other.value).toBe("");
+    expect(
+      within(other).getByRole("option", {
+        name: COMMON_VOICE_PLACEHOLDER_TEXT,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/isn't available on this device/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("a stored legacy null voice resolves to Samantha on load", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    // An old localStorage row (or account copy) saved when the
+    // default voice was null: voiceURI null, pitch 1.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ voiceURI: null, voicePitch: 1 }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    // Samantha is selected — the never-set voice resolved to the
+    // default — not "Default voice", and no unavailable note.
+    expect(common.value).toBe("samantha");
+    expect(
+      screen.queryByText(/isn't available on this device/),
+    ).not.toBeInTheDocument();
+    // The pitch resolved to High with it.
+    const pitch = screen.getByLabelText("Pitch") as HTMLSelectElement;
+    expect(pitch.value).toBe("1.25");
+  });
+
+  it('a stored "" voice shows "Default voice" with no unavailable note', async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ voiceURI: "" }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const common = screen.getByLabelText(
+      "Common voices",
+    ) as HTMLSelectElement;
+    const other = screen.getByLabelText("Other voices") as HTMLSelectElement;
+    expect(common.value).toBe("");
+    expect(
+      within(common).getByRole("option", { name: "Default voice" }),
+    ).toBeInTheDocument();
+    expect(other.value).toBe("");
+    expect(
+      within(other).getByRole("option", {
+        name: COMMON_VOICE_PLACEHOLDER_TEXT,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/isn't available on this device/),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -14,7 +14,7 @@ This is **not** a revival of the old header-colour switcher (removed
 is still the default: a customer who never picks anything sees exactly
 the site they saw before this change.
 
-## The 5 colour themes
+## The 8 colour themes
 
 Each theme changes the header (`--nav-bg` / `--nav-fg`), the accent
 (`--rose` / `--rose-deep` / `--rose-text`) and the button gradient
@@ -25,13 +25,16 @@ relative-luminance function in `lib/personalization.ts`
 `__tests__/personalization.test.ts` — every key pair is ≥ 4.5:1
 (WCAG 2.1 AA, normal text).
 
-| Theme | Accent / deep / hover | Header light (cream text) | Header dark (white text) | Accent text on page |
+| Theme | Accent / deep / hover | Header light | Header dark (white text) | Accent text on page |
 |---|---|---|---|---|
 | **Plum** (default) | `#a05a66` 5.06:1 / `#8e4a56` 6.43:1 / `#7a3f4a` 7.96:1 | `#3d2433` 13.26:1 | `#a05a66` 5.06:1 | light `#8e4a56` 6.09:1, dark `#e8a7ad` 8.66:1 |
 | **Rose** | `#9c3d54` 6.54:1 / `#7f2d40` 8.93:1 / `#6b2436` 10.88:1 | `#4a1524` 13.96:1 | `#9c3d54` 6.54:1 | light `#7f2d40` 8.45:1, dark `#f9a8d4` 9.50:1 |
 | **Teal** | `#0f766e` 5.47:1 / `#0b5a53` 8.07:1 / `#084c46` 9.85:1 | `#0b3d3a` 11.40:1 | `#0f766e` 5.47:1 | light `#0b5a53` 7.64:1, dark `#7dd3c8` 9.86:1 |
 | **Forest** | `#166534` 7.13:1 / `#14532d` 9.11:1 / `#0f3d21` 12.28:1 | `#0f2e1d` 13.91:1 | `#166534` 7.13:1 | light `#14532d` 8.62:1, dark `#86efac` 12.26:1 |
 | **Navy** | `#1e3a5f` 11.50:1 / `#172c49` 14.07:1 / `#12263f` 15.28:1 | `#101f33` 15.70:1 | `#1e3a5f` 11.50:1 | light `#172c49` 13.31:1, dark `#93c5fd` 9.55:1 |
+| **Purple** | `#7c3aed` 5.70:1 / `#5b21b6` 8.98:1 / `#4c1d95` 10.95:1 | `#3b0764` 14.19:1 | `#7c3aed` 5.70:1 | light `#5b21b6` 8.50:1, dark `#c4b5fd` 9.33:1 |
+| **Orange/Blue** | `#c2410c` 5.18:1 / `#9a3412` 7.31:1 / `#7c2d12` 9.37:1 | `#0f2a44` 13.85:1 | `#c2410c` 5.18:1 | light `#9a3412` 6.92:1, dark `#fdba74` 10.21:1 |
+| **Yellow** | `#a16207` 4.92:1 / `#854d0e` 6.85:1 / `#713f12` 8.67:1 | `#eab308` 9.74:1 (dark text) | `#a16207` 4.92:1 | light `#854d0e` 6.48:1, dark `#fde047` 13.06:1 |
 
 "White on accent/deep/hover" is the button text; "header" is the
 fixed top nav; "accent text on page" is `--rose-text` (headings,
@@ -40,6 +43,21 @@ prices, links) on the light page (`#fdf8f1`) and the dark page
 (`--plum-deep`) follow the theme too, and the chart rose series
 (`--chart-rose`) uses the accent in light mode and the light accent
 text in dark mode.
+
+Header light is cream text (`#fdf8f1`) on the header colour —
+except **Yellow**, whose light-mode header is bright yellow
+(`#eab308`): cream on it is 1.81:1, so the header text is dark
+(`#1a0f16`, 9.74:1) instead, the one theme that overrides `--nav-fg`
+in light mode. Yellow's `--plum-deep` is a dark gold too (`#854d0e`
+light / `#713f12` dark), not the bright yellow: it carries white
+text (chat head, table headers, back-to-top), which fails on
+`#eab308`. Orange/Blue is navy in light mode and burnt orange in
+dark mode; its accent is the darker burnt orange `#c2410c`, because
+white on the plumbing demo's bright orange `#ff6b1a` is only ~2.9:1.
+Rose and Plum were deliberately left unchanged — they do look alike
+in light mode (dark maroon `#4a1524` vs dark plum `#3d2433`), and the
+new themes are the fix for that: Purple, Orange/Blue and Yellow are
+visibly different from each other and from Plum/Rose at a glance.
 
 ## Fonts, sizes and accessibility
 
@@ -120,10 +138,24 @@ Display settings panel, with three controls:
   (`speechSynthesis.getVoices()`), each shown as its name and
   language (e.g. "Samantha — en-US"). The choice is stored by the
   voice's `voiceURI` (or its name, when the voice has no `voiceURI`);
-  "Default voice" stores nothing and the browser default speaks.
-  A customer who has never picked anything gets Samantha (a macOS
-  system voice, stored by name — where it does not exist the
-  first English voice / browser default speaks instead).
+  "Default voice" stores an empty string (`""`) and the browser
+  default speaks — that is the explicit choice, distinct from
+  never having picked anything. A customer who has never picked
+  anything gets Samantha (a macOS system voice, stored by name —
+  where it does not exist the first English voice / browser default
+  speaks instead). An old stored `null` — a row or localStorage
+  entry saved before Samantha became the default, when the default
+  voice was null — is the same "never picked" case: it resolves to
+  Samantha on load (and a stored pitch of Normal `1` with it
+  resolves to High `1.25`, the old default pitch), and is never
+  stored as null again — the next save writes Samantha. A pitch of
+  Normal saved next to a real voice stays Normal: that customer
+  engaged with the voice settings, so it may be an explicit choice.
+  No migration is needed for this: the `customer_preferences` rows
+  are created only by the API upsert, which specifies every column,
+  so the database column defaults are never applied — the code
+  (`parsePreferences` in `lib/personalization.ts`) is the layer
+  that heals old rows.
   The voices are split across two dropdowns, because a Mac can
   report dozens of voices (novelty voices like Zarvox and Bubbles
   mixed in with the natural ones) and a single long dropdown
@@ -236,7 +268,10 @@ since it was favorited simply does not render.
   `GET` / `POST /api/preferences`. GET returns the account copy when
   there is one (it wins over the device copy and is written back to
   localStorage), the defaults when there is no row, and
-  `{ configured: false }` when Supabase is unconfigured. POST
+  `{ configured: false }` when Supabase is unconfigured. A stored
+  `NULL` voice in the row resolves to Samantha on read (and an
+  old-default pitch of `1` to High) — see Voice above; the next
+  save heals the row. POST
   validates every field against the allowlists in
   `lib/personalization.ts` (unknown theme/font/size → 400), takes
   the user id from the verified session only, and is body-capped +
@@ -321,7 +356,8 @@ the existing dark-mode pre-paint script.
 | `supabase/customer-preferences-schema.sql` | The table (run once — see above). |
 | `supabase/customer-preferences-voice.sql` | Adds the three voice columns (run once — see above). |
 | `app/globals.css` | Theme variables per theme/mode, font/size/accessibility rules, panel styles; button hover ends now use `--rose-hover` so they follow the theme. |
-| `__tests__/personalization.test.ts` | Contrast re-computation, validation, font-size values, storage helpers, stylist list agreement with the dashboard. |
+| `__tests__/personalization.test.ts` | Contrast re-computation (all eight themes, incl. Yellow's dark header text), validation, the voice sentinel (legacy null → Samantha, "" = browser default, old-default pitch rule), font-size values, storage helpers, the pre-paint script (allowlist + chrome map), stylist list agreement with the dashboard. |
+| `__tests__/preferences-routes.test.ts` | /api/preferences GET (no row → defaults, legacy null row → Samantha + High, "" row kept, specific voice kept) and POST (null heals to Samantha on upsert, "" stored as-is, 400/500 guards) with mocked session/Supabase. |
 | `__tests__/PersonalizationSettings.test.tsx` | Panel behaviour (apply + persist, signed-out shape, voice, stylist, notifications). |
 | `__tests__/favorites.test.ts` | Favorite-product id validation + the server helpers' unconfigured/unknown-id behaviour. |
 | `__tests__/favorites-routes.test.ts` | /api/favorites guards (401, 503, 400 unknown id) with mocked session/supabase. |
@@ -335,7 +371,12 @@ the existing dark-mode pre-paint script.
   customer sign-in. /my-account no longer shows Display settings.
 - Pick each theme in Settings: header, buttons and accent text
   change at once, in both light and dark mode; reload and the choice
-  is still there.
+  is still there. The picker shows eight themes — Plum, Rose, Teal,
+  Forest, Navy, Purple, Orange/Blue, Yellow — and the new three are
+  visibly different from Plum/Rose at a glance in light mode
+  (Yellow's header is bright yellow with dark text; Orange/Blue's
+  is navy). Rose and Plum themselves are unchanged and still look
+  alike — that is why the new themes exist.
 - Fonts: Clean makes headings Inter; Readable makes them Georgia.
   Sizes: Small shrinks and Large grows **all** text on the site —
   body, headings, buttons, inputs, chat messages, badges, the
@@ -348,7 +389,10 @@ the existing dark-mode pre-paint script.
   zoom and card transitions even with the OS set to full motion.
 - Voice: in Settings → Voice, pick a voice, a speed and
   a pitch, then "Hear a preview" — the sample speaks with the
-  chosen settings. Ask the chat a question and the reply speaks
+  chosen settings. A new person (nothing saved) sees Samantha
+  selected with High pitch. Picking "Default voice" stores the
+  browser default and shows "Default voice" in the Common dropdown
+  with no "isn't available" note. Ask the chat a question and the reply speaks
   with them too. Change the voice on one device and the choice
   follows the account (after running the voice SQL); pick a voice
   on a Mac and open the site on a device that doesn't have it and

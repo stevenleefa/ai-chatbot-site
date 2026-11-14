@@ -1,5 +1,5 @@
 // Personalisation settings for the Settings page (/settings).
-// A colour-theme picker (5 swatches), a font-pairing choice, a
+// A colour-theme picker (8 swatches), a font-pairing choice, a
 // font-size choice, three accessibility toggles, the assistant
 // voice, a preferred stylist and an email-notifications toggle.
 // Every control is a real radio input, select or checkbox with a
@@ -189,9 +189,15 @@ export default function PersonalizationSettings() {
   // The saved voice may not exist on this device (it was picked
   // somewhere else). When it does not, the dropdowns show the
   // default voice — which is what will actually speak — and this
-  // note says so.
+  // note says so. "" is the explicit browser default ("Default
+  // voice"), not a missing voice: it is available everywhere, so
+  // it never counts as unavailable. null is only ever a legacy
+  // stored value (parsePreferences resolves it to Samantha before
+  // it reaches this component); it is excluded here too, so a
+  // stale localStorage row cannot flash the note.
   const savedVoiceAvailable =
     prefs.voiceURI !== null &&
+    prefs.voiceURI !== "" &&
     voices.some(
       (v) => v.voiceURI === prefs.voiceURI || v.name === prefs.voiceURI,
     );
@@ -394,12 +400,7 @@ export default function PersonalizationSettings() {
                 <select
                   id="voice-choice-common"
                   value={commonSelectValue}
-                  onChange={(e) =>
-                    update(
-                      "voiceURI",
-                      e.target.value === "" ? null : e.target.value,
-                    )
-                  }
+                  onChange={(e) => update("voiceURI", e.target.value)}
                 >
                   <option value="">Default voice</option>
                   {popularVoices.map((voice) => (
@@ -424,12 +425,7 @@ export default function PersonalizationSettings() {
                 <select
                   id="voice-choice-other"
                   value={otherSelectValue}
-                  onChange={(e) =>
-                    update(
-                      "voiceURI",
-                      e.target.value === "" ? null : e.target.value,
-                    )
-                  }
+                  onChange={(e) => update("voiceURI", e.target.value)}
                 >
                   {(!currentVoice || currentVoiceIsPopular) && (
                     <option value="" disabled>
@@ -447,14 +443,21 @@ export default function PersonalizationSettings() {
                 </select>
               </div>
             </div>
-            {prefs.voiceURI !== null && !savedVoiceAvailable && (
-              <p>
-                <small>
-                  Your saved voice isn&apos;t available on this device —
-                  using the default voice instead.
-                </small>
-              </p>
-            )}
+            {/* Picking "Default voice" stores "" — the explicit
+               browser default (see lib/personalization.ts) — not
+               null. null is only a legacy never-set value; it
+               resolves to Samantha on load and is never stored
+               again. */}
+            {prefs.voiceURI !== null &&
+              prefs.voiceURI !== "" &&
+              !savedVoiceAvailable && (
+                <p>
+                  <small>
+                    Your saved voice isn&apos;t available on this device —
+                    using the default voice instead.
+                  </small>
+                </p>
+              )}
             <label htmlFor="voice-rate">
               <strong>Speed</strong>
             </label>
