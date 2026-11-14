@@ -6,6 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 import SignOutButton from "./SignOutButton";
 import DemoPopover from "./DemoPopover";
 import {
+  TOUR_CLOSE_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   getTourProgress,
@@ -43,7 +44,12 @@ export type MenuUser = {
 // and returns focus to the button, and a click outside closes it. The
 // sign-out dialog inside the menu owns Escape itself while it is open,
 // so the menu's Escape handler leaves it alone (otherwise focus would
-// be lost when the dialog tries to return it to its trigger).
+// be lost when the dialog tries to return it to its trigger). Opening
+// the menu while the guided tour is showing first closes the tour
+// (TOUR_CLOSE_EVENT, progress saved, never finished) — the tour's
+// tooltip card otherwise holds focus and fights the menu panel, so
+// the menu glitches closed and the user cannot reach Sign in. The
+// menu's "Resume tour" row then offers the saved step.
 // React 18: useState/useEffect/useRef only — no React 19 hooks.
 export default function HamburgerMenu({
   user,
@@ -65,6 +71,22 @@ export default function HamburgerMenu({
 
   function closeMenu() {
     setOpen(false);
+  }
+
+  // Open or close the menu. Opening it while the guided tour is
+  // showing first closes the tour (the tour component listens for
+  // TOUR_CLOSE_EVENT and saves progress, never finished): the
+  // tour's tooltip card otherwise holds focus and fights the menu
+  // panel, so the menu glitches closed and the user cannot reach
+  // Sign in. The tour is detected by the data-tour-active marker
+  // the tour sets on <body> while showing. Closing the menu never
+  // touches the tour. The menu's "Resume tour" row offers the
+  // saved step afterwards.
+  function toggleMenu() {
+    if (!open && document.body.hasAttribute("data-tour-active")) {
+      window.dispatchEvent(new CustomEvent(TOUR_CLOSE_EVENT));
+    }
+    setOpen((was) => !was);
   }
 
   // Start (or resume) the guided tour at the given step: close
@@ -110,7 +132,7 @@ export default function HamburgerMenu({
         type="button"
         ref={buttonRef}
         className="hamburger-button"
-        onClick={() => setOpen((was) => !was)}
+        onClick={toggleMenu}
         aria-expanded={open}
         aria-haspopup="true"
         aria-controls="site-menu"

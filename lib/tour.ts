@@ -88,6 +88,16 @@ export type TourProgress = {
 // tour; the tour component listens for it.
 export const TOUR_START_EVENT = "lumen:start-tour";
 
+// The hamburger menu dispatches this when it is opened while the
+// tour is showing; the tour component listens for it and closes
+// (saving progress, not finished) so the menu can be used. The
+// tour's tooltip card otherwise holds focus and fights the menu
+// panel — the menu glitches closed and the user cannot reach
+// Sign in. Symmetric with starting the tour, which closes the
+// menu: opening the menu closes the tour, and the menu's
+// "Resume tour" row offers the saved step afterwards.
+export const TOUR_CLOSE_EVENT = "lumen:close-tour";
+
 export function nextStepIndex(index: number): number | null {
   return index + 1 < TOUR_STEPS.length ? index + 1 : null;
 }

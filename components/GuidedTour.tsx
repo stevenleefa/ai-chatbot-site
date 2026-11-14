@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  TOUR_CLOSE_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   clearTourProgress,
@@ -26,7 +27,11 @@ import {
 // Resumable: progress (steps completed, finished only at the end)
 // is saved to localStorage ("lumen-tour"), so closing mid-tour
 // offers "Resume tour" in the menu later; closing mid-tour never
-// marks it finished.
+// marks it finished. Opening the hamburger menu mid-tour also
+// closes it the same way (the menu dispatches TOUR_CLOSE_EVENT):
+// the tour's tooltip card otherwise holds focus and fights the
+// menu panel, so the menu glitches closed and the user cannot
+// reach Sign in.
 //
 // Keyboard: the tooltip is a real dialog region (role="dialog"),
 // focus moves into it on each step, Escape closes it and focus
@@ -131,6 +136,24 @@ export default function GuidedTour() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+    // closeTour reads completedRef, so it is stable to call here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  // The hamburger menu closes the tour (and saves progress) when
+  // it is opened mid-tour: it dispatches TOUR_CLOSE_EVENT, and
+  // the tour closes exactly as Skip tour / Escape would — progress
+  // saved, never marked finished, so the menu can offer
+  // "Resume tour" at the saved step afterwards. Without this the
+  // tour's tooltip card holds focus and fights the menu panel, and
+  // the menu glitches closed before the user can reach Sign in.
+  useEffect(() => {
+    if (index === null) return;
+    function onClose() {
+      closeTour(false);
+    }
+    window.addEventListener(TOUR_CLOSE_EVENT, onClose);
+    return () => window.removeEventListener(TOUR_CLOSE_EVENT, onClose);
     // closeTour reads completedRef, so it is stable to call here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);

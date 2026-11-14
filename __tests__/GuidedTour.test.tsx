@@ -102,6 +102,30 @@ describe("GuidedTour", () => {
     });
   });
 
+  it("the close event closes it mid-tour and saves progress as not finished", () => {
+    render(<GuidedTour />);
+    startTour(0);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    act(() => {
+      window.dispatchEvent(new CustomEvent("lumen:close-tour"));
+    });
+    expect(screen.queryByRole("dialog", { name: "Guided tour" })).not.toBeInTheDocument();
+    expect(document.body.hasAttribute("data-tour-active")).toBe(false);
+    expect(JSON.parse(window.localStorage.getItem(TOUR_STORAGE_KEY)!)).toEqual({
+      completed: 1,
+      finished: false,
+    });
+  });
+
+  it("the close event does nothing when the tour is not showing", () => {
+    render(<GuidedTour />);
+    act(() => {
+      window.dispatchEvent(new CustomEvent("lumen:close-tour"));
+    });
+    expect(screen.queryByRole("dialog", { name: "Guided tour" })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(TOUR_STORAGE_KEY)).toBeNull();
+  });
+
   it("closing on the first step with nothing completed saves no progress", () => {
     render(<GuidedTour />);
     startTour(0);
