@@ -121,14 +121,33 @@ Display settings panel, with three controls:
   language (e.g. "Samantha — en-US"). The choice is stored by the
   voice's `voiceURI` (or its name, when the voice has no `voiceURI`);
   "Default voice" stores nothing and the browser default speaks.
+  A customer who has never picked anything gets Samantha (a macOS
+  system voice, stored by name — where it does not exist the
+  first English voice / browser default speaks instead).
+  The list is grouped, because a Mac can report dozens of voices
+  (novelty voices like Zarvox and Bubbles mixed in with the
+  natural ones): a **Popular voices** group leads with the five
+  most common — Samantha, Daniel, Moira, Flo, Grandma, in that
+  order (`POPULAR_VOICE_NAMES` in `lib/speech.ts`, matched by
+  name) — and an **All voices** group underneath holds every
+  other voice in the browser's order. Only the popular voices
+  actually installed on this device are shown, so the Popular
+  group is omitted entirely when none of the five is installed;
+  nothing is filtered out — every voice appears in one of the
+  two groups. "Default voice" stays the first option, above both
+  groups, and the dropdown stays a plain `<select>` with
+  `<optgroup>`s, so keyboard navigation and screen-reader
+  announcements work as before.
   The list loads asynchronously — `getVoices()` may return empty
   on first call, so the panel listens for the `voiceschanged`
   event and fills the dropdown when the voices arrive. Where
   speech synthesis is unsupported, the picker is replaced by a
   note ("Voice options aren't available in this browser") and the
   text chat keeps working.
-- **Speed** — Slow / Normal / Fast (rate 0.75 / 1 / 1.25).
-- **Pitch** — Low / Normal / High (pitch 0.75 / 1 / 1.25).
+- **Speed** — Slow / Normal / Fast (rate 0.75 / 1 / 1.25). Normal
+  is the default.
+- **Pitch** — Low / Normal / High (pitch 0.75 / 1 / 1.25). High is
+  the default.
 - **Hear a preview** — speaks a short sample sentence with the
   voice, speed and pitch currently chosen, so the customer hears
   the difference at once.
@@ -284,7 +303,7 @@ the existing dark-mode pre-paint script.
 | `app/my-account/page.tsx` | No longer renders the settings panel — that lives on /settings now; still profile + bookings + orders + referral + repurchase + saved carts. |
 | `components/PersonalizationProvider.tsx` | Mount-time applier (no UI) + `PersonalizationScript` for `<head>`; watches `data-theme` so the chrome colour follows dark/light toggles too. |
 | `components/GuidedTour.tsx` | Six-step tour; highlights each step's target (`tour-highlight` outline) and sets `data-tour-active` on `<body>` while showing, which hides the review pop-ups. |
-| `lib/speech.ts` | Web Speech helpers; `findVoiceByUri` (voiceURI, then name, then null) and `applyVoiceSettings` (chosen voice or first English voice, rate/pitch clamped to 0.5–2). |
+| `lib/speech.ts` | Web Speech helpers; `findVoiceByUri` (voiceURI, then name, then null) and `applyVoiceSettings` (chosen voice or first English voice, rate/pitch clamped to 0.5–2), plus `splitPopularVoices` / `POPULAR_VOICE_NAMES` (the five popular voices first, the rest underneath, for the Voice dropdown). |
 | `components/ChatWidget.tsx` | The chat; `speak()` reads the stored voice choices fresh each reply and applies them via `applyVoiceSettings`. |
 | `app/api/preferences/route.ts` | GET / POST, session user id only, strict validation, rate-limited. |
 | `supabase/customer-preferences-schema.sql` | The table (run once — see above). |

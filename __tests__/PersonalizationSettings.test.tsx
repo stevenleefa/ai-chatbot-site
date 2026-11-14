@@ -5,8 +5,11 @@
 // persists to localStorage. The account sync (fetch /api/preferences)
 // is stubbed to the signed-out shape here — the component must work
 // localStorage-only and never error when the route says no.
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import PersonalizationSettings from "@/components/PersonalizationSettings";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
+import PersonalizationSettings, {
+  LARGER_TEXT_POPOVER_DETAIL,
+  LARGER_TEXT_POPOVER_TITLE,
+} from "@/components/PersonalizationSettings";
 import { STORAGE_KEY } from "@/lib/personalization";
 
 beforeEach(() => {
@@ -119,9 +122,9 @@ describe("Voice section", () => {
   // jsdom has no Web Speech API at all, so both speechSynthesis and
   // the utterance constructor are mocked here. The mock voices are
   // plain objects — the panel only reads voiceURI, name and lang.
-  function mockSpeechSynthesis() {
+  function mockSpeechSynthesis(voices = mockVoices) {
     const mock = {
-      getVoices: jest.fn(() => mockVoices),
+      getVoices: jest.fn(() => voices),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       cancel: jest.fn(),
@@ -221,7 +224,8 @@ describe("Voice section", () => {
     };
     expect(utterance.text).toContain("Lumen");
     expect(utterance.rate).toBe(1.25);
-    expect(utterance.pitch).toBe(1);
+    // Pitch was not changed in this test, so it is the default (High).
+    expect(utterance.pitch).toBe(1.25);
   });
 
   it("says so when the saved voice is not on this device", async () => {
@@ -238,6 +242,176 @@ describe("Voice section", () => {
     ).toBeInTheDocument();
     const select = screen.getByLabelText("Voice") as HTMLSelectElement;
     expect(select.value).toBe("");
+  });
+
+  it("groups the voices: the popular five first, the rest underneath", async () => {
+    // Browser order is scrambled and the novelty voices sit mixed
+    // in with the natural ones — the dropdown must still lead with
+    // the five popular voices in curated order.
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "grandma-us", name: "Grandma", lang: "en-US" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+      { voiceURI: "bubbles", name: "Bubbles", lang: "en-US" },
+      { voiceURI: "flo", name: "Flo", lang: "en-GB" },
+      { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
+      { voiceURI: "moira", name: "Moira", lang: "en-IE" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
+    // "Default voice" is still the first option in the select.
+    expect(select.options[0].value).toBe("");
+    expect(select.options[0].text).toBe("Default voice");
+
+    const popular = screen.getByRole("group", { name: "Popular voices" });
+    expect(
+      within(popular)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      "Samantha — en-US",
+      "Daniel — en-GB",
+      "Moira — en-IE",
+      "Flo — en-GB",
+      "Grandma — en-US",
+    ]);
+
+    const all = screen.getByRole("group", { name: "All voices" });
+    expect(
+      within(all)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      "Zarvox — en-US",
+      "Bubbles — en-US",
+      "Google US English — en-US",
+    ]);
+
+    // No voice appears twice across the two groups.
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it("omits the Popular group when none of the five is installed", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "google-us", name: "Google US English", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    expect(
+      screen.queryByRole("group", { name: "Popular voices" }),
+    ).not.toBeInTheDocument();
+    const all = screen.getByRole("group", { name: "All voices" });
+    expect(
+      within(all)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Zarvox — en-US", "Google US English — en-US"]);
+    expect(
+      screen.getByRole("option", { name: "Default voice" }),
+    ).toBeInTheDocument();
+  });
+
+  it("saves a voice picked from the Popular group", async () => {
+    mockSpeechSynthesis([
+      { voiceURI: "zarvox", name: "Zarvox", lang: "en-US" },
+      { voiceURI: "daniel", name: "Daniel", lang: "en-GB" },
+      { voiceURI: "samantha", name: "Samantha", lang: "en-US" },
+    ]);
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const select = screen.getByLabelText("Voice") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "daniel" } });
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(stored.voiceURI).toBe("daniel");
+  });
+});
+
+describe("Text size and Larger text", () => {
+  it("disables Small and Medium with an explanatory popover while Larger text is on", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ largerText: true }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    expect(screen.getByRole("radio", { name: "Small" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Medium" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Large" })).not.toBeDisabled();
+    const tips = screen.getAllByRole("tooltip");
+    expect(tips).toHaveLength(2);
+    for (const tip of tips) {
+      expect(tip).toHaveTextContent(LARGER_TEXT_POPOVER_TITLE);
+      expect(tip).toHaveTextContent(LARGER_TEXT_POPOVER_DETAIL);
+      expect(tip).not.toHaveClass("demo-popover-visible");
+    }
+    // Hover and keyboard focus on the wrapper show the popover.
+    const wrapper = tips[0].parentElement!;
+    fireEvent.mouseOver(wrapper);
+    expect(tips[0]).toHaveClass("demo-popover-visible");
+    fireEvent.mouseOut(wrapper);
+    expect(tips[0]).not.toHaveClass("demo-popover-visible");
+    fireEvent.focus(wrapper);
+    expect(tips[0]).toHaveClass("demo-popover-visible");
+    // The wrapper is the tab stop — the disabled radio cannot take focus.
+    expect(wrapper).toHaveAttribute("tabindex", "0");
+  });
+
+  it("leaves Small and Medium enabled with no popover while Larger text is off", async () => {
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    expect(screen.getByRole("radio", { name: "Small" })).not.toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Medium" })).not.toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Large" })).not.toBeDisabled();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("keeps showing the saved size while Larger text is on", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ largerText: true, fontSize: "small" }),
+    );
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    // The saved size is still the checked one — it applies again
+    // as soon as Larger text is turned off — it is just not
+    // changeable while Larger text is on. (A disabled radio cannot
+    // be activated by pointer or keyboard in a real browser; that
+    // is the browser's doing, not this component's, so it is pinned
+    // here by the disabled attribute, not by a click.)
+    const small = screen.getByRole("radio", { name: "Small" });
+    expect(small).toBeChecked();
+    expect(small).toBeDisabled();
+    expect(document.documentElement.getAttribute("data-larger-text")).toBe(
+      "true",
+    );
+  });
+
+  it("turning Larger text on and off disables and re-enables Small and Medium", async () => {
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const toggle = screen.getByRole("checkbox", { name: /Larger text/ });
+    expect(screen.getByRole("radio", { name: "Small" })).not.toBeDisabled();
+    fireEvent.click(toggle);
+    expect(screen.getByRole("radio", { name: "Small" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Medium" })).toBeDisabled();
+    expect(screen.getAllByRole("tooltip")).toHaveLength(2);
+    fireEvent.click(toggle);
+    expect(screen.getByRole("radio", { name: "Small" })).not.toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Medium" })).not.toBeDisabled();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 });
 

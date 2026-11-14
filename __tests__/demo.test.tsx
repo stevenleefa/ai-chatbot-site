@@ -388,4 +388,24 @@ describe("DemoPopover", () => {
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Do it" })).toBeInTheDocument();
   });
+
+  it("renders a custom title and detail when they are passed", () => {
+    render(
+      <DemoPopover
+        title="Larger text is on"
+        detail="Turn off Larger text to choose Small or Medium."
+      >
+        <button type="button" disabled>
+          Do it
+        </button>
+      </DemoPopover>
+    );
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("Larger text is on");
+    expect(tip).toHaveTextContent(
+      "Turn off Larger text to choose Small or Medium.",
+    );
+    expect(tip).not.toHaveTextContent(DEMO_POPOVER_TITLE);
+    expect(tip).not.toHaveTextContent(DEMO_POPOVER_DETAIL);
+  });
 });

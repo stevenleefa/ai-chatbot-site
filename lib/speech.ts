@@ -113,6 +113,46 @@ export function findVoiceByUri(
   return byName ?? null;
 }
 
+// The five most common natural English voices, shown first in the
+// Voice dropdown so the customer does not have to wade through the
+// dozens a browser can report (a Mac lists novelty voices like
+// Zarvox, Bubbles and Boing mixed in with the natural ones).
+// Curated order: Samantha first, because it is the site's default
+// voice. Matched by name — a voice's voiceURI differs by browser,
+// but its name is stable.
+export const POPULAR_VOICE_NAMES = [
+  "Samantha",
+  "Daniel",
+  "Moira",
+  "Flo",
+  "Grandma",
+] as const;
+
+/**
+ * Split the browser's voice list into the popular five and everything
+ * else, for the two groups of the Voice dropdown. The popular voices
+ * come back in the curated order above, and only those actually
+ * installed on this device — a name that is not installed is simply
+ * skipped, never shown as an unavailable entry. The rest keep the
+ * browser's order and never include a popular voice twice (a voice
+ * is the same object in both lists, so identity decides). Nothing
+ * is filtered out: every voice the browser reports appears in one
+ * of the two groups.
+ */
+export function splitPopularVoices(voices: SpeechSynthesisVoice[]): {
+  popular: SpeechSynthesisVoice[];
+  rest: SpeechSynthesisVoice[];
+} {
+  const popular: SpeechSynthesisVoice[] = [];
+  for (const name of POPULAR_VOICE_NAMES) {
+    const voice = voices.find((v) => v.name === name);
+    if (voice) popular.push(voice);
+  }
+  const popularSet = new Set(popular);
+  const rest = voices.filter((v) => !popularSet.has(v));
+  return { popular, rest };
+}
+
 /**
  * Apply the customer's voice choices to an utterance. The chosen
  * voice wins when it exists in this browser; otherwise the first
