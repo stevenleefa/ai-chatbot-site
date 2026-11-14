@@ -1,0 +1,53 @@
+/* Favorite products (components/FavoriteProducts.tsx) — dedicated
+   stylesheet so app/globals.css is untouched (another agent is
+   editing it for themes in parallel). Colours come from the site's
+   CSS variables, so the rows are legible in light and dark mode and
+   follow the customer's colour theme. Font sizes are rem, so they
+   scale with the font-size setting. Focus uses the site's global
+   :focus-visible double ring. */
+
+/* The favorited list: no bullet markers and no default list indent.
+   A plain <ul> renders a disc marker in front of each item, which
+   put a bullet in front of the product picture. */
+.favorite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* One favorited product: photo, name + price, Remove button in a
+   single row that cannot overlap. The text block flexes and wraps;
+   the button keeps its own space at the right edge. The row wraps
+   at narrow widths, and the button stays right-aligned on its own
+   line instead of colliding with the price. */
+.favorite-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.favorite-item img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* The name + price: takes the free space and may shrink below its
+   content width (min-width: 0) so a long name wraps instead of
+   pushing into the Remove button. */
+.favorite-text {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+/* The Remove button: never shrinks, and margin-left: auto puts it
+   at the right edge of the row. It is a normal flex item (never
+   absolutely positioned), so it can never sit on top of the price. */
+.favorite-remove {
+  flex-shrink: 0;
+  margin-left: auto;
+}

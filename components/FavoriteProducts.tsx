@@ -17,6 +17,7 @@ import {
   getSalePriceCents,
   type Product,
 } from "@/lib/products";
+import "./FavoriteProducts.css";
 
 export default function FavoriteProducts({
   products,
@@ -149,11 +150,15 @@ export default function FavoriteProducts({
           {favorites.map((p) => (
             <li key={p.id} className="favorite-item">
               <img src={p.image} alt="" loading="lazy" />
-              <span>
+              <span className="favorite-text">
                 <strong>{p.name}</strong> —{" "}
                 {formatPrice(getSalePriceCents(p))}
               </span>
-              <button type="button" onClick={() => removeFavorite(p.id)}>
+              <button
+                type="button"
+                className="favorite-remove"
+                onClick={() => removeFavorite(p.id)}
+              >
                 Remove
               </button>
             </li>
