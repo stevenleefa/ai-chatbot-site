@@ -201,10 +201,11 @@ html[data-font-pairing="readable"] h1, html[data-font-pairing="readable"] h2, ht
 
 /* Font size: the size choice sets the ROOT font-size on <html>,
    and every text size in this file is in rem, so the whole site
-   scales with it — body, headings, buttons, inputs, tables, the
-   brand, hero text, chat messages, review stars, badges, the small
-   muted notes, the hamburger menu and the nav. Medium is the site
-   as it is (16px root, the browser default — no rule needed).
+   scales with it — body, headings, buttons, inputs, select
+   dropdowns, tables, the brand, hero text, chat messages, review
+   stars, badges, the small muted notes, the hamburger menu and
+   the nav. Medium is the site as it is (16px root, the browser
+   default — no rule needed).
    Small is 15px root (~0.94x), Large is 18px root (~1.13x).
    Because the sizes are rem, the medium rendering is unchanged:
    1rem is 16px, so e.g. 0.875rem is exactly the old 14px. See
@@ -218,6 +219,18 @@ html[data-font-size="large"] { font-size: 18px; }
    also gets a roomier 1.7 line-height. */
 html[data-larger-text="true"] { font-size: 19px; }
 html[data-larger-text="true"] body { line-height: 1.7; }
+
+/* Selects: Safari's UA stylesheet gives <select> a fixed size
+   (font: -webkit-small-control) that does not inherit the root
+   font-size, so a select's text stayed the same size when the
+   customer changed the font size — the settings-panel dropdowns
+   (voice, speed, pitch, stylist), the reschedule time picker and
+   the owner selects. 1rem makes every select scale with the root
+   (15px small / 16px medium / 18px large / 19px larger-text),
+   the same size the lead-form controls already use, so this agrees
+   with them rather than fighting them. font-family: inherit
+   matches the site's Inter body font, like the other inputs. */
+select { font-size: 1rem; font-family: inherit; }
 
 /* High contrast (accessibility toggle): darker body and muted text,
    stronger borders and input borders, a thicker focus ring and
