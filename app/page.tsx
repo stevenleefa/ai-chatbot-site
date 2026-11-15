@@ -5,6 +5,8 @@ import ReferralBanner from "@/components/ReferralBanner";
 import { services } from "@/lib/business";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getPublicReviews } from "@/lib/reviews-server";
+import { APPOINTMENT_SLOTS, getAppointments } from "@/lib/customers";
+import { getBookingStylists } from "@/lib/tools";
 
 // Server component: loads the site settings (database row when
 // configured, lib/business.ts fallback otherwise), the public
@@ -18,6 +20,17 @@ import { getPublicReviews } from "@/lib/reviews-server";
 export default async function Home() {
   const settings = await getSiteSettings();
   const reviews = await getPublicReviews();
+  // Visitor-safe booking diary for the homepage daily view: each
+  // booked appointment projected to date/time/stylist only. The
+  // customer id and name never leave the server, so the daily view
+  // can show busy vs free (and which stylist is booked) without
+  // ever exposing another customer's name.
+  const bookedAppointments = getAppointments().map((a) => ({
+    date: a.date,
+    time: a.time,
+    stylist: a.stylist,
+  }));
+  const bookableStylists = getBookingStylists();
   return (
     <>
       {/* The referral banner reads ?ref= (useSearchParams), so it
@@ -30,6 +43,9 @@ export default async function Home() {
         services={services}
         reviews={reviews}
         ownerAppointmentsCard={<OwnerAppointmentsCard />}
+        bookedAppointments={bookedAppointments}
+        bookableStylists={bookableStylists}
+        appointmentSlots={APPOINTMENT_SLOTS}
       />
     </>
   );

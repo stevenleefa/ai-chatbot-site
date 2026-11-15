@@ -454,6 +454,20 @@ section h2 { font-size: 2.125rem; margin-bottom: 20px; }
 .booking-form-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px 48px; }
 .booking-fields { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .booking-calendar { min-width: 0; }
+/* Daily view under the booking calendar: the time slots for the
+   picked date. Slots are pill buttons in a wrapping grid — the time
+   on one line, the status ("Available", "Maya booked", "Fully
+   booked") underneath. A slot stays tappable while any stylist is
+   free at that time; the picked slot is rose, and a fully-booked
+   slot is disabled and muted. */
+.daily-view { margin-top: 16px; }
+.daily-view h3 { font-size: 1.125rem; margin: 0 0 4px; }
+.daily-slots { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.daily-slot { display: grid; gap: 2px; width: 100%; background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 8px 10px; color: var(--plum); font-weight: 600; font-size: 0.875rem; font-family: inherit; cursor: pointer; text-align: center; }
+.daily-slot span:last-child { font-weight: 400; font-size: 0.8125rem; }
+.daily-slot:hover:not(:disabled) { background: var(--pill-bg); border-color: var(--hover-border); }
+.daily-slot-selected { background: var(--rose); color: white; border-color: var(--rose); }
+.daily-slot-full { opacity: 0.55; cursor: not-allowed; }
 @media (max-width: 900px) {
   .booking-form-grid { grid-template-columns: 1fr; }
 }

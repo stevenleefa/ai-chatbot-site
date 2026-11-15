@@ -2,13 +2,15 @@
 
 import { useState, type ReactNode } from "react";
 import Calendar from "@/components/Calendar";
+import DailyView from "@/components/DailyView";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewPopups from "@/components/ReviewPopups";
 import ReviewAvatar from "@/components/ReviewAvatar";
 import Stars from "@/components/Stars";
 import { business } from "@/lib/business";
 import { averageRating, type PublicReview } from "@/lib/reviews";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, formatTime } from "@/lib/format";
+import type { BookedAppointment } from "@/lib/daily-view";
 import type { SiteSettings } from "@/lib/site-settings";
 
 type Service = { name: string; price: string; time: string; note: string };
@@ -26,11 +28,22 @@ export default function HomeClient({
   services,
   reviews,
   ownerAppointmentsCard,
+  // Visitor-safe booking diary, from the server page: the booked
+  // appointments (date/time/stylist only — no customer data), the
+  // bookable stylists and the fixed slot list. Optional so older
+  // callers still render; the daily view shows every slot free when
+  // no diary is passed.
+  bookedAppointments = [],
+  bookableStylists = [],
+  appointmentSlots = [],
 }: {
   settings: SiteSettings;
   services: Service[];
   reviews: PublicReview[];
   ownerAppointmentsCard: ReactNode;
+  bookedAppointments?: BookedAppointment[];
+  bookableStylists?: string[];
+  appointmentSlots?: string[];
 }) {
   const initialLead = { name: "", contact: "", service: "Haircut", message: "" };
   const [lead, setLead] = useState(initialLead);
@@ -42,6 +55,28 @@ export default function HomeClient({
   // booking uses), so the picked date is appended to the message
   // on submit. Sundays are closed and past dates cannot be picked.
   const [preferredDate, setPreferredDate] = useState("");
+  // Preferred time (optional): picked on the daily view that opens
+  // under the calendar once a date is picked. It belongs to the
+  // picked date — picking a different date clears it.
+  const [preferredTime, setPreferredTime] = useState("");
+
+  // Picking a date opens the daily view for it; picking a different
+  // date clears the time picked for the old one. Clicking the
+  // already-picked day again changes nothing, so the time stays.
+  function handleDateSelect(date: string) {
+    if (date !== preferredDate) {
+      setPreferredDate(date);
+      setPreferredTime("");
+    }
+  }
+
+  // The Date & time field in the form (read-only — it is filled in
+  // from the calendar and the daily view, never typed).
+  const dateTimeText = preferredDate
+    ? preferredTime
+      ? `${fmtDate(preferredDate)}, ${formatTime(preferredTime)}`
+      : fmtDate(preferredDate)
+    : "No date picked yet";
   const todayStr = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
     .toISOString()
@@ -56,10 +91,14 @@ export default function HomeClient({
     setLeadResult("Sending…");
     // The picked date travels in the message (see above) so the
     // salon sees it; the typed message itself is left untouched.
-    const submittedMessage = preferredDate
-      ? [lead.message, `Preferred date: ${fmtDate(preferredDate)}.`]
-          .filter(Boolean)
-          .join(" ")
+    // A picked time rides along after the date.
+    const dateLine = preferredDate
+      ? preferredTime
+        ? `Preferred date: ${fmtDate(preferredDate)}, ${formatTime(preferredTime)}.`
+        : `Preferred date: ${fmtDate(preferredDate)}.`
+      : "";
+    const submittedMessage = dateLine
+      ? [lead.message, dateLine].filter(Boolean).join(" ")
       : lead.message;
     try {
       const res = await fetch("/api/lead", {
@@ -74,6 +113,7 @@ export default function HomeClient({
       if (res.ok && data.ok) {
         setLead(initialLead);
         setPreferredDate("");
+        setPreferredTime("");
       }
     } catch {
       setLeadResult("Something went wrong. Please try again.");
@@ -136,6 +176,13 @@ export default function HomeClient({
                       {services.map((s) => <option key={s.name}>{s.name}</option>)}
                     </select>
                   </label>
+                  {/* Date & time (read-only): filled in from the
+                      calendar on the right and the daily view under
+                      it — pick a date, then tap a time. */}
+                  <label>
+                    Date &amp; time
+                    <input readOnly value={dateTimeText} aria-label="Date & time" />
+                  </label>
                   <label>
                     Anything we should know? (optional)
                     <textarea placeholder="Anything we should know? (optional)" rows={3} value={lead.message}
@@ -157,7 +204,7 @@ export default function HomeClient({
                       to the booking request (see submitLead above). */}
                   <Calendar
                     selected={preferredDate || null}
-                    onSelect={setPreferredDate}
+                    onSelect={handleDateSelect}
                     minDate={tomorrow}
                     disableSundays
                     ariaLabel="Pick a preferred date"
@@ -166,6 +213,20 @@ export default function HomeClient({
                     <p>Preferred date: {fmtDate(preferredDate)}</p>
                   ) : (
                     <p>No date picked yet — optional.</p>
+                  )}
+                  {/* Daily view: opens under the calendar once a date
+                      is picked, so the visitor can pick a time for
+                      that day. Picking a different date swaps it to
+                      that day (and clears the old time). */}
+                  {preferredDate && (
+                    <DailyView
+                      date={preferredDate}
+                      booked={bookedAppointments}
+                      slots={appointmentSlots}
+                      bookableStylists={bookableStylists}
+                      selectedTime={preferredTime || null}
+                      onSelectTime={setPreferredTime}
+                    />
                   )}
                 </div>
               </div>
