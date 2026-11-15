@@ -262,3 +262,39 @@ describe("menu panel scrolling", () => {
     expect(rule![0]).toContain("overflow-y: auto");
   });
 });
+
+describe("Settings link is always present", () => {
+  // 2026-11-15: S reported the hamburger menu for a signed-out
+  // visitor had no Settings entry. The link must always be there,
+  // signed in or signed out. A signed-out visitor who taps it lands
+  // on /settings and is asked to sign in there — the page itself
+  // stays signed-in only; only the link is always present.
+  it("signed out: shows a Settings link to /settings", () => {
+    render(<HamburgerMenu user={null} />);
+    openMenu();
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings"
+    );
+  });
+
+  it("Test Admin Mode: shows a Settings link too", () => {
+    render(<HamburgerMenu user={null} demo />);
+    openMenu();
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings"
+    );
+  });
+
+  it("signed in: still exactly one Settings link (no duplicate)", () => {
+    for (const user of [customerUser, staffUser, adminUser]) {
+      const { unmount } = render(<HamburgerMenu user={user} />);
+      openMenu();
+      expect(
+        screen.getAllByRole("link", { name: "Settings" })
+      ).toHaveLength(1);
+      unmount();
+    }
+  });
+});
