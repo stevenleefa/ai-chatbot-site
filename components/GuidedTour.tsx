@@ -27,7 +27,11 @@ import {
 // Resumable: progress (steps completed, finished only at the end)
 // is saved to localStorage ("lumen-tour"), so closing mid-tour
 // offers "Resume tour" in the menu later; closing mid-tour never
-// marks it finished. Opening the hamburger menu mid-tour also
+// marks it finished. Finishing (the last step's Finish button)
+// returns the visitor to the homepage: the last steps live on
+// /my-account, which redirects a signed-out visitor to the
+// customer sign-in page, so without this the tour would end there.
+// Opening the hamburger menu mid-tour also
 // closes it the same way (the menu dispatches TOUR_CLOSE_EVENT):
 // the tour's tooltip card otherwise holds focus and fights the
 // menu panel, so the menu glitches closed and the user cannot
@@ -255,6 +259,14 @@ export default function GuidedTour() {
     if (index === null) return;
     if (index === TOUR_STEPS.length - 1) {
       closeTour(true);
+      // Finishing returns the visitor to the homepage. The last
+      // two steps live on /my-account, which redirects a signed-out
+      // visitor to the customer sign-in page — without this the
+      // tour would end on the sign-in page instead of the home
+      // page. Only finishing navigates: Skip, Escape and the menu
+      // close call closeTour(false) and leave the visitor on the
+      // page they are on.
+      router.push("/");
       return;
     }
     const next = index + 1;

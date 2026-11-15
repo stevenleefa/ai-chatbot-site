@@ -134,3 +134,59 @@ describe("GuidedTour redirect loop", () => {
     expect(pushMock.mock.calls.length).toBe(callsAfterBack + 1);
   });
 });
+
+describe("GuidedTour finish returns home", () => {
+  it("Finish on the last step navigates back to the homepage", () => {
+    // The tour is on the sign-in page the /my-account redirect
+    // landed on (steps 5–6 target /my-account). Finishing must
+    // put the visitor back on the homepage, not leave them on
+    // the sign-in page — and the finished progress is still saved.
+    mockPathname = "/products";
+    const { rerender } = render(<GuidedTour />);
+    startTour(5);
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledWith("/my-account");
+    mockPathname = "/my-account/sign-in";
+    act(() => {
+      rerender(<GuidedTour />);
+    });
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+    expect(screen.queryByRole("dialog", { name: "Guided tour" })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(TOUR_STORAGE_KEY)!)).toEqual({
+      completed: 6,
+      finished: true,
+    });
+    expect(pushMock).toHaveBeenCalledWith("/");
+  });
+
+  it("Skip mid-tour does not navigate home", () => {
+    // Skipping closes the tour and saves progress but leaves the
+    // visitor on the page they are on.
+    render(<GuidedTour />);
+    startTour(0);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+    expect(screen.queryByRole("dialog", { name: "Guided tour" })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(TOUR_STORAGE_KEY)!)).toEqual({
+      completed: 1,
+      finished: false,
+    });
+    expect(pushMock).not.toHaveBeenCalledWith("/");
+  });
+
+  it("Escape mid-tour does not navigate home", () => {
+    // Escape behaves the same as Skip: close and save progress,
+    // no navigation.
+    render(<GuidedTour />);
+    startTour(0);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Guided tour" })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(TOUR_STORAGE_KEY)!)).toEqual({
+      completed: 1,
+      finished: false,
+    });
+    expect(pushMock).not.toHaveBeenCalledWith("/");
+  });
+});
