@@ -3,10 +3,10 @@
 // REPRODUCTION (2026-11-15, live site): a signed-out visitor takes
 // the guided tour. Steps 5 and 6 ("Your account" and "Refer a
 // friend") navigate to /my-account, but the server redirects a
-// signed-out visitor to /my-account/sign-in. The tour's step effect
+// signed-out visitor to /login. The tour's step effect
 // re-runs when the pathname changes (it depends on `pathname`),
 // sees the target "/my-account" still differs from the redirected
-// "/my-account/sign-in", and pushes "/my-account" AGAIN — each push
+// "/login", and pushes "/my-account" AGAIN — each push
 // redirects back to sign-in, the pathname flips, the effect fires
 // again, and the router is driven in an infinite push → redirect →
 // push loop that crashes the page at the end of the tour. Steps 1–4
@@ -29,7 +29,7 @@ import { TOUR_STORAGE_KEY } from "@/lib/tour";
 const pushMock = jest.fn();
 const routerMock = { push: pushMock };
 // Mutable pathname, so the test can simulate the server redirect
-// landing the tour on /my-account/sign-in instead of /my-account.
+// landing the tour on /login instead of /my-account.
 let mockPathname = "/";
 
 jest.mock("next/navigation", () => ({
@@ -77,24 +77,24 @@ describe("GuidedTour redirect loop", () => {
     expect(pushMock).toHaveBeenCalledTimes(1);
     expect(pushMock).toHaveBeenCalledWith("/my-account");
 
-    // The server redirects a signed-out visitor to the customer
-    // sign-in page, so the pathname becomes /my-account/sign-in.
+    // The server redirects a signed-out visitor to the single
+    // sign-in page (/login), so the pathname becomes /login.
     // The step effect re-runs — and must NOT push /my-account
     // again, or the router loops push → redirect → push forever.
-    mockPathname = "/my-account/sign-in";
+    mockPathname = "/login";
     act(() => {
       rerender(<GuidedTour />);
     });
     expect(pushMock).toHaveBeenCalledTimes(1);
 
     // The redirect target oscillates while the router settles
-    // (/my-account briefly, then back to /my-account/sign-in).
+    // (/my-account briefly, then back to /login).
     // Still no second push for this step.
     mockPathname = "/my-account";
     act(() => {
       rerender(<GuidedTour />);
     });
-    mockPathname = "/my-account/sign-in";
+    mockPathname = "/login";
     act(() => {
       rerender(<GuidedTour />);
     });
@@ -117,7 +117,7 @@ describe("GuidedTour redirect loop", () => {
     render(<GuidedTour />);
     startTour(5);
     expect(pushMock).toHaveBeenCalledTimes(1);
-    mockPathname = "/my-account/sign-in";
+    mockPathname = "/login";
     act(() => {
       // Re-render happens implicitly through the Back/Next clicks
       // below; the pathname mock is what the effect reads.
@@ -146,7 +146,7 @@ describe("GuidedTour finish returns home", () => {
     startTour(5);
     expect(pushMock).toHaveBeenCalledTimes(1);
     expect(pushMock).toHaveBeenCalledWith("/my-account");
-    mockPathname = "/my-account/sign-in";
+    mockPathname = "/login";
     act(() => {
       rerender(<GuidedTour />);
     });

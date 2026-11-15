@@ -179,13 +179,6 @@ export default function HamburgerMenu({
               <Link href="/login" className="menu-row" onClick={closeMenu}>
                 Sign in
               </Link>
-              <Link
-                href="/my-account/sign-in"
-                className="menu-row"
-                onClick={closeMenu}
-              >
-                Customer sign in
-              </Link>
               {/* The entry is a working link, so it is the tab stop
                   itself (focusable={false}) — hovering or tabbing to
                   it shows "For demo purposes only". The asterisks in
@@ -214,13 +207,6 @@ export default function HamburgerMenu({
               </Link>
               <Link href="/login" className="menu-row" onClick={closeMenu}>
                 Sign in
-              </Link>
-              <Link
-                href="/my-account/sign-in"
-                className="menu-row"
-                onClick={closeMenu}
-              >
-                Customer sign in
               </Link>
               <div className="menu-divider" aria-hidden="true" />
             </>

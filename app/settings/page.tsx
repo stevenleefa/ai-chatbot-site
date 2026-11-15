@@ -18,8 +18,8 @@ import { BUSINESS_NAME } from "@/lib/leads";
 // preferred stylist, email notifications and favorite products.
 // This page checks the session itself — the middleware does not
 // guard /settings, because customers must be able to reach it and
-// signed-out visitors are sent to the customer sign-in, not the
-// owner sign-in (the same pattern as /my-account). The scalar
+// signed-out visitors are sent to the single sign-in (/login), not
+// a separate customer one (the same pattern as /my-account). The scalar
 // settings are saved per user in localStorage and, when the studio
 // has run the migrations, in the customer_preferences table via
 // /api/preferences (see PERSONALIZATION.md). Favorites live in
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
   }
 
   const session = await getSession();
-  if (!session) redirect("/my-account/sign-in?next=/settings");
+  if (!session) redirect("/login?next=/settings");
 
   const catalogue = await getCatalogue();
   const products = catalogue.filter((p) => p.active);

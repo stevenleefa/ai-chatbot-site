@@ -241,9 +241,10 @@ describe("favorite hearts", () => {
     );
     const prompt = await screen.findByText(/Sign in to save favorites/);
     expect(prompt).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Customer sign in" }),
-    ).toHaveAttribute("href", "/my-account/sign-in");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/login"
+    );
     // No write was attempted.
     expect(
       (global.fetch as jest.Mock).mock.calls.filter(

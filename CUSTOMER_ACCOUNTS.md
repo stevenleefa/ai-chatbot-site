@@ -44,10 +44,10 @@ role fix, not just a sign-up page:
 
 | Route | What it is |
 |---|---|
-| `/my-account` | The customer area: profile, my bookings, my orders. Any signed-in account with an active profile can open it (a staff member who lands there sees only their own data, matched by their email). Signed-out visitors are redirected to `/my-account/sign-in?next=/my-account` by the page itself. |
+| `/my-account` | The customer area: profile, my bookings, my orders. Any signed-in account with an active profile can open it (a staff member who lands there sees only their own data, matched by their email). Signed-out visitors are redirected to `/login?next=/my-account` by the page itself. |
 | `/my-account/sign-up` | Public customer sign-up (email + password, optional name). Sends a Supabase confirmation email; the link goes to `/auth/callback?next=/my-account`. If email confirmation is switched off in Supabase Auth settings, sign-up signs the customer straight in instead. |
-| `/my-account/sign-in` | Customer sign-in. Lands on `?next=` or `/my-account` — never `/dashboard`. |
-| `/login` | Owner sign-in (unchanged). It now links to the customer pages: "Are you a customer? Create an account or sign in". |
+| `/my-account/sign-in` | Redirects to `/login` (the single sign-in), preserving `?next=`. |
+| `/login` | The single sign-in for staff, admin and customers. After sign-in, staff/admin go to `/dashboard` (or their `?next=` owner page) and customers to `/my-account` (or their `?next=` customer page). Links to the customer sign-up page for new customers. |
 
 `/customers` (the owner customer list) and `/profile` (the staff
 profile page) are NOT reused for customers — a customer hitting
@@ -110,8 +110,7 @@ either is redirected to `/my-account`.
   email with the role label "Customer", a "My account" row and "Log
   out". No "Profile", no "Switch user", and no owner section
   (Dashboard, Leads, Customers, Appointments, Employees, Orders,
-  Admin). Signed out, the menu shows "Sign in" (owner) and
-  "Customer sign in". The log-out dialog for a customer says they
+  Admin). Signed out, the menu shows a single "Sign in". The log-out dialog for a customer says they
   will need to sign in again to see their bookings and orders
   (not "the owner area").
 
@@ -127,8 +126,8 @@ either is redirected to `/my-account`.
 | `middleware.ts` | Reads the profile role; customers on owner routes go to /my-account (401 for API routes). |
 | `app/my-account/page.tsx` | The customer area. |
 | `app/my-account/sign-up/page.tsx` | Public customer sign-up. |
-| `app/my-account/sign-in/page.tsx` | Customer sign-in (lands on /my-account, never /dashboard). |
-| `app/login/page.tsx` | Owner sign-in, now with a "Are you a customer?" link. |
+| `app/my-account/sign-in/page.tsx` | Redirects to `/login` (the single sign-in), preserving `?next=`. |
+| `app/login/page.tsx` | The single sign-in for staff, admin and customers, with role-based routing after sign-in. |
 | `components/HamburgerMenu.tsx` | Customer menu rows; role label "Customer". |
 | `app/admin/page.tsx` + `app/admin/actions.ts` | "Make staff" for customer rows; `setUserRole` accepts 'customer'. |
 | `__tests__/guard.test.ts` | Gating decision matrix. |
@@ -191,9 +190,10 @@ deploy (a separate go-ahead).
   before, and can open the owner pages.
 - **Menu:** signed in as the customer, open the hamburger menu —
   "My account" and "Log out" only, no owner links. Signed out, the
-  menu shows "Customer sign in".
-- **Staff sign-in unchanged:** `/login` still signs staff in, and
-  the "Are you a customer?" link goes to the customer pages.
+  menu shows a single "Sign in" (to `/login`).
+- **One sign-in now:** `/login` signs staff and customers in and
+  routes each to their own area. New customers use the "Create a
+  customer account" link; staff still join by admin invite only.
 
 ## Referrals
 

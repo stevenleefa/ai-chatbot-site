@@ -238,14 +238,16 @@ describe("HamburgerMenu in demo mode", () => {
       name: "*Test Admin Mode*",
     });
     expect(entry).toHaveAttribute("href", "/api/demo?on=1");
-    // The sign-in rows are still there above it.
+    // The sign-in row is still there above it — exactly one, the
+    // single sign-in (/login); there is no "Customer sign in" row.
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login"
     );
+    expect(screen.getAllByRole("link", { name: "Sign in" })).toHaveLength(1);
     expect(
-      screen.getByRole("link", { name: "Customer sign in" })
-    ).toHaveAttribute("href", "/my-account/sign-in");
+      screen.queryByRole("link", { name: "Customer sign in" })
+    ).not.toBeInTheDocument();
     // No owner links yet — demo mode is not on.
     expect(
       screen.queryByRole("link", { name: "Dashboard" })

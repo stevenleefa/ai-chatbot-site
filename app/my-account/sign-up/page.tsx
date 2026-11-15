@@ -104,7 +104,7 @@ function CustomerSignUpForm() {
             orders will be waiting on My account.
           </p>
           <p>
-            <Link href="/my-account/sign-in">Go to customer sign in</Link>
+            <Link href="/login">Go to sign in</Link>
           </p>
         </>
       ) : (
@@ -169,7 +169,7 @@ function CustomerSignUpForm() {
       )}
       <p>
         Already have an account?{" "}
-        <Link href="/my-account/sign-in">Sign in</Link>
+        <Link href="/login">Sign in</Link>
       </p>
       <p>
         <small>

@@ -109,10 +109,10 @@ and can never reach the owner pages.)
 | `lib/auth/guard.ts` | Pure owner-route gating (`decideOwnerAccess`) used by the middleware — unit-tested, no Supabase. |
 | `lib/customer-account.ts` | Customer-area data: a customer's own bookings and orders, by session email. |
 | `middleware.ts` | Session refresh + route guard (see above). |
-| `app/login/page.tsx` | Sign-in form. No staff signup link — staff join by invite. Links to the customer pages instead. |
+| `app/login/page.tsx` | The single sign-in for staff, admin and customers. After sign-in it reads the user's profiles row and routes by role: staff/admin to /dashboard (or their ?next= owner page), customers to /my-account (or their ?next= customer page). Links to the customer sign-up page for new customers. No staff signup link — staff join by invite. |
 | `app/my-account/page.tsx` | Customer area: profile, my bookings, my orders. |
 | `app/my-account/sign-up/page.tsx` | Public customer sign-up (email confirmation). |
-| `app/my-account/sign-in/page.tsx` | Customer sign-in (lands on /my-account, never /dashboard). |
+| `app/my-account/sign-in/page.tsx` | Redirects to /login (the single sign-in), preserving ?next=. |
 | `supabase/customer-accounts.sql` | One-time migration: role check gains 'customer', trigger gives staff only to invited users. |
 | `CUSTOMER_ACCOUNTS.md` | Customer accounts: the role fix, the routes, the gating, the setup and the tests. |
 | `app/auth/callback/route.ts` | Exchanges `?code=` from a Supabase email link for a session, then redirects to `?next=` or `/dashboard`. Kept as a fallback route: password resets now land straight on `/auth/update-password`, and invites never used it (hash tokens). |
@@ -213,7 +213,7 @@ user's machine / Supabase dashboard, in order:
   your email -> click the link in the email -> set a new password on
   `/auth/update-password` -> sign in with it.
 - **Sign out:** click "Sign out" in the nav — the nav goes back to
-  "Owner sign in" and `/leads` redirects to `/login` again.
+  "Sign in" and `/leads` redirects to `/login` again.
 - **Booking form still public:** submit a booking without signing in —
   it still saves (service-role key, unchanged).
 

@@ -368,7 +368,7 @@ the existing dark-mode pre-paint script.
 
 - Settings page: hamburger menu → Settings (signed in, as a
   customer or staff). Signed out, /settings sends you to the
-  customer sign-in. /my-account no longer shows Display settings.
+  sign-in page (/login). /my-account no longer shows Display settings.
 - Pick each theme in Settings: header, buttons and accent text
   change at once, in both light and dark mode; reload and the choice
   is still there. The picker shows eight themes — Plum, Rose, Teal,

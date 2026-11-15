@@ -37,11 +37,11 @@ import type { Lead } from "@/lib/leads";
 // and orders here; a staff member who lands here sees only their own
 // too (matched by their email, the same as a customer). The owner
 // pages are separate and stay staff-only (see CUSTOMER_ACCOUNTS.md).
-// Access: sign in at /my-account/sign-in (or create an account at
+// Access: sign in at /login (or create an account at
 // /my-account/sign-up). This page checks the session itself — the
 // middleware does not guard /my-account, because customers must be
-// able to reach it and signed-out visitors are sent to the customer
-// sign-in, not the owner sign-in.
+// able to reach it and signed-out visitors are sent to the single
+// sign-in, not a separate customer one.
 function orderStatusBadge(status: CustomerOrder["status"]) {
   if (status === "paid") return <span className="badge badge-paid">Paid</span>;
   if (status === "cancelled")
@@ -86,7 +86,7 @@ export default async function MyAccountPage() {
   }
 
   const session = await getSession();
-  if (!session) redirect("/my-account/sign-in?next=/my-account");
+  if (!session) redirect("/login?next=/my-account");
 
   const email = session.profile.email;
   const name = getDisplayName(session.user);

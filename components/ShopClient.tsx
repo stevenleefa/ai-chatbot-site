@@ -489,7 +489,7 @@ export default function ShopClient({
       {favoriteSignIn && (
         <p role="status">
           Sign in to save favorites —{" "}
-          <Link href="/my-account/sign-in">Customer sign in</Link>.
+          <Link href="/login">Sign in</Link>.
         </p>
       )}
       {favoriteMessage && <p role="status">{favoriteMessage}</p>}

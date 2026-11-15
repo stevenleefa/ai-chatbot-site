@@ -118,12 +118,18 @@ describe("HamburgerMenu", () => {
     );
   });
 
-  it("signed out: shows a Customer sign in link too", () => {
+  it("signed out: shows exactly one Sign in link and no Customer sign in link", () => {
+    // There is one sign-in now (/login) for staff and customers
+    // alike — the menu must not offer a second "Customer sign in".
     render(<HamburgerMenu user={null} />);
     openMenu();
+    expect(screen.getAllByRole("link", { name: "Sign in" })).toHaveLength(1);
     expect(
-      screen.getByRole("link", { name: "Customer sign in" })
-    ).toHaveAttribute("href", "/my-account/sign-in");
+      screen.getByRole("link", { name: "Sign in" })
+    ).toHaveAttribute("href", "/login");
+    expect(
+      screen.queryByRole("link", { name: "Customer sign in" })
+    ).not.toBeInTheDocument();
   });
 
   it("signed in as customer: shows My account and Log out, but no owner links, no Profile, no Switch user", () => {

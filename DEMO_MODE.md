@@ -98,7 +98,7 @@ the visitor does can change anything. Exit from the hamburger menu
     it.
 - **The menu** (`components/HamburgerMenu.tsx`, `demo` prop from
   `components/SiteNav.tsx`, which reads `getDemoOrSession()`): signed
-  out, "*Test Admin Mode*" sits under "Sign in" / "Customer sign in"
+  out, "*Test Admin Mode*" sits under "Sign in"
   — the asterisks are the marker that it is a demo, and there is no
   sub-line (the "For demo purposes only" popover carries the
   explanation). While demo mode is on, the menu shows a "Test Admin

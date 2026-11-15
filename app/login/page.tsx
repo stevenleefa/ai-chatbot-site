@@ -4,14 +4,20 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBrowserClient } from "@/lib/auth/browser";
-import { safeRedirect } from "@/lib/security";
+import { postSignInDestination } from "@/lib/auth/post-login";
+import type { UserRole } from "@/lib/auth/session";
 
-// Owner sign-in. After a successful sign-in the user goes to ?next=
-// (when they were redirected here from a protected page) or /dashboard.
+// The single sign-in for everyone: staff, admin and customers sign
+// in here with email + password. After a successful sign-in the page
+// reads the user's profiles row (RLS: a user reads only their own
+// row) and routes by role — staff/admin to /dashboard (or their
+// ?next= owner page), customers to /my-account (or their ?next=
+// customer page). There is no separate customer sign-in any more:
+// /my-account/sign-in redirects here, preserving ?next=.
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = safeRedirect(searchParams.get("next"));
+  const rawNext = searchParams.get("next");
   const urlError = searchParams.get("error");
   // Env vars are inlined at build time, so this is known at render.
   const authConfigured = getBrowserClient() !== null;
@@ -41,22 +47,55 @@ function LoginForm() {
       email,
       password,
     });
-    setBusy(false);
     if (signInError) {
+      setBusy(false);
       setError(
         signInError.message === "Invalid login credentials"
           ? "Wrong email or password. Try again, or use “Forgot your password?” below."
-          : signInError.message
+          : signInError.message === "Email not confirmed"
+            ? "Please confirm your email first — check your inbox for the confirmation link."
+            : signInError.message
       );
       return;
     }
-    router.push(next);
+    // The role comes from the profiles row, not from anything the
+    // client claims: getUser() confirms the session server-side,
+    // and the row is read through RLS (a user reads only their own
+    // row). The redirect waits until the role is known — it never
+    // guesses. If the row is missing (the trigger did not fire) the
+    // account cannot be routed, so show an error instead of
+    // sending the user somewhere wrong; the owner pages would treat
+    // them as unauthorized anyway.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: profile } = user
+      ? await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+      : { data: null };
+    setBusy(false);
+    const role =
+      profile?.role === "admin" ||
+      profile?.role === "staff" ||
+      profile?.role === "customer"
+        ? (profile.role as UserRole)
+        : null;
+    if (!user || !role) {
+      setError(
+        "Your account is not set up yet — ask an admin to check your profile, then try again."
+      );
+      return;
+    }
+    router.push(postSignInDestination(role, rawNext));
     router.refresh();
   }
 
   return (
     <main id="main-content" style={{ maxWidth: 480, margin: "40px auto", padding: "0 20px" }}>
-      <h1>Owner sign in — Lumen Hair Studio</h1>
+      <h1>Sign in — Lumen Hair Studio</h1>
       <p>
         <Link href="/">← Back to the site</Link>
       </p>
@@ -104,10 +143,9 @@ function LoginForm() {
         <Link href="/auth/reset-password">Forgot your password?</Link>
       </p>
       <p>
-        Are you a customer?{" "}
-        <Link href="/my-account/sign-up">Create an account</Link> or{" "}
-        <Link href="/my-account/sign-in">sign in</Link> to see your
-        bookings and orders.
+        New here?{" "}
+        <Link href="/my-account/sign-up">Create a customer account</Link>{" "}
+        to see your bookings and orders.
       </p>
       <p>
         <small>
