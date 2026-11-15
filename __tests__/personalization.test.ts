@@ -3,8 +3,10 @@
 import {
   DEFAULT_PREFERENCES,
   FONT_SIZES,
+  PERSONALIZATION_PREPAINT_SCRIPT,
   STYLIST_NAMES,
   THEMES,
+  THEME_IDS,
   applyPreferences,
   contrastRatio,
   isPreferredStylist,
@@ -41,11 +43,45 @@ describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
     expect(contrastRatio("#ffffff", THEMES.teal.accent)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio("#ffffff", THEMES.forest.accent)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio("#ffffff", THEMES.navy.accent)).toBeGreaterThanOrEqual(4.5);
+    // The three new accents, white on accent.
+    expect(contrastRatio("#ffffff", THEMES.purple.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#ffffff", THEMES["orange-blue"].accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#ffffff", THEMES.yellow.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("contrastRatio is symmetric and 21:1 for black on white", () => {
     expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
     expect(contrastRatio("#ffffff", "#000000")).toBeCloseTo(21, 0);
+  });
+
+  it("there are eight themes, each with a definition", () => {
+    expect(THEME_IDS).toHaveLength(8);
+    expect(THEME_IDS).toEqual([
+      "plum",
+      "rose",
+      "teal",
+      "forest",
+      "navy",
+      "purple",
+      "orange-blue",
+      "yellow",
+    ]);
+    for (const id of THEME_IDS) {
+      expect(THEMES[id]).toBeDefined();
+      expect(THEMES[id].id).toBe(id);
+    }
+  });
+
+  it("Yellow's light header uses dark text, not cream (cream on bright yellow is 1.81:1)", () => {
+    // Yellow is the one theme whose light-mode header text is not
+    // cream: the bright yellow header needs dark text to pass AA.
+    expect(THEMES.yellow.navFgLight).toBe("#1a0f16");
+    expect(THEMES.yellow.contrast.headerLight).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#fdf8f1", THEMES.yellow.navBgLight)).toBeLessThan(4.5);
+    for (const t of Object.values(THEMES)) {
+      if (t.id === "yellow") continue;
+      expect(t.navFgLight).toBe("#fdf8f1");
+    }
   });
 });
 
@@ -170,6 +206,92 @@ describe("voice options", () => {
     expect(partial.preferences.voiceRate).toBe(1.25);
     expect(partial.preferences.voicePitch).toBe(1.25);
   });
+
+  it("a NULL voice_uri (legacy never-set row) resolves to Samantha", () => {
+    // Rows saved before the Samantha default hold voice_uri NULL
+    // (the default voice used to be null). They must get Samantha
+    // — the customer never picked anything, so the default applies.
+    const parsed = parsePreferences({
+      theme: "teal",
+      voiceURI: null,
+      voiceRate: 1,
+      voicePitch: 1,
+    });
+    expect(parsed.voiceURI).toBe("Samantha");
+    // The API route upserts the parsed result, so a POST of the
+    // same legacy values heals the row instead of re-storing null.
+    const validated = validatePreferencesStrict({
+      voiceURI: null,
+      voiceRate: 1,
+      voicePitch: 1,
+    });
+    expect(validated.ok).toBe(true);
+    expect(validated.preferences.voiceURI).toBe("Samantha");
+  });
+
+  it('an explicit "Default voice" ("") still gives the browser default', () => {
+    // "" is the sentinel the picker stores for "Default voice".
+    // It must survive the parse untouched — it is a real choice,
+    // not a missing value — and the API must accept it.
+    const parsed = parsePreferences({ voiceURI: "", voiceRate: 1, voicePitch: 1.25 });
+    expect(parsed.voiceURI).toBe("");
+    const validated = validatePreferencesStrict({ voiceURI: "" });
+    expect(validated.ok).toBe(true);
+    expect(validated.preferences.voiceURI).toBe("");
+  });
+
+  it("a saved specific voice is preserved", () => {
+    const parsed = parsePreferences({
+      voiceURI: "com.apple.speech.synthesis.voice.daniel",
+      voiceRate: 1,
+      voicePitch: 1,
+    });
+    expect(parsed.voiceURI).toBe("com.apple.speech.synthesis.voice.daniel");
+    // And its pitch: a Normal pitch next to a real voice is an
+    // explicit choice, not the old default — it stays 1.
+    expect(parsed.voicePitch).toBe(1);
+  });
+
+  it("a fresh preference (no row) gives Samantha, Normal speed, High pitch", () => {
+    // GET /api/preferences with no row returns DEFAULT_PREFERENCES,
+    // and parsePreferences({}) is the same shape.
+    expect(parsePreferences({})).toEqual(DEFAULT_PREFERENCES);
+    expect(DEFAULT_PREFERENCES.voiceURI).toBe("Samantha");
+    expect(DEFAULT_PREFERENCES.voiceRate).toBe(1);
+    expect(DEFAULT_PREFERENCES.voicePitch).toBe(1.25);
+  });
+
+  it("a stored pitch of 1 resolves to High only when the voice was never set", () => {
+    // The rule, pinned: the old default pitch was 1, so a 1 saved
+    // next to a never-set voice (null) is the old default and
+    // becomes High 1.25. A 1 saved next to a real voice — or next
+    // to an explicit "Default voice" ("") — stays Normal.
+    expect(parsePreferences({ voiceURI: null, voicePitch: 1 }).voicePitch).toBe(1.25);
+    expect(
+      parsePreferences({ voiceURI: "Daniel", voicePitch: 1 }).voicePitch,
+    ).toBe(1);
+    expect(parsePreferences({ voiceURI: "", voicePitch: 1 }).voicePitch).toBe(1);
+    // Any other stored pitch is kept as-is, whatever the voice.
+    expect(parsePreferences({ voiceURI: null, voicePitch: 0.75 }).voicePitch).toBe(0.75);
+    expect(parsePreferences({ voiceURI: null, voicePitch: 1.25 }).voicePitch).toBe(1.25);
+  });
+
+  it("a legacy localStorage row (voiceURI null) round-trips to Samantha", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ voiceURI: null, voicePitch: 1 }),
+    );
+    const stored = readStoredPreferences();
+    expect(stored.voiceURI).toBe("Samantha");
+    expect(stored.voicePitch).toBe(1.25);
+    // And writing it back stores Samantha, never null again.
+    writeStoredPreferences(stored);
+    const written = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) as string,
+    ) as Record<string, unknown>;
+    expect(written.voiceURI).toBe("Samantha");
+    expect(written.voicePitch).toBe(1.25);
+  });
 });
 
 describe("font-size scaling values", () => {
@@ -256,6 +378,12 @@ describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome 
     expect(themeColorFor("forest", true)).toBe("#166534");
     expect(themeColorFor("navy", false)).toBe("#101f33");
     expect(themeColorFor("navy", true)).toBe("#1e3a5f");
+    expect(themeColorFor("purple", false)).toBe("#3b0764");
+    expect(themeColorFor("purple", true)).toBe("#7c3aed");
+    expect(themeColorFor("orange-blue", false)).toBe("#0f2a44");
+    expect(themeColorFor("orange-blue", true)).toBe("#c2410c");
+    expect(themeColorFor("yellow", false)).toBe("#eab308");
+    expect(themeColorFor("yellow", true)).toBe("#a16207");
   });
 
   it("themeColorFor agrees with the theme's nav-bg fields", () => {
@@ -318,6 +446,49 @@ describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome 
     expect(second).not.toBe(first);
     expect(first.isConnected).toBe(false);
     expect(document.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
+  });
+
+  it("the pre-paint script knows all eight themes (allowlist + chrome map)", () => {
+    // The script is a string constant with the theme list inlined
+    // twice: the allowlist it validates the stored theme against,
+    // and the theme-color map (light + dark nav-bg per theme). Both
+    // must stay in step with THEMES, or a new theme would silently
+    // fall back to plum before first paint.
+    for (const id of THEME_IDS) {
+      expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain(`"${id}"`);
+    }
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#3b0764');
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#7c3aed');
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#0f2a44');
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#c2410c');
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#eab308');
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#a16207');
+  });
+
+  it("the pre-paint script applies a saved new theme before first paint", () => {
+    // Run the actual script string in jsdom with a saved Yellow
+    // theme and check the attributes + chrome colour it sets.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ theme: "yellow" }),
+    );
+    document.documentElement.setAttribute("data-theme", "light");
+    // eslint-disable-next-line no-eval
+    eval(PERSONALIZATION_PREPAINT_SCRIPT);
+    expect(
+      document.documentElement.getAttribute("data-personalization-theme"),
+    ).toBe("yellow");
+    expect(metaTag().getAttribute("content")).toBe("#eab308");
+    // And an unknown stored theme still falls back to plum.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ theme: "magenta" }),
+    );
+    // eslint-disable-next-line no-eval
+    eval(PERSONALIZATION_PREPAINT_SCRIPT);
+    expect(
+      document.documentElement.getAttribute("data-personalization-theme"),
+    ).toBe("plum");
   });
 });
 

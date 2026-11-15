@@ -12,7 +12,7 @@
 // is still the default here: a customer who never picks anything sees
 // exactly the site they saw before this change.
 
-export type ThemeId = "plum" | "rose" | "teal" | "forest" | "navy";
+export type ThemeId = "plum" | "rose" | "teal" | "forest" | "navy" | "purple" | "orange-blue" | "yellow";
 export type FontPairingId = "classic" | "clean" | "readable";
 export type FontSizeId = "small" | "medium" | "large";
 
@@ -24,8 +24,13 @@ export interface PersonalizationPreferences {
   reduceMotion: boolean;
   largerText: boolean;
   /** Voice the assistant speaks with (speechSynthesis voiceURI, or a
-   * voice name when the voice has no voiceURI). Null = the browser
-   * default voice (the first English voice, see lib/speech.ts). */
+   * voice name when the voice has no voiceURI). "" (empty string) =
+   * the browser default voice — that is what "Default voice" in the
+   * picker stores. null is the legacy never-set value (rows saved
+   * before the Samantha default, and old localStorage):
+   * parsePreferences resolves it to the default voice, Samantha,
+   * so a parsed preference never holds null. The type still allows
+   * null because unparsed stored input can hold it. */
   voiceURI: string | null;
   /** Spoken-reply speed (0.75 slow, 1 normal, 1.25 fast). */
   voiceRate: number;
@@ -53,8 +58,11 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
   // name so findVoiceByUri (lib/speech.ts) resolves it on a Mac.
   // Where no voice by that name exists it falls back gracefully
   // to the first English voice / browser default, exactly as a
-  // saved voice from another device does. Null (browser default)
-  // is still what "Default voice" in the picker stores.
+  // saved voice from another device does. "" (empty string) is
+  // what "Default voice" in the picker stores — the explicit
+  // browser default. null is only ever a legacy value (rows saved
+  // before this default); parsePreferences resolves it to
+  // Samantha, so it never reaches the picker or the chat again.
   voiceURI: "Samantha",
   voiceRate: 1,
   voicePitch: 1.25,
@@ -64,7 +72,7 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
 
 export const STORAGE_KEY = "lumen-preferences";
 
-export const THEME_IDS: ThemeId[] = ["plum", "rose", "teal", "forest", "navy"];
+export const THEME_IDS: ThemeId[] = ["plum", "rose", "teal", "forest", "navy", "purple", "orange-blue", "yellow"];
 export const FONT_PAIRING_IDS: FontPairingId[] = ["classic", "clean", "readable"];
 export const FONT_SIZE_IDS: FontSizeId[] = ["small", "medium", "large"];
 
@@ -106,8 +114,14 @@ export interface ThemeDefinition {
   textLight: string;
   /** Accent text on the dark page background (#221820). */
   textDark: string;
-  /** Header background in light mode; header text is cream #fdf8f1. */
+  /** Header background in light mode; header text is navFgLight
+   * (cream #fdf8f1 for every theme except Yellow, whose bright
+   * header needs dark text). */
   navBgLight: string;
+  /** Header text in light mode. Cream #fdf8f1 for every theme
+   * except Yellow (#1a0f16 — cream on its bright yellow header
+   * is 1.81:1, far below AA). */
+  navFgLight: string;
   /** Header background in dark mode; header text is white. */
   navBgDark: string;
   /** Chart series colour on the dark panel (light variant). */
@@ -136,6 +150,9 @@ function theme(
   navBgLight: string,
   navBgDark: string,
   chartDark: string,
+  // Light-mode header text. Cream for every theme except Yellow,
+  // whose bright yellow header needs dark text (see navFgLight).
+  navFgLight: string = "#fdf8f1",
 ): ThemeDefinition {
   return {
     id,
@@ -147,13 +164,14 @@ function theme(
     textLight,
     textDark,
     navBgLight,
+    navFgLight,
     navBgDark,
     chartDark,
     contrast: {
       whiteOnAccent: contrastRatio("#ffffff", accent),
       whiteOnDeep: contrastRatio("#ffffff", deep),
       whiteOnHover: contrastRatio("#ffffff", hover),
-      headerLight: contrastRatio("#fdf8f1", navBgLight),
+      headerLight: contrastRatio(navFgLight, navBgLight),
       headerDark: contrastRatio("#ffffff", navBgDark),
       textOnPageLight: contrastRatio(textLight, "#fdf8f1"),
       textOnPageDark: contrastRatio(textDark, "#221820"),
@@ -207,6 +225,50 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     "#1e3a5f", "#172c49", "#12263f",
     "#172c49", "#93c5fd",
     "#101f33", "#1e3a5f", "#93c5fd",
+  ),
+  // Purple: a true violet, clearly distinct from Plum and Rose
+  // (the two the customer said look alike). Accent #7c3aed is the
+  // tag-services colour already used on the owner pages.
+  purple: theme(
+    "purple",
+    "Purple",
+    "A true violet — clearly distinct from plum and rose.",
+    "#7c3aed", "#5b21b6", "#4c1d95",
+    "#5b21b6", "#c4b5fd",
+    "#3b0764", "#7c3aed", "#c4b5fd",
+  ),
+  // Orange/Blue: navy header + burnt-orange accent, like the
+  // plumbing demo (navy #0f2a44, orange #ff6b1a). Bright orange
+  // fails white-on-4.5:1, so the accent is the darker burnt
+  // orange #c2410c; the dark-mode header is the orange, the
+  // light-mode header the navy.
+  "orange-blue": theme(
+    "orange-blue",
+    "Orange/Blue",
+    "Navy blue header with a burnt-orange accent.",
+    "#c2410c", "#9a3412", "#7c2d12",
+    "#9a3412", "#fdba74",
+    "#0f2a44", "#c2410c", "#fdba74",
+  ),
+  // Yellow: a warm yellow, clearly distinct from the other seven.
+  // White on bright yellow fails, so the accent is the dark gold
+  // #a16207 — but the light-mode header IS bright yellow
+  // (#eab308) with dark text (#1a0f16, 9.74:1), so the change is
+  // visible at once. That is the one theme whose light header
+  // text is not cream: navFgLight is passed as the last argument
+  // and the headerLight ratio is computed against it. The CSS
+  // block (app/globals.css) overrides --nav-fg the same way, and
+  // sets --plum-deep to a dark gold — --plum-deep carries white
+  // text (chat head, table headers, back-to-top), which fails on
+  // bright yellow.
+  yellow: theme(
+    "yellow",
+    "Yellow",
+    "A warm sunny yellow — bright header, dark text.",
+    "#a16207", "#854d0e", "#713f12",
+    "#854d0e", "#fde047",
+    "#eab308", "#a16207", "#fde047",
+    "#1a0f16",
   ),
 };
 
@@ -330,7 +392,10 @@ export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
 }
 
-/** A voice identifier: null (browser default) or a voiceURI / name. */
+/** A voice identifier: null (legacy never-set — accepted at the
+ * boundary and resolved to the default voice by parsePreferences),
+ * "" (the explicit browser default, what "Default voice" in the
+ * picker stores), or a voiceURI / name string. */
 export function isVoiceURI(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
@@ -365,6 +430,31 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
     typeof input === "object" && input !== null
       ? (input as Record<string, unknown>)
       : {};
+  // The voice block. null is the legacy never-set value: rows
+  // saved before the Samantha default (and old localStorage) hold
+  // voice_uri NULL, because the default voice used to be null.
+  // It resolves to the default voice, Samantha — "" is the
+  // explicit browser default and stays "". A stored pitch of 1
+  // paired with a never-set voice is the old default too (the
+  // default pitch was 1 before it became High 1.25), so it
+  // resolves to 1.25 as well; a pitch of 1 saved next to a real
+  // voice stays — the customer engaged with the voice settings,
+  // so Normal may be an explicit choice. The API route upserts
+  // the parsed result, so a legacy row is healed to Samantha /
+  // High the first time it is re-saved — no migration needed
+  // (the DB column defaults are never applied: rows are created
+  // only by the API upsert, which specifies every column).
+  const voiceNeverSet = obj.voiceURI === null;
+  const voiceURI = voiceNeverSet
+    ? DEFAULT_PREFERENCES.voiceURI
+    : isVoiceURI(obj.voiceURI)
+      ? obj.voiceURI
+      : DEFAULT_PREFERENCES.voiceURI;
+  const voicePitch = isVoicePitch(obj.voicePitch)
+    ? voiceNeverSet && obj.voicePitch === 1
+      ? DEFAULT_PREFERENCES.voicePitch
+      : obj.voicePitch
+    : DEFAULT_PREFERENCES.voicePitch;
   return {
     theme: isThemeId(obj.theme) ? obj.theme : DEFAULT_PREFERENCES.theme,
     fontPairing: isFontPairingId(obj.fontPairing)
@@ -380,15 +470,11 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
     largerText: isBoolean(obj.largerText)
       ? obj.largerText
       : DEFAULT_PREFERENCES.largerText,
-    voiceURI: isVoiceURI(obj.voiceURI)
-      ? obj.voiceURI
-      : DEFAULT_PREFERENCES.voiceURI,
+    voiceURI,
     voiceRate: isVoiceRate(obj.voiceRate)
       ? obj.voiceRate
       : DEFAULT_PREFERENCES.voiceRate,
-    voicePitch: isVoicePitch(obj.voicePitch)
-      ? obj.voicePitch
-      : DEFAULT_PREFERENCES.voicePitch,
+    voicePitch,
     preferredStylist: isPreferredStylist(obj.preferredStylist)
       ? obj.preferredStylist
       : DEFAULT_PREFERENCES.preferredStylist,
@@ -424,7 +510,9 @@ export function validatePreferencesStrict(input: unknown): {
     }
   }
   if (obj.voiceURI !== undefined && !isVoiceURI(obj.voiceURI)) {
-    errors.push(`voiceURI must be a voice id string or null`);
+    errors.push(
+      `voiceURI must be a voice id string (empty string = browser default) or null (legacy, resolves to the default voice)`,
+    );
   }
   if (obj.voiceRate !== undefined && !isVoiceRate(obj.voiceRate)) {
     errors.push(
@@ -563,4 +651,4 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
 // value against the allowlists inline (never trust stored input) and
 // falls back to the defaults on any failure. The coordinator renders
 // it via <PersonalizationScript /> — see PERSONALIZATION.md.
-export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;
+export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy","purple","orange-blue","yellow"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"],purple:[\"#3b0764\",\"#7c3aed\"],\"orange-blue\":[\"#0f2a44\",\"#c2410c\"],yellow:[\"#eab308\",\"#a16207\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;
