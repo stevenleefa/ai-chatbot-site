@@ -225,6 +225,19 @@ export default function HamburgerMenu({
               <div className="menu-divider" aria-hidden="true" />
             </>
           )}
+          {/* Settings is always in the menu, signed in or signed
+              out: signed-in customers and staff already get it in
+              their account blocks above, and this row covers the
+              signed-out visitor (and Test Admin Mode, which has no
+              session). A signed-out visitor who taps it lands on
+              /settings and is asked to sign in there — the page
+              itself stays signed-in only (see app/settings/page.tsx);
+              only the link is always present. */}
+          {!user && (
+            <Link href="/settings" className="menu-row" onClick={closeMenu}>
+              Settings
+            </Link>
+          )}
           {user && isCustomer && (
             <>
               <Link href="/my-account" className="menu-row" onClick={closeMenu}>

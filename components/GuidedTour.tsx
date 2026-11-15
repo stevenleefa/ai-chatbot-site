@@ -79,6 +79,21 @@ export default function GuidedTour() {
   const highlightedRef = useRef<Element | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  // The step index a router.push was already issued for. A step's
+  // page can redirect away from the step's href — /my-account
+  // redirects a signed-out visitor to the customer sign-in page —
+  // and the step effect below re-runs when that redirect changes
+  // the pathname (it depends on `pathname`). Without this guard it
+  // would push the step's href again, the server would redirect
+  // again, the pathname would flip again, and the router would be
+  // driven in an infinite push → redirect → push loop that crashes
+  // the page at the end of the tour (steps 5–6 are the only ones
+  // whose page redirects; steps 1–4 never do). So a step's href is
+  // pushed at most once per entry: when the navigation lands
+  // somewhere else, the tour accepts the page it landed on and
+  // scrolls/highlights what is there. Leaving the step and coming
+  // back (Back then Next) is a new entry, so it pushes again.
+  const pushedStepRef = useRef<number | null>(null);
 
   // While the tour is showing, mark <body> so the review pop-ups
   // (components/ReviewPopups.tsx) hide until the tour closes.
@@ -102,6 +117,10 @@ export default function GuidedTour() {
           : 0;
       returnFocusRef.current = document.activeElement as HTMLElement | null;
       completedRef.current = step;
+      // A new tour session navigates fresh: a push recorded for a
+      // step in a previous session must not suppress the push for
+      // that step now (the visitor may have navigated away since).
+      pushedStepRef.current = null;
       setCompleted(step);
       setIndex(step);
     }
@@ -116,6 +135,9 @@ export default function GuidedTour() {
     } else {
       clearTourProgress();
     }
+    // The tour is no longer showing; a later session navigates
+    // fresh (see onStart above).
+    pushedStepRef.current = null;
     setIndex(null);
     // The menu row that started the tour is gone (the menu closed
     // when the tour started), so focus goes back to the hamburger
@@ -186,10 +208,22 @@ export default function GuidedTour() {
     const [path, hash] = step.href.split("#");
     const targetPath = path || pathname;
     let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    // Push the step's href only on first entry to this step (see
+    // pushedStepRef above): if the page redirected elsewhere, the
+    // effect re-runs on the new pathname and must not push again.
+    const alreadyPushed = pushedStepRef.current === index;
     if (targetPath !== pathname || (hash && window.location.hash !== `#${hash}`)) {
-      router.push(step.href);
-      // Wait for the navigation to render before scrolling.
-      scrollTimer = setTimeout(scrollToTarget, 400);
+      if (!alreadyPushed) {
+        pushedStepRef.current = index;
+        router.push(step.href);
+        // Wait for the navigation to render before scrolling.
+        scrollTimer = setTimeout(scrollToTarget, 400);
+      } else {
+        // The navigation already happened and landed somewhere
+        // else (a redirect) — accept that page and scroll to the
+        // target there instead of pushing again.
+        scrollToTarget();
+      }
     } else {
       scrollToTarget();
     }
