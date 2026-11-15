@@ -35,9 +35,11 @@ only, like leads).
 
 1. A visitor fills in the "Leave a review" form (name, a star
    rating picker, optional service, written review) and submits.
-   The form sits next to the booking form in a two-column row
-   (`.booking-review-row` in `app/globals.css` — Book on the left,
-   review on the right; they stack vertically below 900px), under
+   The form sits underneath the booking form in a stacked row
+   (`.booking-review-row` in `app/globals.css` — Book on top,
+   review underneath; the booking card is full width, with its
+   fields on the left and the Preferred date calendar on the
+   right), under
    the review list in the Reviews section. Its heading is an `h2`
    sized by the row rule so it matches "Book an appointment".
 2. `POST /api/reviews` validates (name 1–100 chars, rating integer

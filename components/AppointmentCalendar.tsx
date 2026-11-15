@@ -190,7 +190,7 @@ export default function AppointmentCalendar({
           is worse for assistive tech than no role at all. The
           appointment links inside the cells are the keyboard path
           through the calendar (Tab reaches each one). */}
-      <div className="calendar">
+      <div className="appt-calendar">
         {WEEKDAY_NAMES.map((d) => (
           <div key={d} className="cal-head">
             {d}
