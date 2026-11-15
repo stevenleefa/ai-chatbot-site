@@ -1,12 +1,15 @@
 "use client";
 
-import { Children, isValidElement, useRef, useState, type ReactNode } from "react";
+import { Children, isValidElement, useEffect, useRef, useState, type ReactNode } from "react";
 
 // Section tabs for /dashboard. Clicking a section shows just that section
 // in place — the page does not jump down to it — and Overview shows
 // everything again. The nav sticks to the top while scrolling, so the
 // switcher is always in reach, and switching scrolls the nav back into
-// view so the chosen section is right in front of you.
+// view so the chosen section is right in front of you. The scroll
+// happens after the new section renders (see the effect below), so
+// every tab lands the nav in the same place — just below the fixed
+// site header.
 //
 // This is a real tab pattern (WAI-ARIA tabs): the nav is a tablist,
 // each button is a tab with aria-selected and aria-controls pointing
@@ -34,12 +37,32 @@ export default function DashboardTabs({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  function show(id: string) {
-    setActive(id);
-    // Bring the chosen section to the top of the viewport. The nav is
-    // sticky, so this is a short scroll up to the controls — never a jump
-    // down the page.
+  // Scroll the tab row into view AFTER the newly chosen section has
+  // rendered — never in the click handler. Scrolling synchronously in
+  // show() ran against the OLD tab's layout (the new content had not
+  // rendered yet), so the browser clamped the scroll differently per
+  // tab and each tab landed somewhere else. This effect runs after
+  // React commits the new panel, so every tab lands the nav in the
+  // same place: at the top, just below the fixed site header (see
+  // .dash-nav's scroll-margin-top). The first run is skipped: on mount
+  // the page is already where it should be.
+  const firstRenderRef = useRef(true);
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
     navRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [active]);
+
+  function show(id: string) {
+    if (id === active) {
+      // Already showing this section — nothing re-renders, so the
+      // layout is unchanged and scrolling now is exact.
+      navRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+      return;
+    }
+    setActive(id);
   }
 
   function focusTab(index: number) {

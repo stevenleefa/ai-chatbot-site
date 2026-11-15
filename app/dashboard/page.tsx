@@ -122,16 +122,6 @@ export default async function DashboardPage() {
         </p>
       ) : null}
 
-      <p role="note" className="demo-banner demo-banner-sample">
-        <strong>Sample demo data — not a real business&apos;s figures.</strong>{" "}
-        Figures as of {fmtDate(AS_OF_DATE)}. Sales cover{" "}
-        {fmtDate(SALES_START)} – {fmtDate(AS_OF_DATE)}. Every total on this
-        page is computed from the sample rows in <code>lib/dashboard.ts</code>;
-        see <code>DASHBOARD.md</code> to change them. Every table sorts —
-        click any column heading to sort by that column, click it again to
-        reverse.
-      </p>
-
       <DashboardTabs>
       <section id="overview" className="dash-section">
         <h2>Overview — {monthLabel("2026-10")}</h2>
