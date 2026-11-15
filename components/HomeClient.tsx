@@ -36,8 +36,8 @@ export default function HomeClient({
   const [lead, setLead] = useState(initialLead);
   const [leadResult, setLeadResult] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Preferred date (optional): picked on the month calendar below.
-  // It is not a separate lead field — the original booking date
+  // Preferred date (optional): picked on the month calendar to the
+  // right of the form fields. It is not a separate lead field — the original booking date
   // lives in the message text (the same convention the chat
   // booking uses), so the picked date is appended to the message
   // on submit. Sundays are closed and past dates cannot be picked.
@@ -112,56 +112,62 @@ export default function HomeClient({
         </div>
       </section>
 
-      {/* Booking (left) and Leave a review (right) side by side;
-          they stack vertically on narrow screens — see
-          .booking-review-row in globals.css. */}
+      {/* Booking on top and Leave a review underneath (stacked, not
+          side by side — side by side they competed for horizontal
+          space and cramped the Preferred date calendar). Inside the
+          booking card the fields sit on the left and the calendar
+          on the right — see .booking-form-grid in globals.css. */}
       <div className="booking-review-row">
         <section id="booking" className="reveal">
           <h2>Book an appointment</h2>
           <div className="booking-card">
             <form className="lead-form" onSubmit={submitLead}>
-              <label>
-                Your name
-                <input placeholder="Your name" required value={lead.name}
-                  onChange={(e) => setLead({ ...lead, name: e.target.value })} />
-              </label>
-              <label>
-                Service
-                <select value={lead.service}
-                  onChange={(e) => setLead({ ...lead, service: e.target.value })}>
-                  {services.map((s) => <option key={s.name}>{s.name}</option>)}
-                </select>
-              </label>
-              <label>
-                Anything we should know? (optional)
-                <textarea placeholder="Anything we should know? (optional)" rows={3} value={lead.message}
-                  onChange={(e) => setLead({ ...lead, message: e.target.value })} />
-              </label>
-              <label>
-                Phone or email
-                <input placeholder="Phone or email" required value={lead.contact}
-                  onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
-              </label>
-              <div>
-                <p>
-                  <strong>Preferred date (optional)</strong>
-                </p>
-                {/* Month calendar (components/Calendar.tsx): tap a
-                    day to pick it. Sundays are closed and past
-                    dates cannot be picked. The picked date is added
-                    to the booking request (see submitLead above). */}
-                <Calendar
-                  selected={preferredDate || null}
-                  onSelect={setPreferredDate}
-                  minDate={tomorrow}
-                  disableSundays
-                  ariaLabel="Pick a preferred date"
-                />
-                {preferredDate ? (
-                  <p>Preferred date: {fmtDate(preferredDate)}</p>
-                ) : (
-                  <p>No date picked yet — optional.</p>
-                )}
+              <div className="booking-form-grid">
+                <div className="booking-fields">
+                  <label>
+                    Your name
+                    <input placeholder="Your name" required value={lead.name}
+                      onChange={(e) => setLead({ ...lead, name: e.target.value })} />
+                  </label>
+                  <label>
+                    Service
+                    <select value={lead.service}
+                      onChange={(e) => setLead({ ...lead, service: e.target.value })}>
+                      {services.map((s) => <option key={s.name}>{s.name}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Anything we should know? (optional)
+                    <textarea placeholder="Anything we should know? (optional)" rows={3} value={lead.message}
+                      onChange={(e) => setLead({ ...lead, message: e.target.value })} />
+                  </label>
+                  <label>
+                    Phone or email
+                    <input placeholder="Phone or email" required value={lead.contact}
+                      onChange={(e) => setLead({ ...lead, contact: e.target.value })} />
+                  </label>
+                </div>
+                <div className="booking-calendar">
+                  <p>
+                    <strong>Preferred date (optional)</strong>
+                  </p>
+                  {/* Month calendar (components/Calendar.tsx): tap a
+                      day to pick it. Sundays are closed and past
+                      dates cannot be picked. The picked date is added
+                      to the booking request (see submitLead above). */}
+                  <Calendar
+                    selected={preferredDate || null}
+                    onSelect={setPreferredDate}
+                    minDate={tomorrow}
+                    disableSundays
+                    ariaLabel="Pick a preferred date"
+                  />
+                  {preferredDate ? (
+                    <p>Preferred date: {fmtDate(preferredDate)}</p>
+                  ) : (
+                    <p>No date picked yet — optional.</p>
+                  )}
+                </div>
               </div>
               <button type="submit" disabled={submitting}>{submitting ? "Sending…" : "Request booking"}</button>
             </form>

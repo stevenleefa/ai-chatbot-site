@@ -7,6 +7,14 @@
    rule is needed here. */
 
 .calendar {
+  /* Plain block container: the nav row sits above the date grid.
+     display: block is stated explicitly because app/globals.css
+     used to give .calendar a 7-column grid (for the old
+     AppointmentCalendar month grid) — that turned this root into
+     a grid and laid the nav and the date grid side by side,
+     crushing the nav and cutting off the Saturday column. The
+     old grid is now .appt-calendar in globals.css. */
+  display: block;
   margin: 0.75rem 0;
 }
 
@@ -47,7 +55,12 @@
   min-height: 2.75rem;
 }
 
-.cal-day {
+/* Scoped to .cal-grid: the old AppointmentCalendar month grid
+   (components/AppointmentCalendar.tsx) also has .cal-day divs
+   (day numbers inside .cal-cell), and this pill styling must
+   never touch those. The hover/disabled/today/selected/closed
+   rules below only ever match this calendar's buttons. */
+.cal-grid .cal-day {
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -403,24 +403,23 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
 .reveal { animation: fadeUp 0.7s ease both; }
 section { margin: 56px 0; scroll-margin-top: 80px; }
 section h2 { font-size: 2.125rem; margin-bottom: 20px; }
-/* Booking and review forms side by side (Book on the left), stacking
-   vertically when the page narrows. The row keeps the same 56px
-   vertical spacing as a section, and the 40px column gap is the
-   breathing room between the two forms; the section inside the row
-   drops its own margin so the row sets the spacing. Both headings
-   are h2s sized by the row rule so they match exactly. The grid
-   stretches both sections to the same height; each section is a
-   flex column whose card fills it, and each card is a flex column
-   whose form fills it, so the two submit buttons sit at the same
-   level (the note below each button reserves two lines of small
-   text on both sides — see .form-note). */
-.booking-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; margin: 56px 0; align-items: stretch; }
+/* Booking and review forms stacked (Book on top, review
+   underneath) — side by side they competed for horizontal space
+   and cramped the Preferred date calendar inside the booking
+   card, squeezing its nav row and cutting off the Saturday
+   column. The row keeps the same 56px vertical spacing as a
+   section, and the 32px row gap is the breathing room between
+   the two forms; the section inside the row drops its own
+   margin so the row sets the spacing. Both headings are h2s
+   sized by the row rule so they match exactly. Each section is
+   a flex column whose card fills it. The two submit buttons no
+   longer sit side by side, so they no longer need to be level
+   with each other (see .booking-form-grid for the calendar
+   layout inside the booking card). */
+.booking-review-row { display: grid; grid-template-columns: 1fr; gap: 32px; margin: 56px 0; align-items: stretch; }
 .booking-review-row section { margin: 0; display: flex; flex-direction: column; }
 .booking-review-row h2 { font-size: 2.125rem; margin: 0 0 20px; }
 .booking-review-row .review-form { margin: 0; }
-@media (max-width: 900px) {
-  .booking-review-row { grid-template-columns: 1fr; }
-}
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-top: 5px solid var(--rose); border-radius: 20px; padding: 22px; box-shadow: 0 8px 24px rgba(61, 36, 51, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .card:hover { transform: translateY(-5px); box-shadow: 0 16px 32px rgba(61, 36, 51, 0.14); }
@@ -433,23 +432,34 @@ section h2 { font-size: 2.125rem; margin-bottom: 20px; }
 .social-links a { font-weight: 600; }
 
 .booking-card, .review-card, .assistant-card { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 12px 32px rgba(61, 36, 51, 0.1); }
-/* The two form cards are flex columns whose form fills the card, so
-   the submit button (margin-top: auto, below) pins to the same level
-   in both cards. The assistant card is not in the row, so it stays
-   a plain block. */
+/* The two form cards are flex columns whose form fills the card.
+   The global .lead-form caps its width at 540px (fine for login,
+   admin, …) — inside these full-width cards the cap is lifted so
+   the form uses the whole card. */
 .booking-card, .review-card { display: flex; flex-direction: column; flex: 1; }
 /* Inside the two cards the form is a flex column that fills the card.
    The global .lead-form stays a grid everywhere else (login, admin, …). */
-.booking-card .lead-form, .review-card .lead-form { display: flex; flex-direction: column; flex: 1; }
-/* The submit button in each card pins to the bottom of its form, so
-   both buttons sit at the same level. */
+.booking-card .lead-form, .review-card .lead-form { display: flex; flex-direction: column; flex: 1; max-width: none; }
+/* The submit button in each card pins to the bottom of its own form
+   (the two cards are stacked now, so the buttons no longer need to
+   sit at the same level as each other). */
 .booking-card .lead-form > button, .review-card .lead-form > button { margin-top: auto; }
-/* The small note under each submit button. Both notes reserve two
-   lines of small text: the review note is longer and wraps to two
-   lines at desktop width, while the booking note is one line — the
-   same reserved height on both keeps the buttons level. The text
-   itself is the default body colour on the card surface, so it
-   passes WCAG 2.1 AA like the booking note always did. */
+/* Inside the booking card the fields sit on the left and the
+   Preferred date calendar on the right, with a generous 48px gap
+   between them so the calendar's nav row (Prev / month / Next /
+   Today) and its 7-column grid have room. The calendar column is
+   wider (7fr vs 5fr) because the nav row needs ~430px at minimum.
+   Below 900px the two columns stack — fields on top, calendar
+   below — so the calendar keeps its full width on narrow screens. */
+.booking-form-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px 48px; }
+.booking-fields { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.booking-calendar { min-width: 0; }
+@media (max-width: 900px) {
+  .booking-form-grid { grid-template-columns: 1fr; }
+}
+/* The small note under each submit button. It reserves two lines
+   of small text so the note never makes the card jump when its
+   text wraps. */
 .booking-card .form-note, .review-card .form-note { min-height: 2.7em; }
 .lead-form { display: grid; gap: 12px; max-width: 540px; }
 /* Labels wrap their input (Email, Password, …). Stack the label text
@@ -648,8 +658,17 @@ button:disabled { opacity: 0.6; cursor: default; }
    Sunday-start grid; appointment blocks are coloured by stylist
    (STYLIST_COLOURS in lib/employees.ts). Cells are tall enough for
    several appointments; each block is small, with ellipsis so a long
-   name never breaks the cell. */
-.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
+   name never breaks the cell.
+   NOTE: this grid is named .appt-calendar, NOT .calendar — the
+   shared month calendar (components/Calendar.tsx) also uses the
+   class .calendar on its root, and this rule used to be plain
+   .calendar, which turned the shared calendar's root into a
+   7-column grid: its nav row and date grid landed side by side,
+   crushing the nav buttons and cutting off the Saturday column
+   on the homepage booking form. The shared calendar's day buttons
+   are .cal-day too, so the day-number rules below are scoped to
+   .cal-cell and never touch them. */
+.appt-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
 .cal-head { font-weight: 700; text-align: center; padding: 6px 0; color: var(--plum); font-size: 0.875rem; }
 .cal-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; min-height: 132px; padding: 6px 8px; }
 .cal-cell.cal-closed { background: var(--closed-bg); }
@@ -658,10 +677,10 @@ button:disabled { opacity: 0.6; cursor: default; }
    cell. #6b5560 on the cream page is 6.42:1. */
 .cal-cell.cal-outside { background: transparent; border-color: transparent; }
 .cal-cell.cal-outside .cal-day { color: var(--muted); }
-.cal-day { font-weight: 700; color: var(--plum); font-size: 0.875rem; }
+.cal-cell .cal-day { font-weight: 700; color: var(--plum); font-size: 0.875rem; }
 /* Closed-day text darkened from #8a7d75 (3.36:1 on #f0ebe4, below
    AA) to #6b5560 (5.72:1 on #f0ebe4). */
-.cal-closed .cal-day { color: var(--muted); }
+.cal-cell.cal-closed .cal-day { color: var(--muted); }
 .cal-closed-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 .cal-appt { color: white; border-radius: 8px; padding: 4px 6px; margin-top: 4px; font-size: 0.75rem; line-height: 1.35; }
 .cal-appt a { color: white; }

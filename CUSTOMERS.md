@@ -81,7 +81,8 @@ the month heading is announced (`aria-live="polite"`).
 
 The same calendar is the date picker in two customer flows. The
 homepage booking form (`components/HomeClient.tsx`) has an
-optional "Preferred date" calendar under the contact field: tap a
+optional "Preferred date" calendar to the right of the form
+fields, with a generous gap between them: tap a
 day to pick it, and the picked date is added to the booking
 request ("Preferred date: …") — the booking date still travels
 in the message text, the same convention the chat booking uses,
