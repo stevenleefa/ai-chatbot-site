@@ -4,8 +4,27 @@
 // (via the `today` prop) so the month, the window, and the
 // disabled days are deterministic — the real component uses the
 // actual current date.
+import { readFileSync } from "fs";
+import { join } from "path";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Calendar from "@/components/Calendar";
+
+// jsdom does not apply external stylesheets, so the state-rule
+// specificity is asserted on the stylesheet text, as the
+// HomeClient layout tests do.
+function calendarCss(): string {
+  return readFileSync(join(__dirname, "../components/Calendar.css"), "utf8");
+}
+
+// True when the rule block for `selector` contains `declaration`
+// (whitespace-insensitive).
+function ruleHas(css: string, selector: string, declaration: string): boolean {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`));
+  if (!match) return false;
+  const block = match[1].replace(/\s+/g, " ");
+  return block.includes(declaration);
+}
 
 // Friday 13 November 2026. November 2026 has 30 days, 1 November
 // is a Sunday, and the Sundays are 1, 8, 15, 22 and 29.
@@ -229,5 +248,78 @@ describe("Calendar — keyboard and announcements", () => {
     expect(
       screen.getByRole("group", { name: "Pick a preferred date" })
     ).toBeInTheDocument();
+  });
+});
+
+describe("Calendar — state styles win over the base rule (specificity)", () => {
+  // Regression for 2026-11-15: S picked Nov 18, the "Preferred
+  // date:" text updated, but the button stayed plain white — the
+  // bare .cal-day-selected rule (0,1,0) lost to the base
+  // .cal-grid .cal-day rule (0,2,0), so the rose fill never
+  // applied. Today kept its outline only because the base rule
+  // sets no box-shadow. The state rules must be scoped under
+  // .cal-grid so they match the base rule's specificity and win
+  // by coming later in the stylesheet.
+  it("scopes the selected rule under .cal-grid with the rose fill", () => {
+    const css = calendarCss();
+    expect(
+      ruleHas(css, ".cal-grid .cal-day-selected", "background: var(--rose)")
+    ).toBe(true);
+    expect(
+      ruleHas(css, ".cal-grid .cal-day-selected", "color: #fff")
+    ).toBe(true);
+  });
+
+  it("scopes the closed rule under .cal-grid with the muted background", () => {
+    const css = calendarCss();
+    expect(
+      ruleHas(css, ".cal-grid .cal-day-closed", "background: var(--closed-bg)")
+    ).toBe(true);
+    expect(ruleHas(css, ".cal-grid .cal-day-closed", "color: var(--muted)")).toBe(
+      true
+    );
+  });
+
+  it("scopes the today rule under .cal-grid with the accent ring", () => {
+    const css = calendarCss();
+    expect(
+      ruleHas(
+        css,
+        ".cal-grid .cal-day-today",
+        "box-shadow: inset 0 0 0 2px var(--rose)"
+      )
+    ).toBe(true);
+  });
+
+  it("scopes the selected count badge under .cal-grid", () => {
+    const css = calendarCss();
+    expect(
+      ruleHas(css, ".cal-grid .cal-day-selected .cal-count", "background: #fff")
+    ).toBe(true);
+  });
+
+  it("keeps the base rule the state rules must beat", () => {
+    const css = calendarCss();
+    expect(ruleHas(css, ".cal-grid .cal-day", "background: var(--surface)")).toBe(
+      true
+    );
+  });
+
+  it("puts the selected rule after the today rule, so a selected today fills rose", () => {
+    const css = calendarCss();
+    const todayAt = css.indexOf(".cal-grid .cal-day-today");
+    const selectedAt = css.indexOf(".cal-grid .cal-day-selected");
+    expect(todayAt).toBeGreaterThan(-1);
+    expect(selectedAt).toBeGreaterThan(-1);
+    expect(selectedAt).toBeGreaterThan(todayAt);
+  });
+
+  it("marks a day that is both today and selected with both classes", () => {
+    render(<Calendar today={TODAY} selected="2026-11-13" />);
+    const button = screen.getByRole("button", {
+      name: /Friday, November 13, 2026, Selected/,
+    });
+    expect(button).toHaveClass("cal-day-today");
+    expect(button).toHaveClass("cal-day-selected");
   });
 });
