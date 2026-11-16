@@ -69,7 +69,7 @@ export default function ReferralCard({
       <p>
         <strong>Your referral code:</strong> {code}
       </p>
-      <p>
+      <p className="referral-link">
         <label>
           Your referral link
           <input type="text" value={link} readOnly onFocus={(e) => e.target.select()} />

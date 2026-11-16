@@ -33,7 +33,7 @@ relative-luminance function in `lib/personalization.ts`
 | **Forest** | `#166534` 7.13:1 / `#14532d` 9.11:1 / `#0f3d21` 12.28:1 | `#0f2e1d` 13.91:1 | `#166534` 7.13:1 | light `#14532d` 8.62:1, dark `#86efac` 12.26:1 |
 | **Navy** | `#1e3a5f` 11.50:1 / `#172c49` 14.07:1 / `#12263f` 15.28:1 | `#101f33` 15.70:1 | `#1e3a5f` 11.50:1 | light `#172c49` 13.31:1, dark `#93c5fd` 9.55:1 |
 | **Purple** | `#7c3aed` 5.70:1 / `#5b21b6` 8.98:1 / `#4c1d95` 10.95:1 | `#3b0764` 14.19:1 | `#7c3aed` 5.70:1 | light `#5b21b6` 8.50:1, dark `#c4b5fd` 9.33:1 |
-| **Orange/Blue** | `#c2410c` 5.18:1 / `#9a3412` 7.31:1 / `#7c2d12` 9.37:1 | `#0f2a44` 13.85:1 | `#c2410c` 5.18:1 | light `#9a3412` 6.92:1, dark `#fdba74` 10.21:1 |
+| **Orange** | `#c2410c` 5.18:1 / `#9a3412` 7.31:1 / `#7c2d12` 9.37:1 | `#c2410c` 4.90:1 | `#c2410c` 5.18:1 | light `#9a3412` 6.92:1, dark `#fdba74` 10.21:1 |
 | **Yellow** | `#a16207` 4.92:1 / `#854d0e` 6.85:1 / `#713f12` 8.67:1 | `#eab308` 9.74:1 (dark text) | `#a16207` 4.92:1 | light `#854d0e` 6.48:1, dark `#fde047` 13.06:1 |
 
 "White on accent/deep/hover" is the button text; "header" is the
@@ -51,12 +51,11 @@ except **Yellow**, whose light-mode header is bright yellow
 in light mode. Yellow's `--plum-deep` is a dark gold too (`#854d0e`
 light / `#713f12` dark), not the bright yellow: it carries white
 text (chat head, table headers, back-to-top), which fails on
-`#eab308`. Orange/Blue is navy in light mode and burnt orange in
-dark mode; its accent is the darker burnt orange `#c2410c`, because
+`#eab308`. Orange is burnt orange in both modes; its accent is the darker burnt orange `#c2410c`, because
 white on the plumbing demo's bright orange `#ff6b1a` is only ~2.9:1.
 Rose and Plum were deliberately left unchanged — they do look alike
 in light mode (dark maroon `#4a1524` vs dark plum `#3d2433`), and the
-new themes are the fix for that: Purple, Orange/Blue and Yellow are
+new themes are the fix for that: Purple, Orange and Yellow are
 visibly different from each other and from Plum/Rose at a glance.
 
 ## Fonts, sizes and accessibility
@@ -372,10 +371,10 @@ the existing dark-mode pre-paint script.
 - Pick each theme in Settings: header, buttons and accent text
   change at once, in both light and dark mode; reload and the choice
   is still there. The picker shows eight themes — Plum, Rose, Teal,
-  Forest, Navy, Purple, Orange/Blue, Yellow — and the new three are
+  Forest, Navy, Purple, Orange, Yellow — and the new three are
   visibly different from Plum/Rose at a glance in light mode
-  (Yellow's header is bright yellow with dark text; Orange/Blue's
-  is navy). Rose and Plum themselves are unchanged and still look
+  (Yellow's header is bright yellow with dark text; Orange's
+  is burnt orange). Rose and Plum themselves are unchanged and still look
   alike — that is why the new themes exist.
 - Fonts: Clean makes headings Inter; Readable makes them Georgia.
   Sizes: Small shrinks and Large grows **all** text on the site —

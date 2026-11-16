@@ -53,6 +53,34 @@ describe("ReferralCard", () => {
     expect(screen.getByText(/already used your 50% off/)).toBeInTheDocument();
     expect(screen.queryByText(/You have 50% off/)).not.toBeInTheDocument();
   });
+
+  it("the referral label and the link input share the same font (body font)", () => {
+    // The label inherits the body font, but a bare <input> does not —
+    // the browser's form-control font applies instead — so the label
+    // and the link read as two different fonts. The referral-link
+    // rule puts both on the inherited body font. jsdom does not apply
+    // the stylesheet, so this guards the CSS itself: the rule exists
+    // and sets the same font-family for the label and the input.
+    const { container } = render(
+      <ReferralCard code="abc12345" link="https://example.com/?ref=abc12345" hasCredit={false} usedCount={0} />
+    );
+    const wrapper = container.querySelector(".referral-link");
+    expect(wrapper).not.toBeNull();
+    const label = wrapper!.querySelector("label");
+    const input = wrapper!.querySelector("input");
+    expect(label).not.toBeNull();
+    expect(input).not.toBeNull();
+    expect(input!.closest(".referral-link")).toBe(wrapper);
+    const fs = require("fs");
+    const path = require("path");
+    const css = fs.readFileSync(
+      path.join(__dirname, "..", "app", "globals.css"),
+      "utf8",
+    ) as string;
+    const rule = css.match(/\.referral-link label, \.referral-link input \{[^}]*\}/);
+    expect(rule).not.toBeNull();
+    expect(rule![0]).toContain("font-family: inherit");
+  });
 });
 
 describe("RepurchaseSection", () => {

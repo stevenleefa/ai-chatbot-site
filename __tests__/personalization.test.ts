@@ -12,6 +12,7 @@ import {
   isPreferredStylist,
   parsePreferences,
   readStoredPreferences,
+  resolveThemeId,
   syncThemeColorMeta,
   themeColorFor,
   validatePreferencesStrict,
@@ -45,7 +46,7 @@ describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
     expect(contrastRatio("#ffffff", THEMES.navy.accent)).toBeGreaterThanOrEqual(4.5);
     // The three new accents, white on accent.
     expect(contrastRatio("#ffffff", THEMES.purple.accent)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio("#ffffff", THEMES["orange-blue"].accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#ffffff", THEMES.orange.accent)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio("#ffffff", THEMES.yellow.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
@@ -63,7 +64,7 @@ describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
       "forest",
       "navy",
       "purple",
-      "orange-blue",
+      "orange",
       "yellow",
     ]);
     for (const id of THEME_IDS) {
@@ -81,6 +82,63 @@ describe("theme contrast (WCAG 2.1 AA, bar 4.5:1)", () => {
     for (const t of Object.values(THEMES)) {
       if (t.id === "yellow") continue;
       expect(t.navFgLight).toBe("#fdf8f1");
+    }
+  });
+
+  it("Orange is purely orange: no navy header, cream on orange still passes AA", () => {
+    // The old Orange/Blue had a navy light-mode header (#0f2a44);
+    // Orange's light header is the orange accent itself.
+    expect(THEMES.orange.navBgLight).toBe("#c2410c");
+    expect(THEMES.orange.navBgDark).toBe("#c2410c");
+    expect(THEMES.orange.contrast.headerLight).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#fdf8f1", "#c2410c")).toBeCloseTo(4.9, 1);
+  });
+});
+
+describe("Orange rename and legacy mapping", () => {
+  it("the theme list has Orange and no Orange/Blue or orange-blue id", () => {
+    expect(THEME_IDS).toContain("orange");
+    expect(THEME_IDS).not.toContain("orange-blue");
+    expect(THEMES.orange.label).toBe("Orange");
+    expect(Object.values(THEMES).map((t) => t.label)).not.toContain(
+      "Orange/Blue",
+    );
+    expect(THEMES["orange-blue" as keyof typeof THEMES]).toBeUndefined();
+  });
+
+  it("a saved orange-blue preference resolves to Orange, not plum", () => {
+    expect(resolveThemeId("orange-blue")).toBe("orange");
+    expect(resolveThemeId("orange")).toBe("orange");
+    expect(resolveThemeId("bogus")).toBeNull();
+    expect(parsePreferences({ theme: "orange-blue" }).theme).toBe("orange");
+    const strict = validatePreferencesStrict({ theme: "orange-blue" });
+    expect(strict.ok).toBe(true);
+    expect(strict.preferences.theme).toBe("orange");
+  });
+
+  it("the pre-paint script maps a saved orange-blue to orange before first paint", () => {
+    // The script reads localStorage directly (not parsePreferences),
+    // so it carries its own legacy mapping.
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain(
+      'if(p.theme==="orange-blue")p.theme="orange"',
+    );
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain(
+      'orange:["#c2410c","#c2410c"]',
+    );
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).not.toContain("orange-blue\":[");
+  });
+});
+
+describe("theme picker swatches", () => {
+  it("Yellow's swatch is the bright header yellow, not the dark-gold accent", () => {
+    expect(THEMES.yellow.swatch).toBe("#eab308");
+    expect(THEMES.yellow.accent).toBe("#a16207");
+  });
+
+  it("every other theme's swatch is its accent, so only Yellow's changed", () => {
+    for (const t of Object.values(THEMES)) {
+      if (t.id === "yellow") continue;
+      expect(t.swatch).toBe(t.accent);
     }
   });
 });
@@ -380,8 +438,8 @@ describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome 
     expect(themeColorFor("navy", true)).toBe("#1e3a5f");
     expect(themeColorFor("purple", false)).toBe("#3b0764");
     expect(themeColorFor("purple", true)).toBe("#7c3aed");
-    expect(themeColorFor("orange-blue", false)).toBe("#0f2a44");
-    expect(themeColorFor("orange-blue", true)).toBe("#c2410c");
+    expect(themeColorFor("orange", false)).toBe("#c2410c");
+    expect(themeColorFor("orange", true)).toBe("#c2410c");
     expect(themeColorFor("yellow", false)).toBe("#eab308");
     expect(themeColorFor("yellow", true)).toBe("#a16207");
   });
@@ -459,7 +517,12 @@ describe("browser chrome colour (theme-color meta tag)", () => {  // The chrome 
     }
     expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#3b0764');
     expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#7c3aed');
-    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#0f2a44');
+    // Orange is orange in both modes now (the old Orange/Blue was
+    // navy #0f2a44 in light mode); the navy must be gone.
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain(
+      'orange:["#c2410c","#c2410c"]',
+    );
+    expect(PERSONALIZATION_PREPAINT_SCRIPT).not.toContain('#0f2a44');
     expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#c2410c');
     expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#eab308');
     expect(PERSONALIZATION_PREPAINT_SCRIPT).toContain('#a16207');

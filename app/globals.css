@@ -198,12 +198,13 @@ html[data-personalization-theme="navy"][data-theme="dark"] { --nav-bg: #1e3a5f; 
    dark page 9.33:1. */
 html[data-personalization-theme="purple"] { --rose: #7c3aed; --rose-deep: #5b21b6; --rose-hover: #4c1d95; --rose-text: #5b21b6; --nav-bg: #3b0764; --nav-fg: #fdf8f1; --plum-deep: #3b0764; --chart-rose: #7c3aed; }
 html[data-personalization-theme="purple"][data-theme="dark"] { --nav-bg: #7c3aed; --nav-fg: #ffffff; --rose-text: #c4b5fd; --plum-deep: #5b21b6; --chart-rose: #c4b5fd; }
-/* Orange/Blue: navy header + burnt-orange accent, like the plumbing
-   demo. White on #c2410c 5.18:1, on #9a3412 7.31:1, on #7c2d12
-   9.37:1; cream on #0f2a44 13.85:1; #9a3412 on cream 6.92:1;
+/* Orange: a burnt-orange accent with an orange header in both
+   modes (the old Orange/Blue had a navy light-mode header).
+   White on #c2410c 5.18:1, on #9a3412 7.31:1, on #7c2d12
+   9.37:1; cream on #c2410c 4.90:1; #9a3412 on cream 6.92:1;
    #fdba74 on dark page 10.21:1. */
-html[data-personalization-theme="orange-blue"] { --rose: #c2410c; --rose-deep: #9a3412; --rose-hover: #7c2d12; --rose-text: #9a3412; --nav-bg: #0f2a44; --nav-fg: #fdf8f1; --plum-deep: #0f2a44; --chart-rose: #c2410c; }
-html[data-personalization-theme="orange-blue"][data-theme="dark"] { --nav-bg: #c2410c; --nav-fg: #ffffff; --rose-text: #fdba74; --plum-deep: #9a3412; --chart-rose: #fdba74; }
+html[data-personalization-theme="orange"] { --rose: #c2410c; --rose-deep: #9a3412; --rose-hover: #7c2d12; --rose-text: #9a3412; --nav-bg: #c2410c; --nav-fg: #fdf8f1; --plum-deep: #9a3412; --chart-rose: #c2410c; }
+html[data-personalization-theme="orange"][data-theme="dark"] { --nav-bg: #c2410c; --nav-fg: #ffffff; --rose-text: #fdba74; --plum-deep: #9a3412; --chart-rose: #fdba74; }
 /* Yellow: a warm yellow. White on #a16207 4.92:1, on #854d0e
    6.85:1, on #713f12 8.67:1; #854d0e on cream 6.48:1; #fde047 on
    dark page 13.06:1. The light-mode header IS bright yellow
@@ -483,6 +484,12 @@ section h2 { font-size: 2.125rem; margin-bottom: 20px; }
 .lead-form label { display: grid; gap: 6px; }
 .lead-form input, .lead-form select, .lead-form textarea { width: 100%; box-sizing: border-box; }
 .lead-form input, .lead-form select, .lead-form textarea, .chat-form input { padding: 12px; font-size: 1rem; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); color: var(--plum); font-family: inherit; }
+/* Referral card (components/ReferralCard.tsx): the "Your referral
+   link" label and the read-only link input share the site body
+   font. The label inherits it, but a bare <input> does not — the
+   browser's form-control font applies instead — so without this
+   the label and the link read as two different fonts. */
+.referral-link label, .referral-link input { font-family: inherit; }
 /* Placeholder text must meet the same 4.5:1 bar as other text:
    #6b5560 on the cream input background is 6.42:1. (Browsers
    otherwise render placeholders in a light grey that can fail.) */

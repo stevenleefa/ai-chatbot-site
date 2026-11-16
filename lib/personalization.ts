@@ -12,7 +12,7 @@
 // is still the default here: a customer who never picks anything sees
 // exactly the site they saw before this change.
 
-export type ThemeId = "plum" | "rose" | "teal" | "forest" | "navy" | "purple" | "orange-blue" | "yellow";
+export type ThemeId = "plum" | "rose" | "teal" | "forest" | "navy" | "purple" | "orange" | "yellow";
 export type FontPairingId = "classic" | "clean" | "readable";
 export type FontSizeId = "small" | "medium" | "large";
 
@@ -72,7 +72,24 @@ export const DEFAULT_PREFERENCES: PersonalizationPreferences = {
 
 export const STORAGE_KEY = "lumen-preferences";
 
-export const THEME_IDS: ThemeId[] = ["plum", "rose", "teal", "forest", "navy", "purple", "orange-blue", "yellow"];
+export const THEME_IDS: ThemeId[] = ["plum", "rose", "teal", "forest", "navy", "purple", "orange", "yellow"];
+
+/** Renamed theme ids: a saved preference holding the old id still
+ * resolves to the new theme instead of silently resetting to plum.
+ * "orange-blue" was renamed to "orange" (2026-11-15). */
+export const LEGACY_THEME_IDS: Record<string, ThemeId> = {
+  "orange-blue": "orange",
+};
+
+/** Resolve a stored theme value to a current ThemeId, mapping a
+ * legacy renamed id to its replacement. Returns null for unknown
+ * values (the caller falls back to the default). */
+export function resolveThemeId(value: unknown): ThemeId | null {
+  if (typeof value !== "string") return null;
+  if ((THEME_IDS as string[]).includes(value)) return value as ThemeId;
+  const legacy = LEGACY_THEME_IDS[value];
+  return legacy ?? null;
+}
 export const FONT_PAIRING_IDS: FontPairingId[] = ["classic", "clean", "readable"];
 export const FONT_SIZE_IDS: FontSizeId[] = ["small", "medium", "large"];
 
@@ -106,6 +123,11 @@ export interface ThemeDefinition {
   description: string;
   /** Button gradient start / accent colour. */
   accent: string;
+  /** Picker swatch colour. Usually the accent, but Yellow's swatch
+   * is its bright header yellow (#eab308): the dark-gold accent
+   * (#a16207) reads as brown/gold in the picker, so the swatch
+   * shows the header colour instead. */
+  swatch: string;
   /** Button gradient end / deeper accent. */
   deep: string;
   /** Button hover end (darker than deep). */
@@ -153,12 +175,16 @@ function theme(
   // Light-mode header text. Cream for every theme except Yellow,
   // whose bright yellow header needs dark text (see navFgLight).
   navFgLight: string = "#fdf8f1",
+  // Picker swatch colour. Defaults to the accent; Yellow passes its
+  // bright header yellow so the swatch reads as yellow.
+  swatch?: string,
 ): ThemeDefinition {
   return {
     id,
     label,
     description,
     accent,
+    swatch: swatch ?? accent,
     deep,
     hover,
     textLight,
@@ -237,18 +263,18 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     "#5b21b6", "#c4b5fd",
     "#3b0764", "#7c3aed", "#c4b5fd",
   ),
-  // Orange/Blue: navy header + burnt-orange accent, like the
-  // plumbing demo (navy #0f2a44, orange #ff6b1a). Bright orange
-  // fails white-on-4.5:1, so the accent is the darker burnt
-  // orange #c2410c; the dark-mode header is the orange, the
-  // light-mode header the navy.
-  "orange-blue": theme(
-    "orange-blue",
-    "Orange/Blue",
-    "Navy blue header with a burnt-orange accent.",
+  // Orange: a burnt-orange accent with an orange header in both
+  // modes (the old Orange/Blue had a navy light-mode header).
+  // Bright orange fails white-on-4.5:1, so the accent is the
+  // darker burnt orange #c2410c; cream on it is 4.90:1, so the
+  // light-mode header text stays cream.
+  orange: theme(
+    "orange",
+    "Orange",
+    "A burnt-orange accent with an orange header.",
     "#c2410c", "#9a3412", "#7c2d12",
     "#9a3412", "#fdba74",
-    "#0f2a44", "#c2410c", "#fdba74",
+    "#c2410c", "#c2410c", "#fdba74",
   ),
   // Yellow: a warm yellow, clearly distinct from the other seven.
   // White on bright yellow fails, so the accent is the dark gold
@@ -260,7 +286,10 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
   // block (app/globals.css) overrides --nav-fg the same way, and
   // sets --plum-deep to a dark gold — --plum-deep carries white
   // text (chat head, table headers, back-to-top), which fails on
-  // bright yellow.
+  // bright yellow. The picker swatch is the bright header yellow
+  // (#eab308), not the dark-gold accent — the accent reads as
+  // brown/gold in the picker, so the swatch shows the header
+  // colour (passed as the swatch argument, after navFgLight).
   yellow: theme(
     "yellow",
     "Yellow",
@@ -269,6 +298,7 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     "#854d0e", "#fde047",
     "#eab308", "#a16207", "#fde047",
     "#1a0f16",
+    "#eab308",
   ),
 };
 
@@ -456,7 +486,7 @@ export function parsePreferences(input: unknown): PersonalizationPreferences {
       : obj.voicePitch
     : DEFAULT_PREFERENCES.voicePitch;
   return {
-    theme: isThemeId(obj.theme) ? obj.theme : DEFAULT_PREFERENCES.theme,
+    theme: resolveThemeId(obj.theme) ?? DEFAULT_PREFERENCES.theme,
     fontPairing: isFontPairingId(obj.fontPairing)
       ? obj.fontPairing
       : DEFAULT_PREFERENCES.fontPairing,
@@ -495,7 +525,7 @@ export function validatePreferencesStrict(input: unknown): {
       ? (input as Record<string, unknown>)
       : {};
   const errors: string[] = [];
-  if (obj.theme !== undefined && !isThemeId(obj.theme)) {
+  if (obj.theme !== undefined && resolveThemeId(obj.theme) === null) {
     errors.push(`Unknown theme: ${String(obj.theme)}`);
   }
   if (obj.fontPairing !== undefined && !isFontPairingId(obj.fontPairing)) {
@@ -651,4 +681,4 @@ export function applyPreferences(prefs: PersonalizationPreferences): void {
 // value against the allowlists inline (never trust stored input) and
 // falls back to the defaults on any failure. The coordinator renders
 // it via <PersonalizationScript /> — see PERSONALIZATION.md.
-export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(["plum","rose","teal","forest","navy","purple","orange-blue","yellow"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"],purple:[\"#3b0764\",\"#7c3aed\"],\"orange-blue\":[\"#0f2a44\",\"#c2410c\"],yellow:[\"#eab308\",\"#a16207\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;
+export const PERSONALIZATION_PREPAINT_SCRIPT = `(function(){try{var d=${JSON.stringify(DEFAULT_PREFERENCES)};var raw=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(raw){try{var p=JSON.parse(raw);if(p&&typeof p==="object"){if(p.theme==="orange-blue")p.theme="orange";if(["plum","rose","teal","forest","navy","purple","orange","yellow"].indexOf(p.theme)>=0)d.theme=p.theme;if(["classic","clean","readable"].indexOf(p.fontPairing)>=0)d.fontPairing=p.fontPairing;if(["small","medium","large"].indexOf(p.fontSize)>=0)d.fontSize=p.fontSize;if(typeof p.highContrast==="boolean")d.highContrast=p.highContrast;if(typeof p.reduceMotion==="boolean")d.reduceMotion=p.reduceMotion;if(typeof p.largerText==="boolean")d.largerText=p.largerText;}}catch(e){}}var el=document.documentElement;el.setAttribute("data-personalization-theme",d.theme);el.setAttribute("data-font-pairing",d.fontPairing);el.setAttribute("data-font-size",d.fontSize);el.setAttribute("data-high-contrast",String(d.highContrast));el.setAttribute("data-reduce-motion",String(d.reduceMotion));el.setAttribute("data-larger-text",String(d.largerText));var dark=el.getAttribute(\"data-theme\")===\"dark\";var tc={plum:[\"#3d2433\",\"#a05a66\"],rose:[\"#4a1524\",\"#9c3d54\"],teal:[\"#0b3d3a\",\"#0f766e\"],forest:[\"#0f2e1d\",\"#166534\"],navy:[\"#101f33\",\"#1e3a5f\"],purple:[\"#3b0764\",\"#7c3aed\"],orange:[\"#c2410c\",\"#c2410c\"],yellow:[\"#eab308\",\"#a16207\"]};var c=(tc[d.theme]||tc.plum)[dark?1:0];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute(\"content\",c);}catch(e){}})();`;

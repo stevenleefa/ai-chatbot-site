@@ -13,7 +13,7 @@ import PersonalizationSettings, {
   OTHER_VOICE_PLACEHOLDER_TEXT,
   OTHER_VOICE_PLACEHOLDER_VALUE,
 } from "@/components/PersonalizationSettings";
-import { STORAGE_KEY } from "@/lib/personalization";
+import { STORAGE_KEY, THEMES, THEME_IDS } from "@/lib/personalization";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -52,7 +52,7 @@ describe("PersonalizationSettings", () => {
       "Forest",
       "Navy",
       "Purple",
-      "Orange/Blue",
+      "Orange",
       "Yellow",
     ]) {
       expect(screen.getByRole("radio", { name })).toBeInTheDocument();
@@ -93,12 +93,12 @@ describe("PersonalizationSettings", () => {
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toContain('"theme":"yellow"');
     expect(screen.getByRole("radio", { name: "Yellow" })).toBeChecked();
-    fireEvent.click(screen.getByRole("radio", { name: "Orange/Blue" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Orange" }));
     expect(document.documentElement.getAttribute("data-personalization-theme")).toBe(
-      "orange-blue",
+      "orange",
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toContain(
-      '"theme":"orange-blue"',
+      '"theme":"orange"',
     );
   });
 
@@ -109,6 +109,35 @@ describe("PersonalizationSettings", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /High contrast/ }));
     expect(document.documentElement.getAttribute("data-high-contrast")).toBe("true");
     expect(window.localStorage.getItem(STORAGE_KEY)).toContain('"highContrast":true');
+  });
+
+  it("each theme swatch shows its swatch colour — Yellow reads as bright yellow", async () => {
+    // The swatch is the theme's swatch field, not its accent: Yellow's
+    // accent is the dark gold #a16207, but its swatch is the bright
+    // header yellow #eab308, so the Yellow option visibly reads as
+    // yellow in the picker. jsdom normalises the inline style to rgb,
+    // so compare against the rgb form of each swatch colour.
+    const hexToRgb = (hex: string): string => {
+      const h = hex.replace("#", "");
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+    await act(async () => {
+      render(<PersonalizationSettings />);
+    });
+    const swatches = document.querySelectorAll(".theme-swatch");
+    expect(swatches).toHaveLength(THEME_IDS.length);
+    THEME_IDS.forEach((id, i) => {
+      expect((swatches[i] as HTMLElement).style.background).toBe(
+        hexToRgb(THEMES[id].swatch),
+      );
+    });
+    const yellowIndex = THEME_IDS.indexOf("yellow");
+    expect((swatches[yellowIndex] as HTMLElement).style.background).toBe(
+      hexToRgb("#eab308"),
+    );
   });
 
   it("starts from the saved localStorage preferences", async () => {

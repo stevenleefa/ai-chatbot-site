@@ -253,7 +253,7 @@ export default function PersonalizationSettings() {
               />
               <span
                 className="theme-swatch"
-                style={{ background: THEMES[id].accent }}
+                style={{ background: THEMES[id].swatch }}
                 aria-hidden="true"
               />
               {THEMES[id].label}
